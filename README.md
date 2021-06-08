@@ -11,6 +11,8 @@ Reading the book you realize, that Jack has given us detailed material to calcul
 ## Content
 This repository contains a set of back-end functions to calculate all necesary results along the four areas of setting the goal and knowing your status quo, plan your season, track your workouts and adjust when it gets possible (raise) or necessary (lower intensity).
 
+![areas](images/areas.png "Areas")
+
 The four areas come along three levels of precision:
 1. Macrolevel, that defines a season, their goals like some particular race or fitness improvements and planned breaks.
 2. Midilevel, which lays out a plan for each week. How to mix Quality trainings and recovery days into your weekly schedule.
@@ -27,7 +29,14 @@ Every area at each level has its own data, which can be input-, output or calcul
 | Adjust | AdHoc-replanning along fulfillments along plan | AdHoc-replanning along past feelings, gaps (setback), fulfillments along plan | AdHoc-replanning along todays feeling, estimated vdot in last workouts |
 
 ## Two inputs and a dynamic output
+![process](images/process.png "Process")
 
-## Areas
+Basically, the functions work in this order:
+1. You start by telling the system your preferences, goals and what you know about your status quo.
+2. The system lays out a trainings plan. It considers your preferences and the timing of your goals. The planned workouts are initially set with intensities, durations etc.
+3. Execute along the plan and track your workouts. Provide the system before and after each workout with additional information.
+4. The system takes your information, adds the information about gaps (actually, when information is missed) and adjusts your plan accordingly
 
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1")
+## Your routines
+1. Setup 
+
