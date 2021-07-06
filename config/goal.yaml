@@ -1,0 +1,10 @@
+#
+# Goal for the current season.
+# Your goal might be a race at a particular date or overall fitness improvement for the next weeks.
+# As goal, you simply provide by when you'd like to have peak performance during the season
+# and what wunning distance you'd like to have peak performance for.
+# Provide this file to planSeason to ensure corrent timings.
+#
+goal:
+  when: 2021-09-10 # Format is yyyy-mm-dd. The system keeps the last 1/2 week free of training to ensure best performance.
+  distance: 10.0 # km

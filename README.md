@@ -38,7 +38,7 @@ Basically, the functions work in this order:
 4. The system takes your information, adds the information about gaps (actually, when information is missed) and adjusts your plan accordingly
 
 ## Your routines
-This defines the runners routine to work with this functions - actually with an app, that is based on these functions.
+This defines the runners routine to work with these functions - actually with an app, that is based on these functions.
 
 1. One time per season:
    - Setup: Define your profile, goals, preferences for the weekly schedule and planned or known breaks.<br>This is done by editing the according `yaml` files, that you find in the `input` directory. Store the result and have a look into it. As some values like the `HRmax` is a default calculation you can override it if you have some more accurate number. Same applies for the estimated VDOT.
