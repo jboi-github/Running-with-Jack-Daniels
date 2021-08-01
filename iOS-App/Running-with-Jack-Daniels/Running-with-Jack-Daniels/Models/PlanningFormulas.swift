@@ -84,7 +84,7 @@ public func planSeason(
     let tqDays = phases.TQ * 7
     let fqDays = phases.FQ * 7
     
-    print("Days: \(fiDays), \(eqDays), \(tqDays), \(fqDays)")
+    log(msg: "Days: \(fiDays), \(eqDays), \(tqDays), \(fqDays)")
     
     // Lay out phases on dates
     let fiFrom = startDate
@@ -201,8 +201,9 @@ public func nextBestWorkout(
     return workouts
 }
 
-public enum Goal: String {
+public enum Goal: String, Codable, CaseIterable, Identifiable {
     case short800to3000m, mid5kTo15kOrCrossCountry, longMarathon
+    public var id: String {self.rawValue}
 }
 
 public struct WorkoutStep {

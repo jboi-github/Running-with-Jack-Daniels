@@ -14,22 +14,76 @@ class GpsLocationReceiver: ObservableObject {
     /// Access shared instance of this singleton
     static var sharedInstance = GpsLocationReceiver()
 
+    public struct Velocity {
+        let direction: MKCoordinateSpan // Degrees per second
+        let distanceM: CLLocationDistance
+        let timeInterval: TimeInterval
+        let timestamp: Date
+        
+        init(from: CLLocation, to: CLLocation) {
+            timestamp = to.timestamp
+            timeInterval = to.timestamp.timeIntervalSince(from.timestamp)
+            distanceM = to.distance(from: from)
+            direction = MKCoordinateSpan(
+                latitudeDelta: (to.coordinate.latitude - from.coordinate.latitude) / timeInterval,
+                longitudeDelta: (to.coordinate.longitude - from.coordinate.longitude) / timeInterval)
+        }
+        
+        var paceSecPerKm: TimeInterval {1000.0 * timeInterval / distanceM}
+    }
+    
     /// Indicates, if Receiver is still active.
     @Published public private(set) var receiving: Bool = false
 
     /// Indicates, if Receiver is still active.
     @Published public private(set) var localizedError: String = ""
 
-    /// The data as it was received so far
-    @Published public private(set) var rawPath = [CLLocation]()
-    @Published public private(set) var smoothedPath = [CLLocation]()
-
     /// Current values
-    @Published public private(set) var distanceM = 0.0
-    @Published public private(set) var paceSecPerKm = 0
+    @Published public private(set) var prevLocation: CLLocation? = nil
+    @Published public private(set) var prevVelocity: Velocity? = nil
+    @Published public private(set) var prevDistanceM = 0.0 // Sum of distance since start
+    @Published public private(set) var region = MKCoordinateRegion()
+    
+    /// Current, up to the minute distance
+    public var currentDistanceM: Double {
+        guard let prevVelocity = prevVelocity else {return prevDistanceM}
+        
+        let timeElapsed = Date().timeIntervalSince(prevVelocity.timestamp)
+        let deltaDistanceM = timeElapsed * prevVelocity.distanceM / prevVelocity.timeInterval
+        guard deltaDistanceM.isFinite else {return prevDistanceM}
+        
+        return prevDistanceM + deltaDistanceM
+    }
+    
+    /// Current, up to the minute location
+    public var currentLocation: CLLocation? {
+        guard let prevCoordinate = prevLocation?.coordinate else {return nil}
+        guard let prevDirection = prevVelocity?.direction,
+              let prevTimestamp = prevVelocity?.timestamp else
+        {
+            return prevLocation
+        }
+
+        let timeElapsed = Date().timeIntervalSince(prevTimestamp)
+        let coordinate = CLLocationCoordinate2D(
+            latitude: prevCoordinate.latitude + prevDirection.latitudeDelta * timeElapsed,
+            longitude: prevCoordinate.longitude + prevDirection.longitudeDelta * timeElapsed)
+        
+        return prevLocation?.moveTo(coordinate: coordinate)
+    }
 
     /// Start receiving data. Ignore any values, that have an earlier timestamp
     public func start() {
+        prevLocation = nil
+        prevVelocity = nil
+        prevDistanceM = 0.0
+        region = MKCoordinateRegion()
+        
+        reset()
+    }
+    
+    /// Reset receiving data after error.
+    public func reset() {
         localizedError = ""
         locationManager = CLLocationManager()
         locationManager.delegate = delegate
@@ -48,42 +102,6 @@ class GpsLocationReceiver: ObservableObject {
         receiving = false
     }
     
-    public func save() {
-        print("save \(rawPath.count) path-node(s)")
-
-        let encoder = JSONEncoder()
-        encoder.dataEncodingStrategy = .deferredToData
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        encoder.nonConformingFloatEncodingStrategy = .throw
-        encoder.outputFormatting = .prettyPrinted
-        
-        // Get the data
-        let codablePath = rawPath.map {
-            CodableLocation(
-                timestamp: $0.timestamp,
-                latitude: $0.coordinate.latitude,
-                longitude: $0.coordinate.longitude,
-                accuracy: $0.horizontalAccuracy)
-        }
-        guard let id = Bundle.main.bundleIdentifier else {return}
-        guard let path = FileManager
-                .default
-                .urls(for: .documentDirectory, in: .userDomainMask)
-                .first?
-                .appendingPathComponent(id) else {return}
-
-        do {
-            try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
-            try encoder.encode(codablePath).write(
-                to: path.appendingPathComponent("path", conformingTo: .json),
-                options: [.atomicWrite])
-            print("done")
-        } catch {
-            print(error)
-        }
-    }
-    
     // MARK: Private
     
     private var locationManager: CLLocationManager!
@@ -95,142 +113,104 @@ class GpsLocationReceiver: ObservableObject {
     /// Smooth and add new GPS locations to the current path. Then calculate current pace and distance.
     /// - Parameter locations: new GPS locations to add to the current path.
     private func add(locations: [CLLocation]) {
-        // Add to raw data
-        rawPath += locations
+        guard !locations.isEmpty else {return}
+        let localLocation = locations.last
         
-        // Smooth path
-        locations.forEach {appendSmoothedFoward(raw: $0)}
-        distanceM = sumSmoothedDistance()
-        if let paceSecPerKm = getSmoothedPace() {self.paceSecPerKm = paceSecPerKm}
-    }
-    
-    private func appendSmoothedFoward(raw: CLLocation) {
-        func extrapolate(
-            p1: CLLocationDegrees, p2: CLLocationDegrees,
-            t1: Date, t2: Date, t3: Date) -> CLLocationDegrees
-        {
-            guard t1 != t2 else {return p1}
+        DispatchQueue.global(qos: .utility).async {
+            // Increment cumulated distance
+            var deltaDistance = (1..<locations.count)
+                .map {locations[$0 - 1].distance(from: locations[$0])}
+                .reduce(0.0, +)
+            if let prevLocation = self.prevLocation {deltaDistance += locations[0].distance(from: prevLocation)}
             
-            let distance12 = p2 - p1
-            let deltaT12 = t1.distance(to: t2)
-            let deltaT13 = t1.distance(to: t3)
-            return p1 + (distance12 * deltaT13 / deltaT12)
-        }
-
-        func interpolate(
-            p1: CLLocationDegrees, p2: CLLocationDegrees,
-            distance12: CLLocationDistance, distance13: CLLocationDistance) -> CLLocationDegrees
-        {
-            p1 + (p2 - p1) * distance13 / distance12
-        }
-
-        print(" - Got raw: \(raw.coordinate.latitude), \(raw.coordinate.longitude), \(raw.horizontalAccuracy)")
-        
-        // First location is just added for initial value, velocity = 0
-        if smoothedPath.isEmpty {
-            smoothedPath.append(raw)
-            print(" - was first")
-            return
-        }
-
-        // Predict future position at constant velocity
-        let p = smoothedPath.suffix(2)
-        print(" - p got \(p.count) locs")
-
-        let F = raw.moveTo(
-            coordinate: CLLocationCoordinate2D(
-                latitude: extrapolate(
-                    p1: p.first!.coordinate.latitude, p2: p.last!.coordinate.latitude,
-                    t1: p.first!.timestamp, t2: p.last!.timestamp, t3: raw.timestamp),
-                longitude: extrapolate(
-                    p1: p.first!.coordinate.longitude, p2: p.last!.coordinate.longitude,
-                    t1: p.first!.timestamp, t2: p.last!.timestamp, t3: raw.timestamp)))
-        print(" - F: \(F.coordinate.latitude), \(F.coordinate.longitude), \(F.horizontalAccuracy)")
-
-        // if on path, replace last location with F incl. current timestamp
-        let distanceFR = raw.distance(from: F)
-        if distanceFR <= raw.horizontalAccuracy {
-            print(" - F good enough. Replace last of \(smoothedPath.count) locs.")
-            smoothedPath[smoothedPath.count - 1] = F
-            return
-        }
-        
-        // else, adjust to closest possible location and append
-        // Closest possible location: shortest way from F to raw +- accuracy => minimal steering
-        smoothedPath.append(
-            raw.moveTo(
-                coordinate: CLLocationCoordinate2D(
-                    latitude: interpolate(
-                        p1: raw.coordinate.latitude,
-                        p2: F.coordinate.latitude,
-                        distance12: distanceFR,
-                        distance13: raw.horizontalAccuracy),
-                    longitude: interpolate(
-                        p1: raw.coordinate.longitude,
-                        p2: F.coordinate.longitude,
-                        distance12: distanceFR,
-                        distance13: raw.horizontalAccuracy))))
-        if let last = smoothedPath.last {
-            print(" - Adjusted: \(last.coordinate.latitude), \(last.coordinate.longitude), \(last.horizontalAccuracy)")
-        } else {
-            print(" - Strange: Last loc disappeared???")
-        }
-    }
-    
-    private func sumSmoothedDistance() -> Double {
-        var prev: CLLocation? = nil
-        
-        return smoothedPath
-            .map {
-                let dist = prev != nil ? $0.distance(from: prev!) : 0.0
-                prev = $0
-                return dist
+            // Get Velocity
+            var nextVelocity:Velocity? = nil
+            if let prevLocation = self.prevLocation, locations.count == 1 {
+                // We got one new location and have an old one
+                nextVelocity = Velocity(from: prevLocation, to: locations[0])
+            } else if locations.count >= 2 {
+                // We got many new locations
+                nextVelocity = Velocity(from: locations[locations.count - 2], to: locations[locations.count - 1])
             }
-            .reduce(0.0, +)
+            
+            // Expand region by new locations
+            let region = self.getRegion(locations)
+            
+            // Set published attributes
+            DispatchQueue.main.async {
+                self.prevDistanceM += deltaDistance
+                self.region = region
+                if let nextVelocity = nextVelocity {self.prevVelocity = nextVelocity}
+                self.prevLocation = localLocation
+            }
+        }
     }
     
-    private func getSmoothedPace() -> Int? {
-        let p = smoothedPath.suffix(2)
-        guard p.count == 2, let first = p.first, let last = p.last else {return nil}
+    private func getRegion(_ locations: [CLLocation]) -> MKCoordinateRegion {
+        guard let lastLocation = locations.last,
+              let minLat = locations.map({$0.coordinate.latitude}).min(),
+              let maxLat = locations.map({$0.coordinate.latitude}).max(),
+              let minLon = locations.map({$0.coordinate.longitude}).min(),
+              let maxLon = locations.map({$0.coordinate.longitude}).max()
+        else {return region}
         
-        let distanceKm = last.distance(from: first) / 1000.0
-        let timeIntervalSec = first.timestamp.distance(to: last.timestamp)
-        return Int(timeIntervalSec / distanceKm + 0.5)
+        if prevLocation == nil {
+            return MKCoordinateRegion(
+                center: lastLocation.coordinate,
+                latitudinalMeters: lastLocation.horizontalAccuracy * 2,
+                longitudinalMeters: lastLocation.horizontalAccuracy * 2)
+        } else {
+            let minminLat = min(minLat, region.minLat)
+            let maxmaxLat = max(maxLat, region.maxLat)
+            let minminLon = min(minLon, region.minLon)
+            let maxmaxLon = max(maxLon, region.maxLon)
+
+            return MKCoordinateRegion(
+                center: CLLocationCoordinate2D(
+                    latitude: (minminLat + maxmaxLat) / 2.0,
+                    longitude: (minminLon + maxmaxLon) / 2.0),
+                span: MKCoordinateSpan(
+                    latitudeDelta: (maxmaxLat - minminLat),
+                    longitudeDelta: (maxmaxLon - minminLon)))
+        }
     }
     
+    private func extrapolate(
+        p1: CLLocationDegrees, p2: CLLocationDegrees,
+        t1: Date, t2: Date, t3: Date) -> CLLocationDegrees
+    {
+        guard t1 != t2 else {return p1}
+        
+        let distance12 = p2 - p1
+        let deltaT12 = t1.distance(to: t2)
+        let deltaT13 = t1.distance(to: t3)
+        return p1 + (distance12 * deltaT13 / deltaT12)
+    }
+
     private class Delegate: NSObject, CLLocationManagerDelegate {
         func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-            print("locationManagerDidChangeAuthorization: \(manager.allowsBackgroundLocationUpdates), \(manager.isAuthorizedForWidgetUpdates), \(manager.accuracyAuthorization), \(manager.authorizationStatus)")
+            log(msg: "locationManagerDidChangeAuthorization: \(manager.allowsBackgroundLocationUpdates), \(manager.isAuthorizedForWidgetUpdates), \(manager.accuracyAuthorization), \(manager.authorizationStatus)")
         }
         
         func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-            print("didFailWithError: \(error)")
+            log(msg: "didFailWithError: \(error)")
             manager.stopUpdatingLocation()
             GpsLocationReceiver.sharedInstance.localizedError = error.localizedDescription
             GpsLocationReceiver.sharedInstance.stop()
         }
         
         func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-            print("didUpdateLocations: \(locations.count)")
+            log(msg: "\(locations.count)")
             GpsLocationReceiver.sharedInstance.receiving = true
             GpsLocationReceiver.sharedInstance.add(locations: locations)
         }
         
         func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
-            print("locationManagerDidPauseLocationUpdates")
+            log()
             GpsLocationReceiver.sharedInstance.receiving = false
         }
         
-        func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
-            print("locationManagerDidResumeLocationUpdates")
-        }
-    }
-    
-    private struct CodableLocation: Codable {
-        let timestamp: Date
-        let latitude: CLLocationDegrees
-        let longitude: CLLocationDegrees
-        let accuracy: CLLocationAccuracy
+        func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {log()}
     }
 }
 
@@ -250,4 +230,27 @@ extension CLLocation: Identifiable {
             speedAccuracy: speedAccuracy,
             timestamp: timestamp)
     }
+}
+
+extension CLLocationCoordinate2D: Equatable {
+    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
+        lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
+    }
+}
+
+extension MKCoordinateSpan: Equatable {
+    public static func == (lhs: MKCoordinateSpan, rhs: MKCoordinateSpan) -> Bool {
+        lhs.latitudeDelta == rhs.latitudeDelta && lhs.longitudeDelta == rhs.longitudeDelta
+    }
+}
+
+extension MKCoordinateRegion: Equatable {
+    public static func == (lhs: MKCoordinateRegion, rhs: MKCoordinateRegion) -> Bool {
+        lhs.center == rhs.center && lhs.span == rhs.span
+    }
+    
+    var minLat: CLLocationDegrees {center.latitude - span.latitudeDelta / 2.0}
+    var maxLat: CLLocationDegrees {center.latitude + span.latitudeDelta / 2.0}
+    var minLon: CLLocationDegrees {center.longitude - span.longitudeDelta / 2.0}
+    var maxLon: CLLocationDegrees {center.longitude + span.longitudeDelta / 2.0}
 }

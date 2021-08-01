@@ -14,54 +14,62 @@ public func bmi(weightKg: Double, heightM: Double) -> Double {weightKg / (height
 /// Max Heartate by WINFRIED SPANAUS: (Male: 223 - 0.9 x age), (Female: 226 - 0.9 x age)
 /// - Parameter birthday: Birthday to calculate current age.
 /// - Parameter gender: male or female. This is the biological gender.
-/// - Returns: A rough estimation of max heartrate.
-public func hrMaxBpm(birthday: Date, gender: Gender) -> Int {
+/// - Returns: A rough estimation of max heartrate. `nil`, if gender is `.none`
+public func hrMaxBpm(birthday: Date, gender: Gender) -> Int? {
+    guard gender != .other else {return nil}
+
     let age = Calendar.current.dateComponents([.year], from: birthday, to: Date()).year!
-    return Int((gender == .male ? 223.0 : 226.0) - 0.9 * Double(age) + 0.5)
+    let maxHr = (gender == .male ? 223.0 : 226.0) - 0.9 * Double(age) + 0.5
+    return maxHr.isFinite ? Int(maxHr) : nil
 }
 
 /// Max Heartate by SALLY EDWARDS: (Male: 214 - 0.5 x age - 0.11 x weight), (Female: 210 - 0.5 x age - 0.11 x weight)
 /// - Parameter birthday: Birthday to calculate current age.
 /// - Parameter gender: male or female. This is the biological gender.
 /// - Parameter weightKg: current weight in kg
-/// - Returns: A rough estimation of max heartrate.
-public func hrMaxBpm(birthday: Date, gender: Gender, weightKg: Double) -> Int {
+/// - Returns: A rough estimation of max heartrate. `nil`, if gender is `.none`
+public func hrMaxBpm(birthday: Date, gender: Gender, weightKg: Double) -> Int? {
+    guard gender != .other else {return nil}
+
     let age = Calendar.current.dateComponents([.year], from: birthday, to: Date()).year!
-    return Int((gender == .male ? 214.0 : 210.0) - 0.5 * Double(age) - 0.11 * weightKg + 0.5)
+    let maxHr = (gender == .male ? 214.0 : 210.0) - 0.5 * Double(age) - 0.11 * weightKg + 0.5
+    return maxHr.isFinite ? Int(maxHr) : nil
 }
 
-public func hrLimits(hrMaxBpm: Int, restingHrBpm: Int = 0) -> [Intensity : (lower: Int, upper: Int)] {
+public func hrLimits(hrMaxBpm: Int, restingHrBpm: Int = 0) -> [Intensity : ClosedRange<Int>] {
     Intensity
         .allCases
         .compactMap { (intensity: Intensity) -> (intensity: Intensity, lower: Int, upper: Int)? in
             if let percent = intensity.getHrPercent() {
-                let lower = percent.lower * Double(hrMaxBpm - restingHrBpm) + Double(restingHrBpm)
-                let upper = percent.upper * Double(hrMaxBpm - restingHrBpm) + Double(restingHrBpm)
+                let lower = percent.lowerBound * Double(hrMaxBpm - restingHrBpm) + Double(restingHrBpm)
+                let upper = percent.upperBound * Double(hrMaxBpm - restingHrBpm) + Double(restingHrBpm)
                 return (intensity: intensity, lower: Int(lower + 0.5), upper: Int(upper + 0.5))
             } else {
                 return nil
             }
         }
         .reduce(into: [:]) { dict, item in
-            dict[item.intensity] = (lower: item.lower, upper: item.upper)
+            dict[item.intensity] = (item.lower...item.upper)
         }
 }
 
-public enum Intensity: CaseIterable {
+public enum Intensity: String, CaseIterable, Identifiable, Codable {
     case Easy, Long, Marathon, Threshold, Interval, Repetition, Race
     
-    func getHrPercent() -> (lower: Double, upper: Double)? {
+    public var id: String {rawValue}
+
+    func getHrPercent() -> ClosedRange<Double>? {
         switch self {
         case .Easy:
-            return (lower: 0.65, upper: 0.79)
+            return 0.65...0.80
         case .Long:
-            return (lower: 0.65, upper: 0.79)
+            return 0.65...0.80
         case .Marathon:
-            return (lower: 0.80, upper: 0.90)
+            return 0.80...0.90
         case .Threshold:
-            return (lower: 0.88, upper: 0.92)
+            return 0.88...0.92
         case .Interval:
-            return (lower: 0.98, upper: 1.0)
+            return 0.98...1.0
         case .Repetition:
             return nil
         case .Race:
@@ -69,28 +77,29 @@ public enum Intensity: CaseIterable {
         }
     }
     
-    func getVdotPercent() -> (lower: Double, upper: Double)? {
+    func getVdotPercent() -> ClosedRange<Double> {
         switch self {
         case .Easy:
-            return (lower: 0.59, upper: 0.74)
+            return 0.59...0.74
         case .Long:
-            return (lower: 0.59, upper: 0.74)
+            return 0.59...0.74
         case .Marathon:
-            return (lower: 0.75, upper: 0.84)
+            return 0.75...0.84
         case .Threshold:
-            return (lower: 0.83, upper: 0.88)
+            return 0.83...0.88
         case .Interval:
-            return (lower: 0.95, upper: 1.0)
+            return 0.95...1.0
         case .Repetition:
-            return (lower: 1.05, upper: 1.2)
+            return 1.05...1.2
         case .Race:
-            return (lower: 1.0, upper: 1.0)
+            return 1.0...1.0
         }
     }
 }
 
-public enum Gender {
-    case male, female
+public enum Gender: String, Codable, CaseIterable, Identifiable {
+    case male, female, other
+    public var id: String {self.rawValue}
 }
 
 private let weeksOffAdjustment = [
@@ -113,23 +122,23 @@ private let weeksOffAdjustment = [
 ///   - vdot: vdot as calcuated from recent achievements or estimated from training paces
 ///   - percent: as value betwenn 0..1
 /// - Returns: pace in seconds per km
-public func pace4VdotPercent(vdot: Double, percent: Double) -> Int {
+public func pace4VdotPercent(vdot: Double, percent: Double) -> TimeInterval {
     let vo2 = vdot * percent
     let q = -(vo2 + 4.6) / 0.000104
     let p2 = 0.5 * 0.182258 / 0.000104
     
-    return Int(60000.0 / (-p2 + sqrt(p2*p2 - q)))
+    return 60000.0 / (-p2 + sqrt(p2*p2 - q))
 }
 
 /// Calculate along Jack Daniels/Gilbert vdot.
 /// - Parameters:
 ///   - paceSecPerKm: pace in seconds per km
-///   - percent: as value betwenn 0..1
+///   - percent: as value between 0..1
 /// - Returns: pace in seconds per km
-public func vdot4PacePercent(paceSecPerKm: Int, percent: Double) -> Double {
-    let v = 60000.0 / Double(paceSecPerKm)
+public func vdot4PacePercent(paceSecPerKm: TimeInterval, percent: Double) -> Double {
+    let v = 60000.0 / paceSecPerKm
     let vo2 = -4.60 + 0.182258 * v + 0.000104 * v * v
-    
+
     return vo2 / percent
 }
 
@@ -138,7 +147,7 @@ public func vdot4PacePercent(paceSecPerKm: Int, percent: Double) -> Double {
 ///   - distanceM: distance in meter
 ///   - timeSec: time in seconds
 /// - Returns: vdot from distance and time
-public func vdot4DistTime(distanceM: Int, timeSec: Int) -> Double {
+public func vdot4DistTime(distanceM: Double, timeSec: TimeInterval) -> Double {
     let timeMinD = Double(timeSec) / 60.0
     let v = Double(distanceM) / timeMinD
     
@@ -169,11 +178,11 @@ public func dist4VdotTime(vdot: Double, timeSec: Int) -> Int {
 ///   - vdot: vdot as calcuated from recent achievements or estimated from training paces
 ///   - distanceM: distance in meter
 /// - Returns: time in seconds for given distance and vdot
-public func time4VdotDist(vdot: Double, distanceM: Int) -> Int {
+public func time4VdotDist(vdot: Double, distanceM: Double) -> TimeInterval {
     // Define starting point
     var lowerTime = distanceM * pace4VdotPercent(vdot: vdot, percent: 2.0) / 1000 - 1 // @ 200%
     var upperTime = distanceM * pace4VdotPercent(vdot: vdot, percent: 0.5) / 1000 + 1 // @ 50%, which is < Easy
-    var midTime: Int {(lowerTime + upperTime) / 2}
+    var midTime: TimeInterval {(lowerTime + upperTime) / 2}
     
     // Define approach constant
     let epsilon = 0.05
@@ -198,36 +207,36 @@ public func time4VdotDist(vdot: Double, distanceM: Int) -> Int {
 ///   - vdot: vdot as estimated or calculated.
 ///   - distanceM: distance of the race in meter.
 /// - Returns: time in seconds for the full distance of the race.
-public func planRace(vdot: Double, distanceM: Int) -> Int {
+public func planRace(vdot: Double, distanceM: Double) -> TimeInterval {
     time4VdotDist(vdot: vdot, distanceM: distanceM)
 }
 
 /// Get all paces for a training.
 /// - Parameter vdot: vdot as estimated or calculated.
 /// - Returns: for each intensity the lower and upper pace limit in seconds per km.
-public func planTraining(vdot: Double) -> [Intensity : (lower: Int, upper: Int)] {
-    let pEasy = Intensity.Easy.getVdotPercent()!
-    let pLong = Intensity.Long.getVdotPercent()!
-    let pThreshold = Intensity.Threshold.getVdotPercent()!
-    let pInterval = Intensity.Interval.getVdotPercent()!
-    let pRepetitions = Intensity.Repetition.getVdotPercent()!
+public func planTraining(vdot: Double) -> [Intensity : (lower: TimeInterval, upper: TimeInterval)] {
+    let pEasy = Intensity.Easy.getVdotPercent()
+    let pLong = Intensity.Long.getVdotPercent()
+    let pThreshold = Intensity.Threshold.getVdotPercent()
+    let pInterval = Intensity.Interval.getVdotPercent()
+    let pRepetitions = Intensity.Repetition.getVdotPercent()
 
     return [
         .Easy:(
-            lower: pace4VdotPercent(vdot: vdot, percent: pEasy.lower),
-            upper: pace4VdotPercent(vdot: vdot, percent: pEasy.upper)),
+            lower: pace4VdotPercent(vdot: vdot, percent: pEasy.lowerBound),
+            upper: pace4VdotPercent(vdot: vdot, percent: pEasy.upperBound)),
         .Long:(
-            lower: pace4VdotPercent(vdot: vdot, percent: pLong.lower),
-            upper: pace4VdotPercent(vdot: vdot, percent: pLong.upper)),
+            lower: pace4VdotPercent(vdot: vdot, percent: pLong.lowerBound),
+            upper: pace4VdotPercent(vdot: vdot, percent: pLong.upperBound)),
         .Threshold:(
-            lower: pace4VdotPercent(vdot: vdot, percent: pThreshold.lower),
-            upper: pace4VdotPercent(vdot: vdot, percent: pThreshold.upper)),
+            lower: pace4VdotPercent(vdot: vdot, percent: pThreshold.lowerBound),
+            upper: pace4VdotPercent(vdot: vdot, percent: pThreshold.upperBound)),
         .Interval:(
-            lower: pace4VdotPercent(vdot: vdot, percent: pInterval.lower),
-            upper: pace4VdotPercent(vdot: vdot, percent: pInterval.upper)),
+            lower: pace4VdotPercent(vdot: vdot, percent: pInterval.lowerBound),
+            upper: pace4VdotPercent(vdot: vdot, percent: pInterval.upperBound)),
         .Repetition:(
-            lower: pace4VdotPercent(vdot: vdot, percent: pRepetitions.lower),
-            upper: pace4VdotPercent(vdot: vdot, percent: pRepetitions.upper))
+            lower: pace4VdotPercent(vdot: vdot, percent: pRepetitions.lowerBound),
+            upper: pace4VdotPercent(vdot: vdot, percent: pRepetitions.upperBound))
     ]
 }
 
@@ -237,7 +246,7 @@ public func planTraining(vdot: Double) -> [Intensity : (lower: Int, upper: Int)]
 ///   - hrMaxBpm: Max heartrate in beats per minute.
 ///   - paceSecPerKm: Current pace in seconds per km.
 /// - Returns: vdot, estimated from hr% into vdot% of training intensity and together with pace into vdot. Return nil for any value out of range.
-public func train(hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0, paceSecPerKm: Int) -> Double? {
+public func train(hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0, paceSecPerKm: TimeInterval) -> Double? {
     func hrPercent2vdotPercent(
         hrPercent: Double,
         lowerHrPercent: Double,
@@ -256,28 +265,37 @@ public func train(hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0, paceSecPerKm: 
     
     if let percent = hrPercent2vdotPercent(
         hrPercent: hrPercent,
-        lowerHrPercent: Intensity.Easy.getHrPercent()!.lower,
-        upperHrPercent: Intensity.Easy.getHrPercent()!.upper,
-        lowerVdotPercent: Intensity.Easy.getVdotPercent()!.lower,
-        upperVdotPercent: Intensity.Easy.getVdotPercent()!.upper)
+        lowerHrPercent: Intensity.Easy.getHrPercent()!.lowerBound,
+        upperHrPercent: Intensity.Easy.getHrPercent()!.upperBound,
+        lowerVdotPercent: Intensity.Easy.getVdotPercent().lowerBound,
+        upperVdotPercent: Intensity.Easy.getVdotPercent().upperBound)
     {
         return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: percent)
     }
     if let percent = hrPercent2vdotPercent(
         hrPercent: hrPercent,
-        lowerHrPercent: Intensity.Threshold.getHrPercent()!.lower,
-        upperHrPercent: Intensity.Threshold.getHrPercent()!.upper,
-        lowerVdotPercent: Intensity.Threshold.getVdotPercent()!.lower,
-        upperVdotPercent: Intensity.Threshold.getVdotPercent()!.upper)
+        lowerHrPercent: Intensity.Threshold.getHrPercent()!.lowerBound,
+        upperHrPercent: Intensity.Threshold.getHrPercent()!.upperBound,
+        lowerVdotPercent: Intensity.Threshold.getVdotPercent().lowerBound,
+        upperVdotPercent: Intensity.Threshold.getVdotPercent().upperBound)
     {
         return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: percent)
     }
     if let percent = hrPercent2vdotPercent(
         hrPercent: hrPercent,
-        lowerHrPercent: Intensity.Interval.getHrPercent()!.lower,
-        upperHrPercent: Intensity.Interval.getHrPercent()!.upper,
-        lowerVdotPercent: Intensity.Interval.getVdotPercent()!.lower,
-        upperVdotPercent: Intensity.Interval.getVdotPercent()!.upper)
+        lowerHrPercent: Intensity.Marathon.getHrPercent()!.lowerBound,
+        upperHrPercent: Intensity.Marathon.getHrPercent()!.upperBound,
+        lowerVdotPercent: Intensity.Marathon.getVdotPercent().lowerBound,
+        upperVdotPercent: Intensity.Marathon.getVdotPercent().upperBound)
+    {
+        return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: percent)
+    }
+    if let percent = hrPercent2vdotPercent(
+        hrPercent: hrPercent,
+        lowerHrPercent: Intensity.Interval.getHrPercent()!.lowerBound,
+        upperHrPercent: Intensity.Interval.getHrPercent()!.upperBound,
+        lowerVdotPercent: Intensity.Interval.getVdotPercent().lowerBound,
+        upperVdotPercent: Intensity.Interval.getVdotPercent().upperBound)
     {
         return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: percent)
     }
@@ -289,7 +307,7 @@ public func train(hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0, paceSecPerKm: 
 ///   - distanceM: Meters of distance of the race.
 ///   - timeSec: time achieved in seconds.
 /// - Returns: vdot calculated out of the achieved race time.
-public func vdot4Race(distanceM: Int, timeSec: Int) -> Double {
+public func vdot4Race(distanceM: Double, timeSec: TimeInterval) -> Double {
     return vdot4DistTime(distanceM: distanceM, timeSec: timeSec)
 }
 

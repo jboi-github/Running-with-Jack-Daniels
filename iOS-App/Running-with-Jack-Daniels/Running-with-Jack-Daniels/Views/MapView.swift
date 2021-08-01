@@ -10,66 +10,68 @@ import MapKit
 
 struct MapView: View {
     @State private var coordinateRegion = MKCoordinateRegion()
-    @State private var userTrackingMode = MapUserTrackingMode.follow
+    @State private var userInteraction = false
     @ObservedObject var loc = GpsLocationReceiver.sharedInstance
+    @ObservedObject var workout = WorkoutRecordingModel.sharedInstance
     
+    let colors: [Intensity:Color] = [
+        .Easy: .blue,
+        .Marathon: .green,
+        .Threshold: .yellow,
+        .Interval: .red,
+        .Repetition: .black
+    ]
+
     var body: some View {
-        VStack {
-            ZStack {
-                GeometryReader { proxy in
-                    Map(coordinateRegion: $coordinateRegion,
-                        interactionModes: .all,
-                        showsUserLocation: true,
-                        userTrackingMode: $userTrackingMode.animation(),
-                        annotationItems: Annotation.from(rawPath: loc.rawPath, smoothedPath: loc.smoothedPath))
-                    { annotation in
-                        
-                        MapAnnotation(
-                            coordinate: annotation.location.coordinate,
-                            anchorPoint: CGPoint(x: 0.5, y: 0.5))
-                        {
-                            if annotation.type == .raw {
-                                let size = annotation.size(proxy.size, region: coordinateRegion)
-                                ZStack {
-                                    Circle()
-                                        .foregroundColor(.blue)
-                                        .opacity(0.1)
-                                        .frame(width: size.width, height: size.height)
-                                        .zIndex(1.0)
-                                    Circle()
-                                        .foregroundColor(.blue)
-                                        .frame(width: 3.0, height: 3.0)
-                                        .zIndex(2.0)
-                                }
-                            } else {
-                                Circle()
-                                    .foregroundColor(.red)
-                                    .frame(width: 3.0, height: 3.0)
-                                    .zIndex(3.0)
-                            }
+        ZStack {
+            GeometryReader { proxy in
+                Map(coordinateRegion: $coordinateRegion,
+                    interactionModes: userInteraction ?  .all : MapInteractionModes(),
+                    showsUserLocation: false,
+                    userTrackingMode: .none,
+                    annotationItems: workout.path)
+                { pathItem in
+                    
+                    MapAnnotation(
+                        coordinate: pathItem.coordinate,
+                        anchorPoint: CGPoint(x: 0.5, y: 0.5))
+                    {
+                        let size = size(proxy.size, region: coordinateRegion, location: pathItem)
+                        ZStack {
+                            Circle()
+                                .foregroundColor(getColor(intensity: pathItem.intensity))
+                                .opacity(0.1)
+                                .frame(width: size.width, height: size.height)
+                                .zIndex(1.0)
+                            Circle()
+                                .foregroundColor(getColor(intensity: pathItem.intensity))
+                                .frame(width: 3.0, height: 3.0)
+                                .zIndex(2.0)
                         }
                     }
                 }
-                
-                VStack {
+                .onChange(of: loc.region) { _ in
+                    guard !userInteraction else {return}
+                    
+                    withAnimation {setCoordinateRegion(loc.region)}
+                }
+                .onChange(of: userInteraction) { _ in
+                    if !userInteraction {withAnimation {setCoordinateRegion(loc.region)}}
+                }
+            }
+            
+            VStack {
+                HStack {
                     Spacer()
-                    HStack(alignment: .lastTextBaseline, spacing: 0.0) {
-                        Spacer()
-                        if userTrackingMode == .none {
-                            Button {
-                                withAnimation {
-                                    userTrackingMode = .follow
-                                }
-                            } label: {
-                                Image(systemName: "mappin.and.ellipse")
-                                    .padding()
-                                    .background(Circle().fill().foregroundColor(.white).opacity(0.5))
-                            }
-                        }
-                        Image(systemName: getLocation())
-                            .padding()
-                        Spacer()
-                    }
+                    Text(Image(systemName: getLocation())).font(.caption).padding()
+                }
+                Spacer()
+                HStack {
+                    Spacer()
+                    Toggle(isOn: $userInteraction, label: {EmptyView()})
+                        .labelsHidden()
+                        .toggleStyle(UserInteractionStyle())
+                    Spacer()
                 }
             }
         }
@@ -80,35 +82,59 @@ struct MapView: View {
         if loc.receiving {return "location.fill"}
         return "location"
     }
-}
-
-private enum SmoothedRaw: Int {
-    case raw, smoothed
-}
-
-private struct Annotation: Identifiable {
-    let location: CLLocation
-    let type: SmoothedRaw
     
-    var id: Double {(type == .raw ? 1 : -1) * location.id.timeIntervalSince1970}
-    
-    static func from(rawPath: [CLLocation], smoothedPath: [CLLocation]) -> [Annotation] {
-        rawPath.map {Annotation(location: $0, type: .raw)}
-        + smoothedPath.map {Annotation(location: $0, type: .smoothed)}
+    private func getColor(intensity: Intensity?) -> Color {
+        guard let intensity = intensity else {return .gray}
+        return colors[intensity] ?? .gray
     }
     
-    func size(_ size: CGSize, region: MKCoordinateRegion) -> (width: CGFloat, height: CGFloat) {
+    private func size(_ size: CGSize, region: MKCoordinateRegion, location: WorkoutRecordingModel.PathItem)
+    -> (width: CGFloat, height: CGFloat)
+    {
+        guard region.span.latitudeDelta > 0 && region.span.longitudeDelta > 0 else {return (0, 0)}
+        
         let spanAccuracy = MKCoordinateRegion(
             center: location.coordinate,
-            latitudinalMeters: location.horizontalAccuracy * 2.0,
-            longitudinalMeters: location.horizontalAccuracy * 2.0)
+            latitudinalMeters: location.accuracyM * 2.0,
+            longitudinalMeters: location.accuracyM * 2.0)
             .span
         
-        return (
-            width: size.width * CGFloat(spanAccuracy.latitudeDelta / region.span.latitudeDelta),
-            height: size.height * CGFloat(spanAccuracy.longitudeDelta / region.span.longitudeDelta)
-        )
+        let width = size.width * CGFloat(spanAccuracy.latitudeDelta / region.span.latitudeDelta)
+        let height = size.height * CGFloat(spanAccuracy.longitudeDelta / region.span.longitudeDelta)
+        return (width, height)
     }
+    
+    private func setCoordinateRegion(_ region: MKCoordinateRegion) {
+        coordinateRegion = MKCoordinateRegion(
+            center: region.center,
+            span: MKCoordinateSpan(
+                latitudeDelta: max(0.0045, region.span.latitudeDelta * 1.1),
+                longitudeDelta: max(0.0045, region.span.longitudeDelta * 1.1)))
+    }
+}
+
+private struct UserInteractionStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 0.0) {
+            getImage("mappin.and.ellipse", isOn: !configuration.isOn)
+            getImage("hand.point.up.left", isOn: configuration.isOn)
+        }
+        .clipShape(Capsule())
+        .scaleEffect(0.75)
+        .onTapGesture {configuration.isOn.toggle()}
+    }
+    
+    private func getImage(_ systemName: String, isOn: Bool) -> some View {
+        Text(Image(systemName: systemName))
+            .font(.body)
+            .foregroundColor(.accentColor)
+            .padding()
+            .background(Color.primary.opacity(isOn ? 0.75 : 0.5))
+    }
+}
+
+extension MKCoordinateRegion {
+    var area: Double {span.latitudeDelta * span.longitudeDelta}
 }
 
 struct MapView_Previews: PreviewProvider {

@@ -65,8 +65,8 @@ class Running_with_Jack_DanielsTests: XCTestCase {
         
         XCTAssertEqual(limits.count, expected.count, "HR limits")
         expected.forEach { (key: Intensity, value: (lower: Int, upper: Int)) in
-            XCTAssertEqual(limits[key]?.lower, value.lower, "\(key) lower")
-            XCTAssertEqual(limits[key]?.upper, value.upper, "\(key) upper")
+            XCTAssertEqual(limits[key]?.lowerBound, value.lower, "\(key) lower")
+            XCTAssertEqual(limits[key]?.upperBound, value.upper, "\(key) upper")
         }
     }
     
@@ -87,7 +87,7 @@ class Running_with_Jack_DanielsTests: XCTestCase {
         
         let pace = pace4VdotPercent(vdot: vdot, percent: percent)
         XCTAssertEqual(pace, 413, "pace")
-        XCTAssertEqual(vdot, vdot4PacePercent(paceSecPerKm: pace, percent: percent), accuracy: 0.1, "vdot - percent - pace")
+        XCTAssertEqual(vdot, vdot4PacePercent(paceSecPerKm: TimeInterval(pace), percent: percent), accuracy: 0.1, "vdot - percent - pace")
     }
 
     func testPlanTraining() throws {
@@ -128,12 +128,13 @@ class Running_with_Jack_DanielsTests: XCTestCase {
     
     func testTrain() throws {
         let hrMax = 176
-        let hr = 139
-        let vdot = train(hrBpm: hr, hrMaxBpm: hrMax, paceSecPerKm: 360)
+        let hr = 155
+        let vdot = train(hrBpm: hr, hrMaxBpm: hrMax, restingBpm: 40,
+                         paceSecPerKm: 3600.0 / 9.2)
 
         XCTAssertNotNil(vdot, "train")
         print(Double(hr) / Double(hrMax), vdot!)
-        XCTAssertEqual(vdot!, 39.0, accuracy: 0.5, "train")
+        XCTAssertEqual(vdot!, 32.5, accuracy: 0.5, "train")
     }
     
     func testPlanSeason() throws {

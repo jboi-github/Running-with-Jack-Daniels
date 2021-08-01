@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>I&apos;d like to use Health as privacy conform storage, instead of fiddeling with any databases.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Need to connect to Mi Band via Bluetooth to track HR during trainings.</string>
 	<key>CFBundleDevelopmentRegion</key>
