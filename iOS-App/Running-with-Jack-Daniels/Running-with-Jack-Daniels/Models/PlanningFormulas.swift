@@ -84,7 +84,7 @@ public func planSeason(
     let tqDays = phases.TQ * 7
     let fqDays = phases.FQ * 7
     
-    log(msg: "Days: \(fiDays), \(eqDays), \(tqDays), \(fqDays)")
+    log("Days: \(fiDays), \(eqDays), \(tqDays), \(fqDays)")
     
     // Lay out phases on dates
     let fiFrom = startDate

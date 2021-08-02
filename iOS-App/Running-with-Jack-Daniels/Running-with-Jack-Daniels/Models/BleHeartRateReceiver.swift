@@ -41,7 +41,7 @@ public class BleHeartRateReceiver: ObservableObject {
     private init() {}
 
     private static func check(_ error: Error?) {
-        guard Running_with_Jack_Daniels.check(error) else {return}
+        guard !Running_with_Jack_Daniels.check(error) else {return}
         
         BleHeartRateReceiver.sharedInstance.stop()
         DispatchQueue.main.async {
@@ -67,20 +67,20 @@ public class BleHeartRateReceiver: ObservableObject {
         func centralManagerDidUpdateState(_ central: CBCentralManager) {
             switch central.state {
             case .unknown:
-                log(msg: "State: unknown. Is scanning: \(central.isScanning)")
+                log("unknown. Is scanning: \(central.isScanning)")
             case .resetting:
-                log(msg: "State: resetting. Is scanning: \(central.isScanning)")
+                log("resetting. Is scanning: \(central.isScanning)")
             case .unsupported:
-                log(msg: "State: unsupported. Is scanning: \(central.isScanning)")
+                log("unsupported. Is scanning: \(central.isScanning)")
             case .unauthorized:
-                log(msg: "State: unauthorized. Is scanning: \(central.isScanning)")
+                log("unauthorized. Is scanning: \(central.isScanning)")
             case .poweredOff:
-                log(msg: "State: powered off. Is scanning: \(central.isScanning)")
+                log("powered off. Is scanning: \(central.isScanning)")
             case .poweredOn:
-                log(msg: "State: powered on. Initiate scanning...")
+                log("powered on. Initiate scanning...")
                 central.scanForPeripherals(withServices: BleHeartRateReceiver.servicesCBUUID)
             @unknown default:
-                log(msg: "For future use and the future is already here")
+                log("For future use and the future is already here")
             }
         }
         
@@ -90,9 +90,9 @@ public class BleHeartRateReceiver: ObservableObject {
             advertisementData: [String : Any],
             rssi RSSI: NSNumber)
         {
-            log(msg: "didDiscover peripheral \"\(peripheral.name ?? "no-name")\". Signal strength: \(RSSI)")
+            log("\"\(peripheral.name ?? "no-name")\". Signal strength: \(RSSI)")
             advertisementData.forEach { (key: String, value: Any) in
-                log(msg: "\t\(key): \(value)")
+                log("\t\(key): \(value)")
             }
             
             peripheral.delegate = BleHeartRateReceiver.sharedInstance.peripheralDelegate
@@ -114,7 +114,7 @@ public class BleHeartRateReceiver: ObservableObject {
             didDisconnectPeripheral peripheral: CBPeripheral,
             error: Error?)
         {
-            log(msg: "didDisconnectPeripheral: \(peripheral.name ?? "no-name")")
+            log("\(peripheral.name ?? "no-name")")
             BleHeartRateReceiver.check(error)
             DispatchQueue.main.async {
                 BleHeartRateReceiver.sharedInstance.receiving = false
@@ -126,7 +126,7 @@ public class BleHeartRateReceiver: ObservableObject {
             didFailToConnect peripheral: CBPeripheral,
             error: Error?)
         {
-            log(msg: "didFailToConnect: \(peripheral.name ?? "no-name")")
+            log("\(peripheral.name ?? "no-name")")
             BleHeartRateReceiver.check(error)
         }
         
@@ -135,14 +135,14 @@ public class BleHeartRateReceiver: ObservableObject {
             connectionEventDidOccur event: CBConnectionEvent,
             for peripheral: CBPeripheral)
         {
-            log(msg: "connectionEventDidOccur: \(peripheral.name ?? "no-name")")
+            log("\(peripheral.name ?? "no-name")")
             switch event {
             case .peerDisconnected:
-                log(msg: "peerDisconnected")
+                log("peerDisconnected")
             case .peerConnected:
-                log(msg: "peerConnected")
+                log("peerConnected")
             @unknown default:
-                log(msg: "For future use and the future is already here")
+                log("For future use and the future is already here")
             }
         }
         
@@ -150,18 +150,18 @@ public class BleHeartRateReceiver: ObservableObject {
             _ central: CBCentralManager,
             didUpdateANCSAuthorizationFor peripheral: CBPeripheral)
         {
-            log(msg: "didUpdateANCSAuthorizationFor: \(peripheral.name ?? "no-name") to \(peripheral.ancsAuthorized)")
+            log("\(peripheral.name ?? "no-name") to \(peripheral.ancsAuthorized)")
         }
     }
     
     private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-            log(msg: "didDiscoverServices: \(peripheral.name ?? "no-name")")
+            log("\(peripheral.name ?? "no-name")")
             
             guard Running_with_Jack_Daniels.check(error) else {return}
             
             guard let services = peripheral.services else {
-                log(msg: "no services discovered")
+                log("no services discovered")
                 return
             }
             
@@ -173,7 +173,7 @@ public class BleHeartRateReceiver: ObservableObject {
             didDiscoverIncludedServicesFor service: CBService,
             error: Error?)
         {
-            log(msg: "didDiscoverIncludedServicesFor: \(peripheral.name ?? "no-name")")
+            log("\(peripheral.name ?? "no-name")")
             BleHeartRateReceiver.check(error)
         }
         
@@ -182,12 +182,12 @@ public class BleHeartRateReceiver: ObservableObject {
             didDiscoverCharacteristicsFor service: CBService,
             error: Error?)
         {
-            log(msg: "didDiscoverCharacteristicsFor: \(peripheral.name ?? "no-name") -> service: \(service.uuid)")
+            log("\(peripheral.name ?? "no-name") -> service: \(service.uuid)")
 
             guard Running_with_Jack_Daniels.check(error) else {return}
             
             service.characteristics?.forEach {
-                log(msg: "\t\($0)")
+                log("\t\($0)")
                 [
                     "authenticatedSignedWrites": $0.properties.contains(.authenticatedSignedWrites),
                     "broadcast": $0.properties.contains(.broadcast),
@@ -201,7 +201,7 @@ public class BleHeartRateReceiver: ObservableObject {
                     "writeWithoutResponse": $0.properties.contains(.writeWithoutResponse)
                 ]
                 .filter {$0.value}
-                .forEach {log(msg: "\t\t\($0.key)")}
+                .forEach {log("\t\t\($0.key)")}
             }
 
             // Let's finally get notifications from the first peripheral with
@@ -225,8 +225,8 @@ public class BleHeartRateReceiver: ObservableObject {
             didDiscoverDescriptorsFor characteristic: CBCharacteristic,
             error: Error?)
         {
-            log(msg: "didDiscoverDescriptorsFor: \(peripheral.name ?? "no-name") -> characteristic: \(characteristic.description)")
-            characteristic.descriptors?.forEach {log(msg: "\t\($0)")}
+            log("\(peripheral.name ?? "no-name") -> characteristic: \(characteristic.description)")
+            characteristic.descriptors?.forEach {log("\t\($0)")}
         }
         
         func peripheral(
@@ -234,7 +234,7 @@ public class BleHeartRateReceiver: ObservableObject {
             didUpdateValueFor characteristic: CBCharacteristic,
             error: Error?)
         {
-            log(msg: "didUpdateValueFor: \(peripheral.name ?? "no-name") -> characteristic: \(characteristic.uuid)")
+            log("\(peripheral.name ?? "no-name") -> characteristic: \(characteristic.uuid)")
             BleHeartRateReceiver.check(error)
             
             guard let heartRate = heartRate(from: characteristic) else {return}
@@ -249,7 +249,7 @@ public class BleHeartRateReceiver: ObservableObject {
             didUpdateValueFor descriptor: CBDescriptor,
             error: Error?)
         {
-            log(msg: "didUpdateValueFor: \(peripheral.name ?? "no-name") -> descriptor: \(descriptor)")
+            log("\(peripheral.name ?? "no-name") -> descriptor: \(descriptor)")
             BleHeartRateReceiver.check(error)
         }
         
@@ -258,7 +258,7 @@ public class BleHeartRateReceiver: ObservableObject {
             didWriteValueFor characteristic: CBCharacteristic,
             error: Error?)
         {
-            log(msg: "didWriteValueFor: \(peripheral.name ?? "no-name") -> characteristic: \(characteristic.uuid)")
+            log("\(peripheral.name ?? "no-name") -> characteristic: \(characteristic.uuid)")
             BleHeartRateReceiver.check(error)
         }
         
@@ -267,12 +267,12 @@ public class BleHeartRateReceiver: ObservableObject {
             didWriteValueFor descriptor: CBDescriptor,
             error: Error?)
         {
-            log(msg: "didWriteValueFor: \(peripheral.name ?? "no-name") -> descriptor: \(descriptor)")
+            log("\(peripheral.name ?? "no-name") -> descriptor: \(descriptor)")
             BleHeartRateReceiver.check(error)
         }
         
         func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
-            log(msg: "peripheralIsReadytoSendWriteWithoutResponse: \(peripheral.name ?? "no-name")")
+            log("\(peripheral.name ?? "no-name")")
         }
         
         func peripheral(
@@ -280,7 +280,7 @@ public class BleHeartRateReceiver: ObservableObject {
             didUpdateNotificationStateFor characteristic: CBCharacteristic,
             error: Error?)
         {
-            log(msg: "didUpdateNotificationStateFor: \(peripheral.name ?? "no-name") -> characteristic: \(characteristic.uuid) to \(characteristic.isNotifying)")
+            log("\(peripheral.name ?? "no-name") -> characteristic: \(characteristic.uuid) to \(characteristic.isNotifying)")
             BleHeartRateReceiver.check(error)
         }
         
@@ -289,19 +289,19 @@ public class BleHeartRateReceiver: ObservableObject {
             didReadRSSI RSSI: NSNumber,
             error: Error?)
         {
-            log(msg: "didReadRSSI: \(peripheral.name ?? "no-name") -> RSSI: \(RSSI)")
+            log("\(peripheral.name ?? "no-name") -> RSSI: \(RSSI)")
             BleHeartRateReceiver.check(error)
         }
         
         func peripheralDidUpdateName(_ peripheral: CBPeripheral) {
-            log(msg: "peripheralDidUpdateName: \(peripheral.name ?? "no-name")")
+            log("\(peripheral.name ?? "no-name")")
         }
         
         func peripheral(
             _ peripheral: CBPeripheral,
             didModifyServices invalidatedServices: [CBService])
         {
-            log(msg: "didModifyServices: \(peripheral.name ?? "no-name") -> invalidated: \(invalidatedServices.map {$0.uuid})")
+            log("\(peripheral.name ?? "no-name") -> invalidated: \(invalidatedServices.map {$0.uuid})")
             
             let invalidationFatal = invalidatedServices
                 .contains {$0.uuid == BleHeartRateReceiver.heartRateServiceCBUUID}
@@ -313,7 +313,7 @@ public class BleHeartRateReceiver: ObservableObject {
             didOpen channel: CBL2CAPChannel?,
             error: Error?)
         {
-            log(msg: "didOpen channel: \(peripheral.name ?? "no-name")")
+            log("\(peripheral.name ?? "no-name")")
             BleHeartRateReceiver.check(error)
         }
         

@@ -82,7 +82,7 @@ class HealthKitModel {
         value: Double, when: Date = Date(),
         succeeded: @escaping () -> Void)
     {
-        log(msg: forFunc)
+        log(forFunc)
         guard let type = HKObjectType.quantityType(forIdentifier: typeId) else {return}
         
         authorized { success in
@@ -94,7 +94,7 @@ class HealthKitModel {
                 start: when, end: when)
             
             healthStore.save(sample) { success, error in
-                log(msg: "\(forFunc) successfully shared \(value): \(success ? "Yes" : "No")")
+                log("\(forFunc) successfully shared \(value): \(success ? "Yes" : "No")")
                 if success {succeeded()}
                 _ = check(error)
             }
@@ -133,7 +133,7 @@ class HealthKitModel {
             toShare: HealthKitModel.typesToWrite,
             read: HealthKitModel.typesToRead)
         { success, error in
-            log(msg: "requestAuthorization: \(success)")
+            log("\(success)")
             _ = check(error)
             
             completion(success)
@@ -145,7 +145,7 @@ class HealthKitModel {
         _ completion: ((V?, Error?) -> Void)? = nil,
         getValue: @escaping (HKHealthStore) throws -> V)
     {
-        log(msg: forFunc)
+        log(forFunc)
         authorized { success in
             guard success, let healthStore = self.healthStore else {return}
             

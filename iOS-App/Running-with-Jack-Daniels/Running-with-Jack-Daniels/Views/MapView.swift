@@ -11,6 +11,7 @@ import MapKit
 struct MapView: View {
     @State private var coordinateRegion = MKCoordinateRegion()
     @State private var userInteraction = false
+    @State private var animate = false
     @ObservedObject var loc = GpsLocationReceiver.sharedInstance
     @ObservedObject var workout = WorkoutRecordingModel.sharedInstance
     
@@ -37,23 +38,32 @@ struct MapView: View {
                         anchorPoint: CGPoint(x: 0.5, y: 0.5))
                     {
                         let size = size(proxy.size, region: coordinateRegion, location: pathItem)
+                        
                         ZStack {
                             Circle()
-                                .foregroundColor(getColor(intensity: pathItem.intensity))
+                                .fill(getColor(intensity: pathItem.intensity))
                                 .opacity(0.1)
                                 .frame(width: size.width, height: size.height)
-                                .zIndex(1.0)
+                                .zIndex(1)
                             Circle()
-                                .foregroundColor(getColor(intensity: pathItem.intensity))
-                                .frame(width: 3.0, height: 3.0)
-                                .zIndex(2.0)
+                                .fill(getColor(intensity: pathItem.intensity))
+                                .frame(width: 3, height: 3)
+                                .zIndex(2)
+                            
+                            if pathItem.id == workout.path.last?.id {
+                                Circle()
+                                    .fill(getColor(intensity: pathItem.intensity))
+                                    .opacity(animate ? 1 : 0)
+                                    .frame(width: size.width, height: size.height)
+                                    .animation(.default.repeatForever(autoreverses: true))
+                                    .onAppear {animate.toggle()}
+                                    .zIndex(3)
+                            }
                         }
                     }
                 }
                 .onChange(of: loc.region) { _ in
-                    guard !userInteraction else {return}
-                    
-                    withAnimation {setCoordinateRegion(loc.region)}
+                    if !userInteraction {withAnimation {setCoordinateRegion(loc.region)}}
                 }
                 .onChange(of: userInteraction) { _ in
                     if !userInteraction {withAnimation {setCoordinateRegion(loc.region)}}
@@ -131,10 +141,6 @@ private struct UserInteractionStyle: ToggleStyle {
             .padding()
             .background(Color.primary.opacity(isOn ? 0.75 : 0.5))
     }
-}
-
-extension MKCoordinateRegion {
-    var area: Double {span.latitudeDelta * span.longitudeDelta}
 }
 
 struct MapView_Previews: PreviewProvider {

@@ -41,12 +41,6 @@ struct RunView: View {
             UIApplication.shared.isIdleTimerDisabled = false
         }
     }
-    
-    private func getHeart() -> String {
-        guard hr.localizedError == "" else {return "heart.slash"}
-        if hr.receiving {return "heart.fill"}
-        return "heart"
-    }
 }
 
 private struct ErrorView: View {

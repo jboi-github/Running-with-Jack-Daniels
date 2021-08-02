@@ -57,7 +57,6 @@ struct PlanView: View {
         .padding()
         .onAppear {Database.sharedInstance.onAppear()}
         .onDisappear {Database.sharedInstance.onDisappear()}
-        .animation(.default)
     }
 }
 

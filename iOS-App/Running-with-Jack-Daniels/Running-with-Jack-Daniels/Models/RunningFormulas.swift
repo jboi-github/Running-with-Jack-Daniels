@@ -162,7 +162,7 @@ public func vdot4DistTime(distanceM: Double, timeSec: TimeInterval) -> Double {
 ///   - vdot: vdot as calcuated from recent achievements or estimated from training paces
 ///   - timeSec: time in seconds
 /// - Returns: distance for vdot and time in meter
-public func dist4VdotTime(vdot: Double, timeSec: Int) -> Int {
+public func dist4VdotTime(vdot: Double, timeSec: TimeInterval) -> Double {
     let timeMinD = Double(timeSec) / 60.0
     let percent = 0.8 + 0.1894393 * exp(-0.012778 * timeMinD) + 0.2989558 * exp(-0.1932605 * timeMinD)
     
@@ -170,7 +170,7 @@ public func dist4VdotTime(vdot: Double, timeSec: Int) -> Int {
     let q = -(vo2 + 4.6) / 0.000104
     let p2 = 0.5 * 0.182258 / 0.000104
     
-    return Int((-p2 + sqrt(p2*p2 - q)) * timeMinD)
+    return (-p2 + sqrt(p2*p2 - q)) * timeMinD
 }
 
 /// Calculate along Jack Daniels/Gilbert vdot.

@@ -39,7 +39,3 @@ struct NavigationView_Previews: PreviewProvider {
         NaviView()
     }
 }
-
-extension View {
-    var anyview: AnyView {AnyView(self)}
-}

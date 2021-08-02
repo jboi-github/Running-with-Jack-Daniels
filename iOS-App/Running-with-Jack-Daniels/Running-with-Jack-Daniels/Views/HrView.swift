@@ -32,7 +32,8 @@ struct HrView: View {
         return "heart"
     }
 }
-struct HrViewContent: View {
+
+private struct HrViewContent: View {
     let limits: [Intensity : ClosedRange<Int>]
     let heartrate: Int?
     

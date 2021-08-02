@@ -175,32 +175,20 @@ class GpsLocationReceiver: ObservableObject {
         }
     }
     
-    private func extrapolate(
-        p1: CLLocationDegrees, p2: CLLocationDegrees,
-        t1: Date, t2: Date, t3: Date) -> CLLocationDegrees
-    {
-        guard t1 != t2 else {return p1}
-        
-        let distance12 = p2 - p1
-        let deltaT12 = t1.distance(to: t2)
-        let deltaT13 = t1.distance(to: t3)
-        return p1 + (distance12 * deltaT13 / deltaT12)
-    }
-
     private class Delegate: NSObject, CLLocationManagerDelegate {
         func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-            log(msg: "locationManagerDidChangeAuthorization: \(manager.allowsBackgroundLocationUpdates), \(manager.isAuthorizedForWidgetUpdates), \(manager.accuracyAuthorization), \(manager.authorizationStatus)")
+            log("\(manager.allowsBackgroundLocationUpdates), \(manager.isAuthorizedForWidgetUpdates), \(manager.accuracyAuthorization), \(manager.authorizationStatus)")
         }
         
         func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-            log(msg: "didFailWithError: \(error)")
+            _ = check(error)
             manager.stopUpdatingLocation()
             GpsLocationReceiver.sharedInstance.localizedError = error.localizedDescription
             GpsLocationReceiver.sharedInstance.stop()
         }
         
         func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-            log(msg: "\(locations.count)")
+            log("\(locations.count)")
             GpsLocationReceiver.sharedInstance.receiving = true
             GpsLocationReceiver.sharedInstance.add(locations: locations)
         }
@@ -214,9 +202,7 @@ class GpsLocationReceiver: ObservableObject {
     }
 }
 
-extension CLLocation: Identifiable {
-    public var id: Date {timestamp}
-    
+extension CLLocation {
     /// Create copy with all fields copied over but moved to given location.
     func moveTo(coordinate: CLLocationCoordinate2D) -> CLLocation {
         CLLocation(
@@ -232,23 +218,7 @@ extension CLLocation: Identifiable {
     }
 }
 
-extension CLLocationCoordinate2D: Equatable {
-    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
-        lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
-    }
-}
-
-extension MKCoordinateSpan: Equatable {
-    public static func == (lhs: MKCoordinateSpan, rhs: MKCoordinateSpan) -> Bool {
-        lhs.latitudeDelta == rhs.latitudeDelta && lhs.longitudeDelta == rhs.longitudeDelta
-    }
-}
-
-extension MKCoordinateRegion: Equatable {
-    public static func == (lhs: MKCoordinateRegion, rhs: MKCoordinateRegion) -> Bool {
-        lhs.center == rhs.center && lhs.span == rhs.span
-    }
-    
+extension MKCoordinateRegion {
     var minLat: CLLocationDegrees {center.latitude - span.latitudeDelta / 2.0}
     var maxLat: CLLocationDegrees {center.latitude + span.latitudeDelta / 2.0}
     var minLon: CLLocationDegrees {center.longitude - span.longitudeDelta / 2.0}

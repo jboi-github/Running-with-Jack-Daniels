@@ -71,8 +71,8 @@ class Running_with_Jack_DanielsTests: XCTestCase {
     }
     
     func testVdotDistTimeRoundTrip() throws {
-        let distanceM = 10000
-        let timeSec = 52*60+30 // 52:30
+        let distanceM = 10000.0
+        let timeSec = TimeInterval(52*60+30) // 52:30
         let vdot = vdot4DistTime(distanceM: distanceM, timeSec: timeSec)
 
         XCTAssertEqual(vdot4DistTime(distanceM: distanceM, timeSec: timeSec), 37.8, accuracy: 1.0, "vdot")
