@@ -6,6 +6,7 @@
 //
 
 import CoreLocation
+import MapKit
 
 /// Delivers every n seconds a status about the runner to be displayed.
 /// When ending (disappearing) it saves all information to UserDefaults an Healthkit
@@ -40,7 +41,9 @@ class WorkoutRecordingModel: ObservableObject {
         
         var avgHr: Double {hrs / time}
         var avgPace: TimeInterval {1000.0 * time / distance}
-        var avgVdot: Double? {getVdot(hrBpm: avgHr, paceSecPerKm: avgPace)}
+        var avgVdot: Double? {
+            WorkoutRecordingModel.sharedInstance.getVdot(hrBpm: avgHr, paceSecPerKm: avgPace)
+        }
     }
     
     public struct PathItem: Identifiable {
@@ -50,6 +53,94 @@ class WorkoutRecordingModel: ObservableObject {
         let timestamp: Date
         let accuracyM: CLLocationDistance
         let intensity: Intensity?
+        
+        var accurayRegion: MKCoordinateRegion {
+            MKCoordinateRegion(
+                center: coordinate,
+                latitudinalMeters: accuracyM * 2,
+                longitudinalMeters: accuracyM * 2)
+        }
+    }
+    
+    public static func smooth(_ points: [PathItem]) -> [PathItem] {
+        var result : [PathItem] = []
+        
+        // Returns the base point from point p to the line between p1 and p2
+        func basePoint(
+            p: CLLocationCoordinate2D,
+            p1: CLLocationCoordinate2D,
+            p2: CLLocationCoordinate2D) -> CLLocationCoordinate2D
+        {
+            let Ax = p1.latitude - p.latitude
+            let Ay = p1.longitude - p.longitude
+            let Bx = p1.latitude - p2.latitude
+            let By = p1.longitude - p2.longitude
+            let numerator = Ax*Bx + Ay*By
+            let denominator = Bx*Bx + By*By
+            
+            let t = (0...denominator).contains(numerator) ? numerator / denominator : Double.infinity
+            return CLLocationCoordinate2D(
+                latitude: p1.latitude + t * (p2.latitude - p1.latitude),
+                longitude: p1.longitude + t * (p2.longitude - p1.longitude))
+        }
+        
+        func distanceM(p1: CLLocationCoordinate2D, p2: CLLocationCoordinate2D) -> Double {
+            MKMapPoint(p1).distance(to: MKMapPoint(p2))
+        }
+        
+        var lastSegmentBegin = -1
+        var lastSegmentEnd = -1
+
+        func addToResult(_ i: Int) {
+            if i > lastSegmentEnd {
+                lastSegmentBegin = lastSegmentEnd
+                lastSegmentEnd = i
+            }
+
+            result.append(
+                PathItem(
+                    coordinate: points[i].coordinate,
+                    timestamp: points[i].timestamp,
+                    accuracyM: points[i].accuracyM,
+                    intensity: .Interval)) // Red
+        }
+        
+        // One recustion step of rdp
+        func rdp(begin: Int, end: Int) {
+            guard end > begin else {return}
+            
+            let distance = (begin+1..<end)
+                .map { (i: Int) -> (i: Int, distanceM: Double) in
+                    let distanceM = distanceM(
+                        p1: points[i].coordinate,
+                        p2: basePoint(
+                            p: points[i].coordinate,
+                            p1: points[begin].coordinate,
+                            p2: points[end].coordinate))
+                    return (i, distanceM)
+                }
+                .max {$0.distanceM < $1.distanceM}
+            
+            if let distance = distance, distance.distanceM > points[distance.i].accuracyM {
+                rdp(begin: begin, end: distance.i)
+                rdp(begin: distance.i, end: end)
+            } else {
+                addToResult(end)
+            }
+        }
+        
+        // Start recursion
+        guard !points.isEmpty else {return result}
+        
+        addToResult(0)
+        rdp(begin: 0, end: points.count - 1)
+        
+        // Copy last segment before end-point
+        if lastSegmentBegin >= 0 && lastSegmentEnd >= 0 {
+            result.removeLast()
+            result.append(contentsOf: points[lastSegmentBegin+1...lastSegmentEnd])
+        }
+        return result
     }
     
     // MARK: Private
@@ -122,26 +213,10 @@ class WorkoutRecordingModel: ObservableObject {
                 heartrate: heartrate)
 
             newDistance = intensities.values.map {$0.distance}.reduce(0.0, +)
-            if let location = location {
-                path.append(
-                    PathItem(
-                        coordinate: location.coordinate,
-                        timestamp: when,
-                        accuracyM: location.horizontalAccuracy,
-                        intensity: intensity))
-            }
-            
+            appendToPath(location, at: when, intensity: intensity)
             endBreak(when) // Close break if open
         } else {
-            if let location = location {
-                path.append(
-                    PathItem(
-                        coordinate: location.coordinate,
-                        timestamp: when,
-                        accuracyM: location.horizontalAccuracy,
-                        intensity: nil))
-            }
-
+            appendToPath(location, at: when)
             beginBreak(when) // Open break if closed
         }
         totals = Info(
@@ -172,15 +247,28 @@ class WorkoutRecordingModel: ObservableObject {
     }
     
     private var currentVdot: Double? {
-        WorkoutRecordingModel.getVdot(
+        getVdot(
             hrBpm: Double(BleHeartRateReceiver.sharedInstance.heartrate),
             paceSecPerKm: currentPace)
     }
     
-    private static func getVdot(hrBpm: Double, paceSecPerKm: TimeInterval) -> Double? {
+    private func appendToPath(_ location: CLLocation?, at when: Date, intensity: Intensity? = nil) {
+        if let location = location {
+            path.append(
+                PathItem(
+                    coordinate: location.coordinate,
+                    timestamp: when,
+                    accuracyM: location.horizontalAccuracy,
+                    intensity: intensity))
+            path = WorkoutRecordingModel.smooth(path)
+        }
+    }
+    
+    private func getVdot(hrBpm: Double, paceSecPerKm: TimeInterval) -> Double? {
         let hrResting = Database.sharedInstance.hrResting.value
         let hrMax = Database.sharedInstance.hrMax.value
         
+        log("\(hrBpm), \(paceSecPerKm), \(hrResting), \(hrMax)")
         if hrResting.isFinite && hrMax.isFinite {
             return train(
                 hrBpm: Int(hrBpm),

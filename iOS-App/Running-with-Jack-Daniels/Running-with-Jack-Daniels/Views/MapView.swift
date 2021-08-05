@@ -9,9 +9,7 @@ import SwiftUI
 import MapKit
 
 struct MapView: View {
-    @State private var coordinateRegion = MKCoordinateRegion()
     @State private var userInteraction = false
-    @State private var animate = false
     @ObservedObject var loc = GpsLocationReceiver.sharedInstance
     @ObservedObject var workout = WorkoutRecordingModel.sharedInstance
     
@@ -22,54 +20,10 @@ struct MapView: View {
         .Interval: .red,
         .Repetition: .black
     ]
-
+    
     var body: some View {
         ZStack {
-            GeometryReader { proxy in
-                Map(coordinateRegion: $coordinateRegion,
-                    interactionModes: userInteraction ?  .all : MapInteractionModes(),
-                    showsUserLocation: false,
-                    userTrackingMode: .none,
-                    annotationItems: workout.path)
-                { pathItem in
-                    
-                    MapAnnotation(
-                        coordinate: pathItem.coordinate,
-                        anchorPoint: CGPoint(x: 0.5, y: 0.5))
-                    {
-                        let size = size(proxy.size, region: coordinateRegion, location: pathItem)
-                        
-                        ZStack {
-                            Circle()
-                                .fill(getColor(intensity: pathItem.intensity))
-                                .opacity(0.1)
-                                .frame(width: size.width, height: size.height)
-                                .zIndex(1)
-                            Circle()
-                                .fill(getColor(intensity: pathItem.intensity))
-                                .frame(width: 3, height: 3)
-                                .zIndex(2)
-                            
-                            if pathItem.id == workout.path.last?.id {
-                                Circle()
-                                    .fill(getColor(intensity: pathItem.intensity))
-                                    .opacity(animate ? 1 : 0)
-                                    .frame(width: size.width, height: size.height)
-                                    .animation(.default.repeatForever(autoreverses: true))
-                                    .onAppear {animate.toggle()}
-                                    .zIndex(3)
-                            }
-                        }
-                    }
-                }
-                .onChange(of: loc.region) { _ in
-                    if !userInteraction {withAnimation {setCoordinateRegion(loc.region)}}
-                }
-                .onChange(of: userInteraction) { _ in
-                    if !userInteraction {withAnimation {setCoordinateRegion(loc.region)}}
-                }
-            }
-            
+            MapKitView(path: workout.path, userInteraction: userInteraction)
             VStack {
                 HStack {
                     Spacer()
@@ -97,30 +51,6 @@ struct MapView: View {
         guard let intensity = intensity else {return .gray}
         return colors[intensity] ?? .gray
     }
-    
-    private func size(_ size: CGSize, region: MKCoordinateRegion, location: WorkoutRecordingModel.PathItem)
-    -> (width: CGFloat, height: CGFloat)
-    {
-        guard region.span.latitudeDelta > 0 && region.span.longitudeDelta > 0 else {return (0, 0)}
-        
-        let spanAccuracy = MKCoordinateRegion(
-            center: location.coordinate,
-            latitudinalMeters: location.accuracyM * 2.0,
-            longitudinalMeters: location.accuracyM * 2.0)
-            .span
-        
-        let width = size.width * CGFloat(spanAccuracy.latitudeDelta / region.span.latitudeDelta)
-        let height = size.height * CGFloat(spanAccuracy.longitudeDelta / region.span.longitudeDelta)
-        return (width, height)
-    }
-    
-    private func setCoordinateRegion(_ region: MKCoordinateRegion) {
-        coordinateRegion = MKCoordinateRegion(
-            center: region.center,
-            span: MKCoordinateSpan(
-                latitudeDelta: max(0.0045, region.span.latitudeDelta * 1.1),
-                longitudeDelta: max(0.0045, region.span.longitudeDelta * 1.1)))
-    }
 }
 
 private struct UserInteractionStyle: ToggleStyle {
@@ -146,5 +76,12 @@ private struct UserInteractionStyle: ToggleStyle {
 struct MapView_Previews: PreviewProvider {
     static var previews: some View {
         MapView()
+    }
+}
+
+extension Map {
+    func addOverlay(_ overlay: MKOverlay) -> some View {
+        MKMapView.appearance().addOverlay(overlay)
+        return self
     }
 }

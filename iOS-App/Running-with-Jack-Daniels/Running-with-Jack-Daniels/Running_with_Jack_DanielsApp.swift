@@ -123,6 +123,10 @@ extension TimeInterval {
 }
 
 extension Double {
+    public func format(_ format: String, ifNan: String = "NaN") -> String {
+        String(format: self.isFinite ? format : ifNan, self)
+    }
+
     func asDistance(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true) -> some View {
         guard self.isFinite else {return Text("-").font(font).anyview}
         
@@ -161,10 +165,25 @@ extension MKCoordinateSpan: Equatable {
     public static func == (lhs: MKCoordinateSpan, rhs: MKCoordinateSpan) -> Bool {
         lhs.latitudeDelta == rhs.latitudeDelta && lhs.longitudeDelta == rhs.longitudeDelta
     }
+    
+    func expanded(by expansion: CLLocationDegrees) -> Self {
+        MKCoordinateSpan(latitudeDelta: latitudeDelta * expansion, longitudeDelta: longitudeDelta * expansion)
+    }
 }
 
 extension MKCoordinateRegion: Equatable {
     public static func == (lhs: MKCoordinateRegion, rhs: MKCoordinateRegion) -> Bool {
         lhs.center == rhs.center && lhs.span == rhs.span
+    }
+    
+    func expanded(by expansion: CLLocationDegrees, minMeter: CLLocationDistance = 0) -> Self {
+        let minSpan = MKCoordinateRegion(center: center, latitudinalMeters: minMeter, longitudinalMeters: minMeter).span
+        let expandedSpan = span.expanded(by: expansion)
+        
+        return MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(
+                latitudeDelta: max(minSpan.latitudeDelta, expandedSpan.latitudeDelta),
+                longitudeDelta: max(minSpan.longitudeDelta, expandedSpan.longitudeDelta)))
     }
 }

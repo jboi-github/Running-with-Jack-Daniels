@@ -24,6 +24,7 @@
 		15A67D1A268A4D0C009FD421 /* PlanningFormulas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A67D19268A4D0C009FD421 /* PlanningFormulas.swift */; };
 		15A67D1C2695E006009FD421 /* NaviView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A67D1B2695E006009FD421 /* NaviView.swift */; };
 		15A67D1E2695EAC8009FD421 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A67D1D2695EAC8009FD421 /* Database.swift */; };
+		15D31C4826BB115C00CEFD35 /* MapKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D31C4726BB115C00CEFD35 /* MapKitView.swift */; };
 		15FF2752269F096D00D2DE50 /* HealthKitModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15FF2751269F096D00D2DE50 /* HealthKitModel.swift */; };
 		15FF275426A445FC00D2DE50 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15FF275326A445FC00D2DE50 /* PlanView.swift */; };
 /* End PBXBuildFile section */
@@ -61,6 +62,7 @@
 		15A67D19268A4D0C009FD421 /* PlanningFormulas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanningFormulas.swift; sourceTree = "<group>"; };
 		15A67D1B2695E006009FD421 /* NaviView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaviView.swift; sourceTree = "<group>"; };
 		15A67D1D2695EAC8009FD421 /* Database.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
+		15D31C4726BB115C00CEFD35 /* MapKitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapKitView.swift; sourceTree = "<group>"; };
 		15FF2751269F096D00D2DE50 /* HealthKitModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitModel.swift; sourceTree = "<group>"; };
 		15FF275326A445FC00D2DE50 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -105,6 +107,7 @@
 				15FF275326A445FC00D2DE50 /* PlanView.swift */,
 				15A24D892674C65200A08635 /* RunView.swift */,
 				15089614267F4D3900D83F4B /* MapView.swift */,
+				15D31C4726BB115C00CEFD35 /* MapKitView.swift */,
 				151D16A126A9B8F5006E6D5E /* HrView.swift */,
 				150896182683881300D83F4B /* StatsView.swift */,
 				151D169F26A9544E006E6D5E /* Stackoverflow.swift */,
@@ -289,6 +292,7 @@
 				15A24D882674C65200A08635 /* Running_with_Jack_DanielsApp.swift in Sources */,
 				151D16A226A9B8F5006E6D5E /* HrView.swift in Sources */,
 				153DCED5267A298300D51E56 /* RunningFormulas.swift in Sources */,
+				15D31C4826BB115C00CEFD35 /* MapKitView.swift in Sources */,
 				150896192683881300D83F4B /* StatsView.swift in Sources */,
 				15FF275426A445FC00D2DE50 /* PlanView.swift in Sources */,
 				151D16A426AB3BAF006E6D5E /* WorkoutRecordingModel.swift in Sources */,

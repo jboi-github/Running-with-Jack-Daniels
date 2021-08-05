@@ -160,6 +160,7 @@ public class Database {
             self.key = forKey
             self.value = value
             self.shadow = value
+            self.resetTo = value
             self.readHK = readHK
             self.shareHK = shareHK
             self.calc = calc
@@ -223,11 +224,21 @@ public class Database {
         
         public var hasCalculator: Bool {calc != nil}
         public func recalc(force: Bool = false) {
-            guard force || self.source == .calculated else {return}
+            guard force || source == .calculated else {return}
             guard let value = calc?() else {return}
             
             self.value = value
-            if force {self.source = .calculated}
+            if force {source = .calculated}
+            self.onChange?()
+        }
+        
+        public func reset() {
+            guard source == .manual else {return}
+            
+            value = resetTo
+            source = .calculated
+            UserDefaults.write(forKey: key, v: nil as V?) // Remove value
+            onAppear() // Read new
             self.onChange?()
         }
         
@@ -237,6 +248,7 @@ public class Database {
         private let calc: (() -> V?)?
         private var onChange: (() -> Void)?
         private var shadow: V // Check for changes.
+        private var resetTo: V // Default to reset to
     }
     
     public static func calcHrMax() -> Double
@@ -293,11 +305,5 @@ extension UserDefaults {
         } else if v == nil {
             UserDefaults.standard.removeObject(forKey: forKey)
         }
-    }
-}
-
-extension Double {
-    public func format(_ format: String, ifNan: String = "NaN") -> String {
-        String(format: self.isFinite ? format : ifNan, self)
     }
 }

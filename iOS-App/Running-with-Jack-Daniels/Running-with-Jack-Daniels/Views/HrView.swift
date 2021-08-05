@@ -33,7 +33,7 @@ struct HrView: View {
     }
 }
 
-private struct HrViewContent: View {
+struct HrViewContent: View {
     let limits: [Intensity : ClosedRange<Int>]
     let heartrate: Int?
     
@@ -66,7 +66,11 @@ private struct HrViewContent: View {
                         Spacer()
                     }
                     Spacer()
-                    HrLimitsTextView(limits: limits)
+                    HStack {
+                        Spacer()
+                        HrLimitsTextView(limits: limits)
+                        Spacer()
+                    }
                 }
             }
             .anyview
@@ -170,7 +174,6 @@ private struct HrLimitsTextView: View {
         guard let intervalUpper = limits[.Interval]?.upperBound else {return EmptyView().anyview}
 
         return HStack {
-            Spacer()
             Text("\(easyLower, specifier: "%3d")").foregroundColor(.blue)
             Spacer()
             Spacer()
@@ -181,7 +184,6 @@ private struct HrLimitsTextView: View {
             Spacer()
             Text("\(intervalLower, specifier: "%3d") \(intervalUpper, specifier: "%3d")")
                 .foregroundColor(.red)
-            Spacer()
         }
         .font(.caption)
         .anyview

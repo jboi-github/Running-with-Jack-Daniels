@@ -33,8 +33,8 @@ struct PlanView: View {
                         Text("BMI: \(bmi)").font(.caption)
                     })
             {
-                DateInputView(title: "Your birthday:", value: birthday.bound, source: birthday.source)
-                EnumInputView(title: "Your (biological) gender:", value: gender.bound, source: gender.source)
+                DateInputView(title: "Your birthday:", attribute: birthday, value: birthday.bound)
+                EnumInputView(title: "Your (biological) gender:", attribute: gender, bound: gender.bound)
                 NumberInputView(
                     title: "Your weight:", attribute: weight,
                     range: 45...120, step: 0.1, specifier: "%.1f kg",
@@ -51,7 +51,8 @@ struct PlanView: View {
                     title: "Your maximal HR:", attribute: hrMax,
                     range: 100...250, step: 1, specifier: "%3.0f bpm",
                     minLabel: "100 bpm", maxLabel: "250 bpm")
-                HrView(limits: hrLimits.value, heartrate: nil)
+                HrViewContent(limits: hrLimits.value, heartrate: nil)
+                    .padding()
             }
         }
         .padding()
@@ -62,20 +63,33 @@ struct PlanView: View {
 
 private struct DateInputView: View {
     let title: String
+    let attribute: Database.Attribute<Date>
     let value: Binding<Date>
-    let source: Database.Source
     
     var body: some View {
-        HStack {
-            DatePicker(
-                selection: value,
-                in: ...Date(),
-                displayedComponents: [.date])
-            {
+        VStack {
+            HStack {
                 Text(title).font(.caption)
+                Spacer()
+                SourceView(source: attribute.source)
             }
-            Spacer()
-            SourceView(source: source)
+            HStack {
+                DatePicker(
+                    selection: value,
+                    in: ...Date(),
+                    displayedComponents: [.date])
+                {
+                    EmptyView()
+                }
+
+                if attribute.source == .manual {
+                    Button {
+                        attribute.reset()
+                    } label: {
+                        ResetLabel(source: .healthkit)
+                    }
+                }
+            }
         }
         .padding()
     }
@@ -89,23 +103,33 @@ private struct DateInputView: View {
 ///     }
 ///
 private struct EnumInputView<E: RawRepresentable>: View
-where E:CaseIterable, E:Identifiable, E: Hashable, E.RawValue == String, E.AllCases: RandomAccessCollection
+where E:Codable, E:CaseIterable, E:Identifiable, E: Hashable, E.RawValue == String, E.AllCases: RandomAccessCollection
 {
     let title: String
-    let value: Binding<E>
-    let source: Database.Source
+    let attribute: Database.Attribute<E>
+    let bound: Binding<E>
 
     var body: some View {
         VStack {
             HStack {
                 Text(title).font(.caption)
                 Spacer()
-                SourceView(source: source)
+                SourceView(source: attribute.source)
             }
-            Picker(selection: value, label: Text(title)) {
-                ForEach(E.allCases) {Text("\($0.rawValue.capitalized)").tag($0)}
+            HStack {
+                Picker(selection: bound, label: Text(title)) {
+                    ForEach(E.allCases) {Text("\($0.rawValue.capitalized)").tag($0)}
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                
+                if attribute.source == .manual {
+                    Button {
+                        attribute.reset()
+                    } label: {
+                        ResetLabel(source: .healthkit)
+                    }
+                }
             }
-            .pickerStyle(SegmentedPickerStyle())
         }
         .padding()
     }
@@ -135,17 +159,17 @@ private struct NumberInputView: View {
                 {
                     Text("\(attribute.value.format(specifier, ifNan: " - "))").font(.callout)
                 }
-                if attribute.hasCalculator {
+                if attribute.hasCalculator && attribute.source != .calculated {
                     Button {
                         attribute.recalc(force: true)
                     } label: {
-                        Text(Image(systemName: "function"))
-                            .font(.body)
-                            .padding(8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 5)
-                                    .foregroundColor(.gray)
-                                    .opacity(0.25))
+                        ResetLabel(source: .calculated)
+                    }
+                } else if attribute.source == .manual {
+                    Button {
+                        attribute.reset()
+                    } label: {
+                        ResetLabel(source: .healthkit)
                     }
                 }
             }
@@ -164,7 +188,7 @@ private struct NumberInputView: View {
     }
 }
 
-struct SourceView: View {
+private struct SourceView: View {
     let source: Database.Source
     
     var sourceImg: String {
@@ -172,7 +196,7 @@ struct SourceView: View {
         case .manual:
             return "hand.point.up.left"
         case .healthkit:
-            return "heart"
+            return "heart.fill"
         case .calculated:
             return "function"
         }
@@ -193,6 +217,29 @@ struct SourceView: View {
         Text(Image(systemName: sourceImg))
             .font(.caption)
             .foregroundColor(sourceCol)
+    }
+}
+
+private struct ResetLabel: View {
+    let source: Database.Source
+    
+    var body: some View {
+        Text(Image(systemName: "clear")).font(.body)
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .foregroundColor(.gray)
+                    .opacity(0.25))
+            .overlay(
+                VStack {
+                    HStack {
+                        Spacer()
+                        SourceView(source: source)
+                            .padding(2)
+                    }
+                    Spacer()
+                }
+            )
     }
 }
 
