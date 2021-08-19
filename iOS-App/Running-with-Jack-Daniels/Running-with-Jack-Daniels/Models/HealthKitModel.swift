@@ -94,7 +94,7 @@ class HealthKitModel {
                 start: when, end: when)
             
             healthStore.save(sample) { success, error in
-                log("\(forFunc) successfully shared \(value): \(success ? "Yes" : "No")")
+                log(forFunc, value, success)
                 if success {succeeded()}
                 _ = check(error)
             }
@@ -133,7 +133,7 @@ class HealthKitModel {
             toShare: HealthKitModel.typesToWrite,
             read: HealthKitModel.typesToRead)
         { success, error in
-            log("\(success)")
+            log(success)
             _ = check(error)
             
             completion(success)

@@ -6,56 +6,93 @@
 //
 
 import SwiftUI
-import MapKit
 
 struct RunView: View {
-    @ObservedObject var hr = BleHeartRateReceiver.sharedInstance
+    @ObservedObject var hr = BleHeartrateReceiver.sharedInstance
     @ObservedObject var loc = GpsLocationReceiver.sharedInstance
-    @ObservedObject var limits = Database.sharedInstance.hrLimits
+    @ObservedObject var acc = AclMotionReceiver.sharedInstance
+    @ObservedObject var workout = WorkoutRecorder.sharedInstance
+    @ObservedObject var hrLimits = Database.sharedInstance.hrLimits
+
+    @State private var currentPace: TimeInterval = 0
+    @State private var currentTotals = [WorkoutRecorder.InfoSegment: WorkoutRecorder.Info]()
+    @State private var currentTotal = WorkoutRecorder.Info.zero
+
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { proxy in
             VStack {
-                MapView()
+                MapView(path: workout.simpleSmoothedPath)
                     .frame(minHeight: proxy.size.height / 3)
-                HrView(limits: limits.value, heartrate: hr.heartrate)
+
+                HrView(
+                    heartrate: hr.heartrate?.heartrate,
+                    currentPace: currentPace,
+                    hrLimits: hrLimits.value)
+                    .padding()
                     .border(Color.gray)
-                    .padding()
                     .frame(maxHeight: proxy.size.height / 4)
-                StatsView()
+
+                StatsView(
+                    currentPace: currentPace,
+                    currentTotals: currentTotals,
+                    currentTotal: currentTotal)
                     .padding()
-                ErrorView(hr: hr, loc: loc)
+                    .border(Color.gray)
+
+                ErrorMessageView(
+                    hrError: hr.localizedError,
+                    locError: loc.localizedError,
+                    hrReset: hr.start,
+                    locReset: loc.reset)
             }
+        }
+        .toolbar {
+            ToolbarStatusView(
+                hrError: hr.localizedError,
+                locError: loc.localizedError,
+                hrReceiving: hr.receiving,
+                locReceiving: loc.receiving,
+                accReceiving: acc.receiving,
+                hrLimitsEasy: hrLimits.value[.Easy],
+                heartrate: hr.heartrate?.heartrate)
         }
         .onAppear {
             Database.sharedInstance.onAppear()
-            hr.start()
-            loc.start()
-            WorkoutRecordingModel.sharedInstance.onAppear()
+            WorkoutRecorder.sharedInstance.start()
             UIApplication.shared.isIdleTimerDisabled = true
         }
         .onDisappear {
-            WorkoutRecordingModel.sharedInstance.onDisappear()
-            loc.stop()
-            hr.stop()
+            Database.sharedInstance.onDisappear()
+            WorkoutRecorder.sharedInstance.stop()
             UIApplication.shared.isIdleTimerDisabled = false
+        }
+        .onReceive(timer) {
+            let current = workout.current($0)
+            
+            currentPace = current.paceSecPerKm
+            currentTotals = current.totals
+            currentTotal = current.total
         }
     }
 }
 
-private struct ErrorView: View {
-    @ObservedObject var hr: BleHeartRateReceiver
-    @ObservedObject var loc: GpsLocationReceiver
+private struct ErrorMessageView: View {
+    let hrError: String
+    let locError: String
+    let hrReset: () -> Void
+    let locReset: () -> Void
     
     var body: some View {
         HStack {
             Spacer()
-            Image(systemName: (hr.localizedError > "" || loc.localizedError > "") ? "bolt" : "checkmark")
-            Text("\(hr.localizedError)\(loc.localizedError)")
-            if (hr.localizedError > "" || loc.localizedError > "") {
+            Image(systemName: (hrError > "" || locError > "") ? "bolt" : "checkmark")
+            Text("\(hrError)\(locError)")
+            if (hrError > "" || locError > "") {
                 Button {
-                    if hr.localizedError > "" {hr.start()}
-                    if loc.localizedError > "" {loc.reset()}
+                    if hrError > "" {hrReset()}
+                    if locError > "" {locReset()}
                 } label: {
                     Image(systemName: "play.fill")
                 }
@@ -63,6 +100,73 @@ private struct ErrorView: View {
         }
         .padding()
         .font(.footnote)
+    }
+}
+
+private struct ToolbarStatusView: View {
+    let hrError: String
+    let locError: String
+    let hrReceiving: Bool
+    let locReceiving: Bool
+    let accReceiving: AclMotionReceiver.Status
+    let hrLimitsEasy: ClosedRange<Int>?
+    let heartrate: Int?
+
+    var body: some View {
+        HStack {
+            Image(systemName: getMotion())
+            Image(systemName: getLocation())
+            Image(systemName: getHeart())
+        }
+        .font(.caption)
+    }
+    
+    private func getLocation() -> String {
+        guard locError == "" else {return "location.slash"}
+        if locReceiving {return "location.fill"}
+        return "location"
+    }
+    
+    private func getHeart() -> String {
+        guard hrError == "" else {return "heart.slash"}
+        if hrReceiving {return "heart.fill"}
+        return "heart"
+    }
+    
+    private func getMotion() -> String {
+        switch accReceiving {
+        case .off:
+            return "nosign"
+            
+        case .stationary:
+            if let heartrate = heartrate,
+               let hrLimitsEasy = hrLimitsEasy,
+               heartrate >= hrLimitsEasy.lowerBound
+            {
+                return "figure.wave"
+            } else {
+                return "figure.stand"
+            }
+            
+        case .walking:
+            return "figure.walk"
+            
+        case .running:
+            if let heartrate = heartrate,
+               let hrLimitsEasy = hrLimitsEasy,
+               heartrate < hrLimitsEasy.lowerBound
+            {
+                return "tortoise.fill"
+            } else {
+                return "hare.fill"
+            }
+            
+        case .cycling:
+            return "bicycle"
+            
+        case .automotion:
+            return "tram.fill"
+        }
     }
 }
 

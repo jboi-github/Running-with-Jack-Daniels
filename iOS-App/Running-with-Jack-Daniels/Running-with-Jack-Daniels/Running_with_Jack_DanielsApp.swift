@@ -22,7 +22,7 @@ struct Running_with_Jack_DanielsApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        
+
         log()
         return true
     }
@@ -43,21 +43,15 @@ let logger = Logger(
  Note, that you must be `root` to run log. Use the log-console on the mac. Search for: "subsystem: apps4live" to get the relevant messages.
  */
 public func log(
-    level: OSLogType = .info, _ msg: String? = nil,
+    level: OSLogType = .info, _ msg: Any...,
     function: String = #function, file: String = #file,
     line: Int = #line, col: Int = #column)
 {
     #if DEBUG
     var localFile: String {URL(fileURLWithPath: file).lastPathComponent}
-    var localMsg: String {
-        if let msg = msg {
-            return ": \(msg)"
-        } else {
-            return ""
-        }
-    }
+    var localMsg: String {msg.map {"\($0)"}.joined(separator: ", ")}
     
-    logger.log(level: level, "* JB: \(localFile, privacy: .public): \(function, privacy: .public)(\(line, privacy: .public), \(col, privacy: .public))\(localMsg, privacy: .public)")
+    logger.log(level: level, "* JB: \(localFile, privacy: .public): \(function, privacy: .public)(\(line, privacy: .public), \(col, privacy: .public)): \(localMsg, privacy: .public)")
     #endif
 }
 
@@ -149,10 +143,6 @@ extension Double {
         guard self.isFinite else {return Text("--.-").font(font).anyview}
         return Text("\(self, specifier: "%2.1f")").font(font).anyview
     }
-}
-
-extension CLLocation: Identifiable {
-    public var id: Date {timestamp}
 }
 
 extension CLLocationCoordinate2D: Equatable {

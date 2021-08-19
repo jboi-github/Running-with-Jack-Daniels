@@ -335,6 +335,53 @@ public func vdot4TimeOff(
     return vdotAtStart * (weeksOffAdjustment[weeksOff] ?? 1.0) * weightAdjustment
 }
 
+/// Get intensity for heartrate percent and previous intensity.
+/// - Parameters:
+///   - hrBpm: Current heartrate during training in beats per minute.
+///   - hrMaxBpm: Max heartrate in beats per minute.
+///   - restingBpm: Resting heartrate if known, Otherwise defaults to 0.
+///   - prevIntensity: previous intensity. Nil, if no previous intensity exists or was a pause.
+/// - Returns:
+///     - nil, if heartrate is below easy-limits.
+///     - The corresponding intensity between easy and interval, if uniquely identifiable.
+///     - repetition, if hr is above interval limit.
+///     - If hr is in the overlap between marathon and threshold, the intensity which is closer to the previous intensity is returned.
+///     - If hr is in the gep between threshold and interval, the intensity which is closer to the previous intensity is returned.
+public func intensity4Hr(
+    hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0,
+    prevIntensity: Intensity?) -> Intensity?
+{
+    let hrPercent = Double(hrBpm - restingBpm) / Double(hrMaxBpm - restingBpm)
+
+    // Above or below
+    if let lowerBound = Intensity.Easy.getHrPercent()?.lowerBound, hrPercent < lowerBound {
+        return nil // Pause
+    } else if let upperBound = Intensity.Interval.getHrPercent()?.upperBound, hrPercent > upperBound {
+        return .Repetition
+    } else if let lowertT = Intensity.Threshold.getHrPercent()?.lowerBound,
+              let upperM = Intensity.Marathon.getHrPercent()?.upperBound,
+              (lowertT...upperM).contains(hrPercent) {
+        
+        // Take the closer one towards previous intensity
+        return [nil, .Easy, .Marathon].contains(prevIntensity) ? .Marathon : .Threshold
+    } else if let upperT = Intensity.Threshold.getHrPercent()?.upperBound,
+              let lowerI = Intensity.Interval.getHrPercent()?.lowerBound,
+              upperT < hrPercent && hrPercent < lowerI {
+        
+        // Take the closer one towards previous intensity
+        return [nil, .Easy, .Marathon, .Threshold].contains(prevIntensity) ? .Threshold : .Interval
+    } else if let bounds = Intensity.Easy.getHrPercent(), bounds.contains(hrPercent) {
+        return .Easy
+    } else if let bounds = Intensity.Marathon.getHrPercent(), bounds.contains(hrPercent) {
+        return .Marathon
+    } else if let bounds = Intensity.Threshold.getHrPercent(), bounds.contains(hrPercent) {
+        return .Threshold
+    } else if let bounds = Intensity.Interval.getHrPercent(), bounds.contains(hrPercent) {
+        return .Interval
+    }
+    return nil
+}
+
 /*
  Plan Workout -> (last vdot, last training day (tiem off, weight change), %Easy this week)
     - Paces

@@ -7,50 +7,54 @@
 
 import SwiftUI
 
-private let intensities = [Intensity.Easy, .Marathon, .Threshold, .Interval, .Repetition]
+private let infoSegmentsOrder = [
+    WorkoutRecorder.InfoSegment.paused,
+    .running(intensity: .Easy),
+    .running(intensity: .Marathon),
+    .running(intensity: .Threshold),
+    .running(intensity: .Interval),
+    .running(intensity: .Repetition)
+]
 
 struct StatsView: View {
-    @ObservedObject var workout = WorkoutRecordingModel.sharedInstance
+    let currentPace: TimeInterval
+    let currentTotals: [WorkoutRecorder.InfoSegment: WorkoutRecorder.Info]
+    let currentTotal: WorkoutRecorder.Info
     
     var body: some View {
         HStack {
             VStack(alignment: .trailing) {
-                ForEach(intensities.filter {workout.intensities.keys.contains($0)}) {
-                    Text("\($0.id.capitalized):").font(.subheadline)
+                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
+                    Text("\($0.name.capitalized):").font(.subheadline)
                 }
-                Text("Totals:").font(.subheadline)
+                Text("Total:").font(.subheadline)
             }
             Spacer()
             VStack(alignment: .trailing) {
-                ForEach(intensities.filter {workout.intensities.keys.contains($0)}) {
-                    workout.intensities[$0]?.distance.asDistance(.callout)
+                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
+                    currentTotals[$0]?.distance.asDistance(.callout)
                 }
-                workout.totals.distance.asDistance(.callout)
+                currentTotal.distance.asDistance(.callout)
             }
             Spacer()
             VStack(alignment: .trailing) {
-                ForEach(intensities.filter {workout.intensities.keys.contains($0)}) {
-                    workout.intensities[$0]?.time.asTime(.callout)
+                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
+                    currentTotals[$0]?.duration.asTime(.callout)
                 }
-                workout.totals.time.asTime(.callout)
+                currentTotal.duration.asTime(.callout)
             }
             Spacer()
             VStack(alignment: .trailing) {
-                ForEach(intensities.filter {workout.intensities.keys.contains($0)}) { intensity in
-                    workout.intensities[intensity]?.avgPace.asPace(.callout, withMeasure: false)
+                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
+                    currentTotals[$0]?.avgPaceKmPerSec.asPace(.callout, withMeasure: false)
                 }
-                workout.totals.avgPace.asPace(.callout, withMeasure: false)
+                currentTotal.avgPaceKmPerSec.asPace(.callout, withMeasure: false)
             }
             Spacer()
             VStack(alignment: .trailing) {
-                ForEach(intensities.filter {workout.intensities.keys.contains($0)}) {
-                    workout.intensities[$0]?.avgVdot?.asVdot(.callout)
+                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
+                    currentTotals[$0]?.vdot.asVdot(.callout)
                 }
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: ToolbarItemPlacement.navigationBarTrailing) {
-                workout.vdot.asVdot(.caption)
             }
         }
     }
@@ -58,6 +62,9 @@ struct StatsView: View {
 
 struct StatsView_Previews: PreviewProvider {
     static var previews: some View {
-        StatsView()
+        StatsView(
+            currentPace: 0.0,
+            currentTotals: [WorkoutRecorder.InfoSegment : WorkoutRecorder.Info](),
+            currentTotal: WorkoutRecorder.Info.zero)
     }
 }

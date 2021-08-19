@@ -51,7 +51,7 @@ struct PlanView: View {
                     title: "Your maximal HR:", attribute: hrMax,
                     range: 100...250, step: 1, specifier: "%3.0f bpm",
                     minLabel: "100 bpm", maxLabel: "250 bpm")
-                HrViewContent(limits: hrLimits.value, heartrate: nil)
+                HrView(heartrate: nil, currentPace: .infinity, hrLimits: hrLimits.value)
                     .padding()
             }
         }
@@ -103,7 +103,10 @@ private struct DateInputView: View {
 ///     }
 ///
 private struct EnumInputView<E: RawRepresentable>: View
-where E:Codable, E:CaseIterable, E:Identifiable, E: Hashable, E.RawValue == String, E.AllCases: RandomAccessCollection
+where E:Codable, E:CaseIterable,
+      E:Identifiable, E: Hashable,
+      E.RawValue == String,
+      E.AllCases: RandomAccessCollection
 {
     let title: String
     let attribute: Database.Attribute<E>

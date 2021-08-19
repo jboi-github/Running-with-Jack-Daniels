@@ -8,50 +8,23 @@
 import SwiftUI
 
 struct HrView: View {
-    let limits: [Intensity : ClosedRange<Int>]
     let heartrate: Int?
+    let currentPace: TimeInterval
+    let hrLimits: [Intensity : ClosedRange<Int>]
 
-    @ObservedObject var hr = BleHeartRateReceiver.sharedInstance
-
-    var body: some View {
-        ZStack {
-            HrViewContent(limits: limits, heartrate: heartrate)
-            VStack {
-                HStack {
-                    Spacer()
-                    Text(Image(systemName: getHeart())).font(.caption).padding(2)
-                }
-                Spacer()
-            }
-        }
-    }
-    
-    private func getHeart() -> String {
-        guard hr.localizedError == "" else {return "heart.slash"}
-        if hr.receiving {return "heart.fill"}
-        return "heart"
-    }
-}
-
-struct HrViewContent: View {
-    let limits: [Intensity : ClosedRange<Int>]
-    let heartrate: Int?
-    
-    @ObservedObject var workout = WorkoutRecordingModel.sharedInstance
-    
     var body: some View {
         guard let heartrate = heartrate else {
             return
                 VStack {
-                    HrLimitsTextView(limits: limits)
-                    HrViewBar(limits: limits, heartrate: nil)
+                    HrLimitsTextView(limits: hrLimits)
+                    HrViewBar(limits: hrLimits, heartrate: nil)
                 }
                 .anyview
         }
         
-        if !limits.isEmpty {
+        if !hrLimits.isEmpty {
             return ZStack {
-                HrViewBar(limits: limits, heartrate: heartrate)
+                HrViewBar(limits: hrLimits, heartrate: heartrate)
                 VStack {
                     HStack(spacing: 0) {
                         Spacer()
@@ -61,14 +34,14 @@ struct HrViewContent: View {
                         Text(" bpm")
                             .font(.caption)
                         Spacer()
-                        workout.totals.currentPace.asPace(.callout)
+                        currentPace.asPace(.callout)
                             .background(Color(UIColor.systemBackground))
                         Spacer()
                     }
                     Spacer()
                     HStack {
                         Spacer()
-                        HrLimitsTextView(limits: limits)
+                        HrLimitsTextView(limits: hrLimits)
                         Spacer()
                     }
                 }
@@ -82,7 +55,7 @@ struct HrViewContent: View {
                 Text(" bpm")
                     .font(.caption)
                 Spacer()
-                workout.totals.currentPace.asPace(.largeTitle.monospacedDigit())
+                currentPace.asPace(.largeTitle.monospacedDigit())
                 Spacer()
             }
             .anyview
@@ -270,6 +243,9 @@ private struct RightTriangle: Shape {
 
 struct HrView_Previews: PreviewProvider {
     static var previews: some View {
-        HrView(limits: Database.sharedInstance.hrLimits.value, heartrate: 130)
+        HrView(
+            heartrate: 130,
+            currentPace: 350.0,
+            hrLimits: Database.sharedInstance.hrLimits.value)
     }
 }

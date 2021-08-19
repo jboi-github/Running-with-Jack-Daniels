@@ -10,7 +10,7 @@ import MapKit
 
 /// MapView utiliziing the older but (still) better customizable MKMapView
 struct MapKitView: UIViewRepresentable {
-    let path: [WorkoutRecordingModel.PathItem]
+    let path: [CLLocation]
     let userInteraction: Bool
     let mapViewDelegate = MapViewDelegate()
 
@@ -32,7 +32,7 @@ struct MapKitView: UIViewRepresentable {
 }
 
 private extension MKMapView {
-    func addPath(_ path: [WorkoutRecordingModel.PathItem], autoRegion: Bool) {
+    func addPath(_ path: [CLLocation], autoRegion: Bool) {
         if !overlays.isEmpty {removeOverlays(overlays)}
         
         // The path
@@ -40,10 +40,12 @@ private extension MKMapView {
         addOverlay(route)
 
         // Circles with accuracy
-        addOverlays(path.map {MKCircle(center: $0.coordinate, radius: $0.accuracyM)})
+        addOverlays(path.map {MKCircle(center: $0.coordinate, radius: $0.horizontalAccuracy)})
         
         if autoRegion {
-            let region = regionThatFits(MKCoordinateRegion(route.boundingMapRect).expanded(by: 1.1, minMeter: 500))
+            let region = regionThatFits(
+                MKCoordinateRegion(route.boundingMapRect)
+                    .expanded(by: 1.1, minMeter: 500))
             if region.area > 0 {setRegion(region, animated: true)}
         }
     }
@@ -60,7 +62,7 @@ class MapViewDelegate: NSObject, MKMapViewDelegate {
             return renderer
         } else if let overlay = overlay as? MKCircle {
             let renderer = MKCircleRenderer(overlay: overlay)
-            renderer.fillColor = UIColor.systemFill.withAlphaComponent(0.1)
+            renderer.fillColor = UIColor.systemRed.withAlphaComponent(0.25)
             return renderer
         } else {
             return MKOverlayRenderer()
@@ -70,6 +72,6 @@ class MapViewDelegate: NSObject, MKMapViewDelegate {
 
 struct MapKitView_Previews: PreviewProvider {
     static var previews: some View {
-        MapKitView(path: [WorkoutRecordingModel.PathItem](), userInteraction: false)
+        MapKitView(path: [CLLocation](), userInteraction: false)
     }
 }

@@ -9,26 +9,13 @@ import SwiftUI
 import MapKit
 
 struct MapView: View {
+    let path: [CLLocation]
     @State private var userInteraction = false
-    @ObservedObject var loc = GpsLocationReceiver.sharedInstance
-    @ObservedObject var workout = WorkoutRecordingModel.sharedInstance
-    
-    let colors: [Intensity:Color] = [
-        .Easy: .blue,
-        .Marathon: .green,
-        .Threshold: .yellow,
-        .Interval: .red,
-        .Repetition: .black
-    ]
     
     var body: some View {
         ZStack {
-            MapKitView(path: workout.path, userInteraction: userInteraction)
+            MapKitView(path: path, userInteraction: userInteraction)
             VStack {
-                HStack {
-                    Spacer()
-                    Text(Image(systemName: getLocation())).font(.caption).padding()
-                }
                 Spacer()
                 HStack {
                     Spacer()
@@ -39,17 +26,6 @@ struct MapView: View {
                 }
             }
         }
-    }
-    
-    private func getLocation() -> String {
-        guard loc.localizedError == "" else {return "location.slash"}
-        if loc.receiving {return "location.fill"}
-        return "location"
-    }
-    
-    private func getColor(intensity: Intensity?) -> Color {
-        guard let intensity = intensity else {return .gray}
-        return colors[intensity] ?? .gray
     }
 }
 
@@ -75,13 +51,6 @@ private struct UserInteractionStyle: ToggleStyle {
 
 struct MapView_Previews: PreviewProvider {
     static var previews: some View {
-        MapView()
-    }
-}
-
-extension Map {
-    func addOverlay(_ overlay: MKOverlay) -> some View {
-        MKMapView.appearance().addOverlay(overlay)
-        return self
+        MapView(path: [CLLocation]())
     }
 }
