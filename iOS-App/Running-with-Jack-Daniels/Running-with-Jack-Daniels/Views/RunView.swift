@@ -8,72 +8,95 @@
 import SwiftUI
 
 struct RunView: View {
+    /*
     @ObservedObject var hr = BleHeartrateReceiver.sharedInstance
     @ObservedObject var loc = GpsLocationReceiver.sharedInstance
     @ObservedObject var acc = AclMotionReceiver.sharedInstance
-    @ObservedObject var workout = WorkoutRecorder.sharedInstance
+ */
     @ObservedObject var hrLimits = Database.sharedInstance.hrLimits
-
-    @State private var currentPace: TimeInterval = 0
-    @State private var currentTotals = [WorkoutRecorder.InfoSegment: WorkoutRecorder.Info]()
-    @State private var currentTotal = WorkoutRecorder.Info.zero
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { proxy in
             VStack {
-                MapView(path: workout.simpleSmoothedPath)
-                    .frame(minHeight: proxy.size.height / 3)
+//                MapView(path: workout.path)
+//                    .frame(minHeight: proxy.size.height / 3)
 
-                HrView(
-                    heartrate: hr.heartrate?.heartrate,
-                    currentPace: currentPace,
-                    hrLimits: hrLimits.value)
-                    .padding()
-                    .border(Color.gray)
-                    .frame(maxHeight: proxy.size.height / 4)
+//                HrView(
+//                    heartrate: hr.heartrate?.heartrate,
+//                    currentPace: 0.0,
+//                    hrLimits: hrLimits.value)
+//                    .padding()
+//                    .border(Color.gray)
 
-                StatsView(
-                    currentPace: currentPace,
-                    currentTotals: currentTotals,
-                    currentTotal: currentTotal)
-                    .padding()
-                    .border(Color.gray)
+//                StatsView(
+//                    currentPace: 0.0,
+//                    currentTotals: currentTotals,
+//                    currentTotal: currentTotal)
+//                    .padding()
+//                    .border(Color.gray)
 
-                ErrorMessageView(
-                    hrError: hr.localizedError,
-                    locError: loc.localizedError,
-                    hrReset: hr.start,
-                    locReset: loc.reset)
+//                ErrorMessageView(
+//                    hrError: hr.localizedError,
+//                    locError: loc.localizedError,
+//                    hrReset: hr.start,
+//                    locReset: loc.reset)
+                
+//                HStack {
+//                    Button {
+//                        hr.heartrate = BleHeartrateReceiver.Heartrate(heartrate: 150, when: Date())
+//                        acc.isRunning = AclMotionReceiver.IsRunning(isRunning: true, when: Date())
+//                    } label: {
+//                        Text("150")
+//                    }
+//                    Button {
+//                        acc.isRunning = AclMotionReceiver.IsRunning(isRunning: true, when: Date())
+//                        hr.heartrate = BleHeartrateReceiver.Heartrate(heartrate: 180, when: Date())
+//                    } label: {
+//                        Text("180")
+//                    }
+//                    Button {
+//                        hr.heartrate = BleHeartrateReceiver.Heartrate(heartrate: 190, when: Date())
+//                        acc.isRunning = AclMotionReceiver.IsRunning(isRunning: true, when: Date())
+//                    } label: {
+//                        Text("190")
+//                    }
+//                    Button {
+//                        hr.heartrate = BleHeartrateReceiver.Heartrate(heartrate: 203, when: Date())
+//                        acc.isRunning = AclMotionReceiver.IsRunning(isRunning: true, when: Date())
+//                    } label: {
+//                        Text("203")
+//                    }
+//                }
             }
         }
-        .toolbar {
-            ToolbarStatusView(
-                hrError: hr.localizedError,
-                locError: loc.localizedError,
-                hrReceiving: hr.receiving,
-                locReceiving: loc.receiving,
-                accReceiving: acc.receiving,
-                hrLimitsEasy: hrLimits.value[.Easy],
-                heartrate: hr.heartrate?.heartrate)
-        }
+//        .toolbar {
+//            ToolbarStatusView(
+//                hrError: hr.localizedError,
+//                locError: loc.localizedError,
+//                hrReceiving: hr.receiving,
+//                locReceiving: loc.receiving,
+//                accReceiving: acc.receiving,
+//                hrLimitsEasy: hrLimits.value[.Easy],
+//                heartrate: hr.heartrate?.heartrate)
+//        }
         .onAppear {
             Database.sharedInstance.onAppear()
-            WorkoutRecorder.sharedInstance.start()
+//            WorkoutRecorder.sharedInstance.start()
             UIApplication.shared.isIdleTimerDisabled = true
         }
         .onDisappear {
             Database.sharedInstance.onDisappear()
-            WorkoutRecorder.sharedInstance.stop()
+//            WorkoutRecorder.sharedInstance.stop()
             UIApplication.shared.isIdleTimerDisabled = false
         }
-        .onReceive(timer) {
-            let current = workout.current($0)
-            
-            currentPace = current.paceSecPerKm
-            currentTotals = current.totals
-            currentTotal = current.total
+        .onReceive(timer) {_ in 
+//            let current = workout.current($0)
+//            
+//            currentPace = current.paceSecPerKm
+//            currentTotals = current.totals
+//            currentTotal = current.total
         }
     }
 }

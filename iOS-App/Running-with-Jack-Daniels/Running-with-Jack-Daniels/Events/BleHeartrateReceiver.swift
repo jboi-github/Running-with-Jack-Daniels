@@ -7,8 +7,9 @@
 
 import Foundation
 import CoreBluetooth
+import Combine
 
-public class BleHeartrateReceiver: ObservableObject {
+public class BleHeartrateReceiver {
     // MARK: - Initialization
     
     /// Access shared instance of this singleton
@@ -25,44 +26,52 @@ public class BleHeartrateReceiver: ObservableObject {
     }
     
     /// Indicates, if Receiver is still active.
-    @Published public private(set) var receiving = false
-
-    /// Indicates, if Receiver is still active.
-    @Published public private(set) var localizedError = ""
+    public private(set) var receiving: PassthroughSubject<Bool, Error>!
 
     /// Current heartrate
-    @Published public private(set) var heartrate: Heartrate? = nil
+    public private(set) var heartrate: PassthroughSubject<Heartrate, Error>!
 
     /// Scan for a heartrate measuring peripherals, connect and start receiving heartrates into `heartrate` form the first peripheral found
     /// that provides the necessary capabilities.
     public func start() {
         log()
-        localizedError = ""
+        
+        receiving = PassthroughSubject<Bool, Error>()
+        heartrate = PassthroughSubject<Heartrate, Error>()
         
         centralManager = CBCentralManager(
             delegate: centralManagerDelegate,
-            queue: .global(qos: .userInteractive))
+            queue: serialDispatchQueue)
     }
     
     /// Stop receiving heartrate measures and disconnect from peripheral if connected. Also stop scanning if currently scanning for peripherals.
-    public func stop() {
+    public func stop(with error: Error? = nil) {
         log()
         guard let centralManager = centralManager else {return}
         if centralManager.isScanning {centralManager.stopScan()}
         
         guard let peripheral = peripheral else {return}
         centralManager.cancelPeripheralConnection(peripheral)
+        
+        serialDispatchQueue.async { [self] in
+            receiving.send(false)
+            if let error = error {
+                receiving.send(completion: .failure(error))
+                heartrate.send(completion: .failure(error))
+            } else {
+                receiving.send(completion: .finished)
+                heartrate.send(completion: .finished)
+            }
+        }
     }
     
     // MARK: - Private
     
     private func check(_ error: Error?) {
         _ = Running_with_Jack_Daniels.check(error)
-        guard let error = error else {return}
+        guard let error = error else {return} // No real issue
         
-        DispatchQueue.main.async {
-            BleHeartrateReceiver.sharedInstance.localizedError = error.localizedDescription
-        }
+        stop(with: error)
     }
 
     private var centralManager: CBCentralManager?
@@ -112,7 +121,7 @@ public class BleHeartrateReceiver: ObservableObject {
             peripheral.delegate = BleHeartrateReceiver.sharedInstance.peripheralDelegate
             BleHeartrateReceiver.sharedInstance.peripheral = peripheral
             
-            central.stopScan()
+            //central.stopScan() // FIXME!
             central.connect(peripheral)
         }
         
@@ -131,9 +140,6 @@ public class BleHeartrateReceiver: ObservableObject {
             log(peripheral.name ?? "no-name")
             BleHeartrateReceiver.sharedInstance.check(error)
             BleHeartrateReceiver.sharedInstance.stop()
-            DispatchQueue.main.async {
-                BleHeartrateReceiver.sharedInstance.receiving = false
-            }
         }
         
         func centralManager(
@@ -249,11 +255,11 @@ public class BleHeartrateReceiver: ObservableObject {
             log(peripheral.name ?? "no-name", characteristic.uuid)
             BleHeartrateReceiver.sharedInstance.check(error)
             
-            guard let heartrate = heartrate(from: characteristic) else {return}
-            
-            DispatchQueue.main.async {
-                BleHeartrateReceiver.sharedInstance.heartrate = heartrate
-                BleHeartrateReceiver.sharedInstance.receiving = true
+            serialDispatchQueue.async {
+                guard let heartrate = self.heartrate(from: characteristic) else {return}
+                
+                BleHeartrateReceiver.sharedInstance.heartrate.send(heartrate)
+                BleHeartrateReceiver.sharedInstance.receiving.send(true)
             }
         }
         
@@ -330,9 +336,8 @@ public class BleHeartrateReceiver: ObservableObject {
             BleHeartrateReceiver.sharedInstance.check(error)
         }
         
-        private func heartrate(from characteristic: CBCharacteristic) -> Heartrate? {
+        private func heartrate(from characteristic: CBCharacteristic, when: Date = Date()) -> Heartrate? {
             guard let value = characteristic.value else {return nil}
-            let when = Date()
             let bytes = [UInt8](value)
 
             if bytes[0] & 0x01 == 0 {

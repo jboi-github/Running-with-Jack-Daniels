@@ -6,8 +6,9 @@
 //
 
 import CoreMotion
+import Combine
 
-class AclMotionReceiver: ObservableObject {
+class AclMotionReceiver {
     // MARK: - Initialization
     
     /// Access shared instance of this singleton
@@ -17,8 +18,12 @@ class AclMotionReceiver: ObservableObject {
     private init() {
         log(CMMotionActivityManager.authorizationStatus().rawValue)
         guard CMMotionActivityManager.isActivityAvailable() else {
-            _ = check("Core Motion Activity detection not available")
+            let error = "Core Motion Activity detection not available"
+            _ = check(error)
             motionActivityManager = nil
+            
+            receiving.send(completion: .failure(error))
+            isRunning.send(completion: .failure(error))
             return
         }
         motionActivityManager = CMMotionActivityManager()
@@ -40,27 +45,32 @@ class AclMotionReceiver: ObservableObject {
         case automotion
     }
     
-    /// Indicates, if Receiver is still active.
-    @Published public private(set) var receiving = Status.off
+    /// Indicates, if Receiver is active.
+    public private(set) var receiving: PassthroughSubject<Status, Error>!
 
     /// Last received location
-    @Published public private(set) var isRunning = IsRunning(
-        isRunning: false,
-        when: Date.distantPast)
+    public private(set) var isRunning: PassthroughSubject<IsRunning, Error>!
     
     public func start() {
         log()
-        motionActivityManager?.startActivityUpdates(to: .main) { activity in
+        
+        receiving = PassthroughSubject<Status, Error>()
+        isRunning = PassthroughSubject<IsRunning, Error>()
+        
+        motionActivityManager?.startActivityUpdates(to: .current ?? .main) { activity in
             guard let activity = activity else {return}
             log(activity.startDate, activity.confidence.rawValue,
                 activity.stationary, activity.unknown, activity.walking, activity.running,
                 activity.cycling, activity.automotive)
             
-            if let status = self.status(for: activity) {self.receiving = status}
-
-            self.isRunning = IsRunning(
-                isRunning: (activity.walking || activity.running || activity.cycling) && !activity.stationary,
-                when: activity.startDate)
+            guard let status = self.status(for: activity) else {return}
+            serialDispatchQueue.async {
+                self.receiving.send(status)
+                self.isRunning.send(
+                    IsRunning(
+                        isRunning: [.walking, .running, .cycling].contains(status),
+                        when: activity.startDate))
+            }
         }
     }
     
@@ -68,7 +78,12 @@ class AclMotionReceiver: ObservableObject {
         log()
         guard let motionActivityManager = motionActivityManager else {return}
         motionActivityManager.stopActivityUpdates()
-        receiving = .off
+        
+        serialDispatchQueue.async { [self] in
+            receiving.send(.off)
+            receiving.send(completion: .finished)
+            isRunning.send(completion: .finished)
+        }
     }
     
     // MARK: - Private
@@ -89,5 +104,3 @@ class AclMotionReceiver: ObservableObject {
         return nil
     }
 }
-
-extension AclMotionReceiver.IsRunning: Codable {}

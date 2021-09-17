@@ -74,7 +74,6 @@ func check(
 }
 
 // MARK: Common extensions
-
 extension String: LocalizedError {
     public var errorDescription: String? {self}
 }
@@ -87,6 +86,7 @@ extension View {
     var anyview: AnyView {AnyView(self)}
 }
 
+// MARK: Formatting
 extension TimeInterval {
     func asTime(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true) -> some View {
         guard self.isFinite else {return Text("--:--").font(font).anyview}
@@ -145,6 +145,7 @@ extension Double {
     }
 }
 
+// MARK: Make Locations equatable
 extension CLLocationCoordinate2D: Equatable {
     public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
         lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
@@ -175,5 +176,61 @@ extension MKCoordinateRegion: Equatable {
             span: MKCoordinateSpan(
                 latitudeDelta: max(minSpan.latitudeDelta, expandedSpan.latitudeDelta),
                 longitudeDelta: max(minSpan.longitudeDelta, expandedSpan.longitudeDelta)))
+    }
+}
+
+// MARK: Aligning columns and rows of a view
+extension View {
+    func alignedView(width: Binding<CGFloat>) -> some View {
+        self.modifier(AlignedWidthView(width: width))
+    }
+    func alignedView(height: Binding<CGFloat>) -> some View {
+        self.modifier(AlignedHeightView(height: height))
+    }
+}
+
+struct AlignedWidthView: ViewModifier {
+    @Binding var width: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                GeometryReader {
+                    Color.clear
+                        .preference(key: ViewWidthKey.self, value: $0.frame(in: .local).size.width)
+                })
+            .onPreferenceChange(ViewWidthKey.self) {self.width = max(self.width, $0)}
+            .frame(minWidth: width)
+    }
+    
+    private struct ViewWidthKey: PreferenceKey {
+        typealias Value = CGFloat
+        static var defaultValue = CGFloat.zero
+        static func reduce(value: inout Value, nextValue: () -> Value) {
+            value += nextValue()
+        }
+    }
+}
+
+struct AlignedHeightView: ViewModifier {
+    @Binding var height: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                GeometryReader {
+                    Color.clear
+                        .preference(key: ViewHeightKey.self, value: $0.frame(in: .local).size.height)
+                })
+            .onPreferenceChange(ViewHeightKey.self) {self.height = max(self.height, $0)}
+            .frame(minWidth: height)
+    }
+    
+    private struct ViewHeightKey: PreferenceKey {
+        typealias Value = CGFloat
+        static var defaultValue = CGFloat.zero
+        static func reduce(value: inout Value, nextValue: () -> Value) {
+            value += nextValue()
+        }
     }
 }

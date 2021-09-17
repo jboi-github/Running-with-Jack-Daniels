@@ -14,6 +14,13 @@
 		153DCED5267A298300D51E56 /* RunningFormulas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153DCED4267A298300D51E56 /* RunningFormulas.swift */; };
 		153DCEDD267A2CF600D51E56 /* Running_with_Jack_DanielsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153DCEDC267A2CF600D51E56 /* Running_with_Jack_DanielsTests.swift */; };
 		1560909E267C7AF7006053BE /* BleHeartrateReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1560909D267C7AF7006053BE /* BleHeartrateReceiver.swift */; };
+		156B442926E9FC4400205598 /* Generics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B442826E9FC4300205598 /* Generics.swift */; };
+		156B442B26F0ED5200205598 /* EventsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B442A26F0ED5200205598 /* EventsManager.swift */; };
+		156B442D26F1B73700205598 /* IntensityReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B442C26F1B73700205598 /* IntensityReceiver.swift */; };
+		156B442F26F2493800205598 /* SegmentIdReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B442E26F2493800205598 /* SegmentIdReceiver.swift */; };
+		156B443126F26F0500205598 /* AggregateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B443026F26F0500205598 /* AggregateManager.swift */; };
+		157DC92726D8FF6500E8A7AE /* EventsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 157DC92626D8FF6500E8A7AE /* EventsModel.swift */; };
+		157DC92926D9040F00E8A7AE /* EventTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 157DC92826D9040F00E8A7AE /* EventTests.swift */; };
 		15A24D882674C65200A08635 /* Running_with_Jack_DanielsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A24D872674C65200A08635 /* Running_with_Jack_DanielsApp.swift */; };
 		15A24D8A2674C65200A08635 /* RunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A24D892674C65200A08635 /* RunView.swift */; };
 		15A24D8C2674C65500A08635 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 15A24D8B2674C65500A08635 /* Assets.xcassets */; };
@@ -24,7 +31,6 @@
 		15A67D1E2695EAC8009FD421 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A67D1D2695EAC8009FD421 /* Database.swift */; };
 		15D31C4826BB115C00CEFD35 /* MapKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D31C4726BB115C00CEFD35 /* MapKitView.swift */; };
 		15D31C4A26BC1E7300CEFD35 /* GpsLocationReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D31C4926BC1E7300CEFD35 /* GpsLocationReceiver.swift */; };
-		15D31C4C26BC2D5200CEFD35 /* WorkoutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D31C4B26BC2D5200CEFD35 /* WorkoutRecorder.swift */; };
 		15D31C4E26BEB2E100CEFD35 /* AclMotionReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D31C4D26BEB2E100CEFD35 /* AclMotionReceiver.swift */; };
 		15FF2752269F096D00D2DE50 /* HealthKitModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15FF2751269F096D00D2DE50 /* HealthKitModel.swift */; };
 		15FF275426A445FC00D2DE50 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15FF275326A445FC00D2DE50 /* PlanView.swift */; };
@@ -50,6 +56,13 @@
 		153DCEDC267A2CF600D51E56 /* Running_with_Jack_DanielsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Running_with_Jack_DanielsTests.swift; sourceTree = "<group>"; };
 		153DCEDE267A2CF600D51E56 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1560909D267C7AF7006053BE /* BleHeartrateReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleHeartrateReceiver.swift; sourceTree = "<group>"; };
+		156B442826E9FC4300205598 /* Generics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Generics.swift; sourceTree = "<group>"; };
+		156B442A26F0ED5200205598 /* EventsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsManager.swift; sourceTree = "<group>"; };
+		156B442C26F1B73700205598 /* IntensityReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityReceiver.swift; sourceTree = "<group>"; };
+		156B442E26F2493800205598 /* SegmentIdReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentIdReceiver.swift; sourceTree = "<group>"; };
+		156B443026F26F0500205598 /* AggregateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AggregateManager.swift; sourceTree = "<group>"; };
+		157DC92626D8FF6500E8A7AE /* EventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsModel.swift; sourceTree = "<group>"; };
+		157DC92826D9040F00E8A7AE /* EventTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTests.swift; sourceTree = "<group>"; };
 		15A24D842674C65200A08635 /* Running-with-Jack-Daniels.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Running-with-Jack-Daniels.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		15A24D872674C65200A08635 /* Running_with_Jack_DanielsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Running_with_Jack_DanielsApp.swift; sourceTree = "<group>"; };
 		15A24D892674C65200A08635 /* RunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunView.swift; sourceTree = "<group>"; };
@@ -63,7 +76,6 @@
 		15A67D1D2695EAC8009FD421 /* Database.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
 		15D31C4726BB115C00CEFD35 /* MapKitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapKitView.swift; sourceTree = "<group>"; };
 		15D31C4926BC1E7300CEFD35 /* GpsLocationReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GpsLocationReceiver.swift; sourceTree = "<group>"; };
-		15D31C4B26BC2D5200CEFD35 /* WorkoutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRecorder.swift; sourceTree = "<group>"; };
 		15D31C4D26BEB2E100CEFD35 /* AclMotionReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AclMotionReceiver.swift; sourceTree = "<group>"; };
 		15FF2751269F096D00D2DE50 /* HealthKitModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitModel.swift; sourceTree = "<group>"; };
 		15FF275326A445FC00D2DE50 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
@@ -91,14 +103,11 @@
 		153DCED2267A291B00D51E56 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				1560909D267C7AF7006053BE /* BleHeartrateReceiver.swift */,
-				15D31C4926BC1E7300CEFD35 /* GpsLocationReceiver.swift */,
-				15D31C4D26BEB2E100CEFD35 /* AclMotionReceiver.swift */,
-				15D31C4B26BC2D5200CEFD35 /* WorkoutRecorder.swift */,
-				15A67D1D2695EAC8009FD421 /* Database.swift */,
 				15FF2751269F096D00D2DE50 /* HealthKitModel.swift */,
+				15A67D1D2695EAC8009FD421 /* Database.swift */,
 				153DCED4267A298300D51E56 /* RunningFormulas.swift */,
 				15A67D19268A4D0C009FD421 /* PlanningFormulas.swift */,
+				156B442826E9FC4300205598 /* Generics.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -122,9 +131,25 @@
 			isa = PBXGroup;
 			children = (
 				153DCEDC267A2CF600D51E56 /* Running_with_Jack_DanielsTests.swift */,
+				157DC92826D9040F00E8A7AE /* EventTests.swift */,
 				153DCEDE267A2CF600D51E56 /* Info.plist */,
 			);
 			path = "Running-with-Jack-DanielsTests";
+			sourceTree = "<group>";
+		};
+		156B443226F5050000205598 /* Events */ = {
+			isa = PBXGroup;
+			children = (
+				1560909D267C7AF7006053BE /* BleHeartrateReceiver.swift */,
+				15D31C4926BC1E7300CEFD35 /* GpsLocationReceiver.swift */,
+				15D31C4D26BEB2E100CEFD35 /* AclMotionReceiver.swift */,
+				156B442C26F1B73700205598 /* IntensityReceiver.swift */,
+				156B442E26F2493800205598 /* SegmentIdReceiver.swift */,
+				156B442A26F0ED5200205598 /* EventsManager.swift */,
+				156B443026F26F0500205598 /* AggregateManager.swift */,
+				157DC92626D8FF6500E8A7AE /* EventsModel.swift */,
+			);
+			path = Events;
 			sourceTree = "<group>";
 		};
 		15A24D7B2674C65200A08635 = {
@@ -150,6 +175,7 @@
 			isa = PBXGroup;
 			children = (
 				153DCED3267A292800D51E56 /* Views */,
+				156B443226F5050000205598 /* Events */,
 				153DCED2267A291B00D51E56 /* Models */,
 				15A24D962674C69800A08635 /* Running-with-Jack-Daniels.entitlements */,
 				15A24D872674C65200A08635 /* Running_with_Jack_DanielsApp.swift */,
@@ -275,6 +301,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				157DC92926D9040F00E8A7AE /* EventTests.swift in Sources */,
 				153DCEDD267A2CF600D51E56 /* Running_with_Jack_DanielsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -287,18 +314,23 @@
 				15089615267F4D3900D83F4B /* MapView.swift in Sources */,
 				15A67D1C2695E006009FD421 /* NaviView.swift in Sources */,
 				1560909E267C7AF7006053BE /* BleHeartrateReceiver.swift in Sources */,
+				156B442926E9FC4400205598 /* Generics.swift in Sources */,
+				157DC92726D8FF6500E8A7AE /* EventsModel.swift in Sources */,
 				151D16A026A9544E006E6D5E /* Stackoverflow.swift in Sources */,
 				15A24D8A2674C65200A08635 /* RunView.swift in Sources */,
 				15A67D1A268A4D0C009FD421 /* PlanningFormulas.swift in Sources */,
+				156B443126F26F0500205598 /* AggregateManager.swift in Sources */,
 				15FF2752269F096D00D2DE50 /* HealthKitModel.swift in Sources */,
 				15D31C4E26BEB2E100CEFD35 /* AclMotionReceiver.swift in Sources */,
-				15D31C4C26BC2D5200CEFD35 /* WorkoutRecorder.swift in Sources */,
 				15A67D1E2695EAC8009FD421 /* Database.swift in Sources */,
 				15A24D882674C65200A08635 /* Running_with_Jack_DanielsApp.swift in Sources */,
 				151D16A226A9B8F5006E6D5E /* HrView.swift in Sources */,
+				156B442F26F2493800205598 /* SegmentIdReceiver.swift in Sources */,
 				153DCED5267A298300D51E56 /* RunningFormulas.swift in Sources */,
 				15D31C4826BB115C00CEFD35 /* MapKitView.swift in Sources */,
 				150896192683881300D83F4B /* StatsView.swift in Sources */,
+				156B442B26F0ED5200205598 /* EventsManager.swift in Sources */,
+				156B442D26F1B73700205598 /* IntensityReceiver.swift in Sources */,
 				15FF275426A445FC00D2DE50 /* PlanView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

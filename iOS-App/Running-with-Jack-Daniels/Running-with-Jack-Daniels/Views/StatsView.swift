@@ -7,55 +7,91 @@
 
 import SwiftUI
 
-private let infoSegmentsOrder = [
-    WorkoutRecorder.InfoSegment.paused,
-    .running(intensity: .Easy),
-    .running(intensity: .Marathon),
-    .running(intensity: .Threshold),
-    .running(intensity: .Interval),
-    .running(intensity: .Repetition)
-]
+//private let infoSegmentsInfo: [WorkoutRecorder.InfoSegment: (image: String, color: Color)] = [
+//    WorkoutRecorder.InfoSegment.paused: (image: "pause.rectangle.fill", color: .primary),
+//    .running(intensity: .Easy): (image: "rectangle.fill", color: .blue),
+//    .running(intensity: .Marathon): (image: "rectangle.fill", color: .green),
+//    .running(intensity: .Threshold): (image: "rectangle.fill", color: .yellow),
+//    .running(intensity: .Interval): (image: "rectangle.fill", color: .red),
+//    .running(intensity: .Repetition): (image: "rectangle.fill", color: .primary)
+//]
 
 struct StatsView: View {
     let currentPace: TimeInterval
-    let currentTotals: [WorkoutRecorder.InfoSegment: WorkoutRecorder.Info]
-    let currentTotal: WorkoutRecorder.Info
+//    let currentTotals: [WorkoutRecorder.InfoSegment: WorkoutRecorder.Info]
+//    let currentTotal: WorkoutRecorder.Info
+    
+    @State private var width0 = CGFloat.zero
+    @State private var width1 = CGFloat.zero
+    @State private var width2 = CGFloat.zero
+    @State private var width3 = CGFloat.zero
+    @State private var width4 = CGFloat.zero
+
+    var body: some View {
+        VStack {
+//            if let info = currentTotals[.paused] {
+//                StatsLineView(
+//                    info: info, color: .primary, systemname: "pause.rectangle.fill",
+//                    width: [$width0, $width1, $width2, $width3, $width4])
+//            }
+//            if let info = currentTotals[.running(intensity: .Easy)] {
+//                StatsLineView(
+//                    info: info, color: .blue, systemname: "rectangle.fill",
+//                    width: [$width0, $width1, $width2, $width3, $width4])
+//            }
+//            if let info = currentTotals[.running(intensity: .Marathon)] {
+//                StatsLineView(
+//                    info: info, color: .green, systemname: "rectangle.fill",
+//                    width: [$width0, $width1, $width2, $width3, $width4])
+//            }
+//            if let info = currentTotals[.running(intensity: .Threshold)] {
+//                StatsLineView(
+//                    info: info, color: .yellow, systemname: "rectangle.fill",
+//                    width: [$width0, $width1, $width2, $width3, $width4])
+//            }
+//            if let info = currentTotals[.running(intensity: .Interval)] {
+//                StatsLineView(
+//                    info: info, color: .red, systemname: "rectangle.fill",
+//                    width: [$width0, $width1, $width2, $width3, $width4])
+//            }
+//            if let info = currentTotals[.running(intensity: .Repetition)] {
+//                StatsLineView(
+//                    info: info, color: .primary, systemname: "rectangle.fill",
+//                    width: [$width0, $width1, $width2, $width3, $width4])
+//            }
+            Divider()
+//            StatsLineView(
+//                info: currentTotal, color: .primary, systemname: "sum",
+//                width: [$width0, $width1, $width2, $width3, $width4])
+        }
+    }
+}
+
+/*
+private struct StatsLineView: View {
+    let info: WorkoutRecorder.Info
+    let color: Color
+    let systemname: String
+    let width: [Binding<CGFloat>]
     
     var body: some View {
         HStack {
-            VStack(alignment: .trailing) {
-                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
-                    Text("\($0.name.capitalized):").font(.subheadline)
-                }
-                Text("Total:").font(.subheadline)
-            }
+            Text(Image(systemName: systemname))
+                .font(.subheadline)
+                .foregroundColor(color)
+                .alignedView(width: width[0])
             Spacer()
-            VStack(alignment: .trailing) {
-                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
-                    currentTotals[$0]?.distance.asDistance(.callout)
-                }
-                currentTotal.distance.asDistance(.callout)
-            }
+            info.distance.asDistance(.callout)
+                .alignedView(width: width[1])
             Spacer()
-            VStack(alignment: .trailing) {
-                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
-                    currentTotals[$0]?.duration.asTime(.callout)
-                }
-                currentTotal.duration.asTime(.callout)
-            }
+            info.duration.asTime(.callout)
+                .alignedView(width: width[2])
             Spacer()
-            VStack(alignment: .trailing) {
-                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
-                    currentTotals[$0]?.avgPaceKmPerSec.asPace(.callout, withMeasure: false)
-                }
-                currentTotal.avgPaceKmPerSec.asPace(.callout, withMeasure: false)
-            }
+            info.avgPaceKmPerSec.asPace(.callout, withMeasure: false)
+                .alignedView(width: width[3])
             Spacer()
-            VStack(alignment: .trailing) {
-                ForEach(infoSegmentsOrder.filter {currentTotals.keys.contains($0)}) {
-                    currentTotals[$0]?.vdot.asVdot(.callout)
-                }
-            }
+            info.vdot.asVdot(.callout)
+                .alignedView(width: width[4])
         }
     }
 }
@@ -68,3 +104,4 @@ struct StatsView_Previews: PreviewProvider {
             currentTotal: WorkoutRecorder.Info.zero)
     }
 }
+*/
