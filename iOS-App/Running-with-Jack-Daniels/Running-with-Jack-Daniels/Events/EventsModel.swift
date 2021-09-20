@@ -239,6 +239,7 @@ enum StatusType<C0, C1, C2, C3, C4, C5, C6, C7, C8> {
     case rollback(after: Date)
     case commit(before: Date)
     case status(_ status: Status<C0, C1, C2, C3, C4, C5, C6, C7, C8>)
+    case publish
 }
 
 // MARK: - Status Queue
@@ -268,8 +269,7 @@ class StatusQueue<
             E8.Content>,
         Failure>()
     private var whens = [BiTemporalWhen]()
-    
-    // TODO: Add timer and send a status at that time, if for some time no event happened.
+    private let timer: Publishers.Autoconnect<Timer.TimerPublisher>
     
     init<
         S0: Publisher,
@@ -290,7 +290,8 @@ class StatusQueue<
         eq5: EventQueue<S5>,
         eq6: EventQueue<S6>,
         eq7: EventQueue<S7>,
-        eq8: EventQueue<S8>)
+        eq8: EventQueue<S8>,
+        publishEvery: TimeInterval)
     where S0.Output == E0,
           S1.Output == E1,
           S2.Output == E2,
@@ -310,57 +311,171 @@ class StatusQueue<
           S7.Failure == Failure,
           S8.Failure == Failure
     {
+        timer = Timer
+            .publish(every: publishEvery, tolerance: 0.5, on: .current, in: .common)
+            .autoconnect()
+        timer
+            .sink { at in
+                serialDispatchQueue.async {self.timer(at: at, eq0, eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8)}
+            }
+            .store(in: &subscribers)
+        
         eq0.publisher
             .merge(with: eq1.publisher, eq2.publisher, eq3.publisher, eq4.publisher)
             .merge(with: eq5.publisher, eq6.publisher, eq7.publisher, eq8.publisher)
-            .sink { [self] completion in
-                whens.removeAll()
-                publisher.send(completion: completion)
-            } receiveValue: { [self] when in
-                // Invalidate all future status
-                publisher.send(.rollback(after: when.impact))
-                
-                // Insert new status, sorted
-                whens.append(when)
-                whens.sort {$0.event <= $1.event}
-                
-                // Resend all status after impact
-                let idx = whens.firstIndex(where: {($0.event > when.impact) || ($0.event >= when.event)}) ?? whens.endIndex
-                whens.suffix(from: idx).forEach {
-                    publisher.send(
-                        .status(
-                            Status(
-                                when: $0.event,
-                                eq0: eq0, eq1: eq1, eq2: eq2, eq3: eq3, eq4: eq4,
-                                eq5: eq5, eq6: eq6, eq7: eq7, eq8: eq8)))
-                }
-
-                // Commit defensive earliest event-Q commit-time
-                guard let lastWhenEvent = whens.last?.event else {return}
-                guard let minCommitTime = [
-                    eq0.commitTime(upTo: lastWhenEvent),
-                    eq1.commitTime(upTo: lastWhenEvent),
-                    eq2.commitTime(upTo: lastWhenEvent),
-                    eq3.commitTime(upTo: lastWhenEvent),
-                    eq4.commitTime(upTo: lastWhenEvent),
-                    eq5.commitTime(upTo: lastWhenEvent),
-                    eq6.commitTime(upTo: lastWhenEvent),
-                    eq7.commitTime(upTo: lastWhenEvent),
-                    eq8.commitTime(upTo: lastWhenEvent)
-                ].min() else {return}
-                
-                eq0.commit(before: minCommitTime)
-                eq1.commit(before: minCommitTime)
-                eq2.commit(before: minCommitTime)
-                eq3.commit(before: minCommitTime)
-                eq4.commit(before: minCommitTime)
-                eq5.commit(before: minCommitTime)
-                eq6.commit(before: minCommitTime)
-                eq7.commit(before: minCommitTime)
-                eq8.commit(before: minCommitTime)
-                whens.removeAll {$0.event < minCommitTime}
-                publisher.send(.commit(before: minCommitTime))
+            .sink { completion in
+                serialDispatchQueue.async {self.complete(with: completion)}
+            } receiveValue: { when in
+                serialDispatchQueue.async {self.event(when: when, eq0, eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8)}
             }
             .store(in: &subscribers)
+    }
+    
+    private func timer<
+        S0: Publisher,
+        S1: Publisher,
+        S2: Publisher,
+        S3: Publisher,
+        S4: Publisher,
+        S5: Publisher,
+        S6: Publisher,
+        S7: Publisher,
+        S8: Publisher>
+    (
+        at: Date,
+        _ eq0: EventQueue<S0>,
+        _ eq1: EventQueue<S1>,
+        _ eq2: EventQueue<S2>,
+        _ eq3: EventQueue<S3>,
+        _ eq4: EventQueue<S4>,
+        _ eq5: EventQueue<S5>,
+        _ eq6: EventQueue<S6>,
+        _ eq7: EventQueue<S7>,
+        _ eq8: EventQueue<S8>)
+    where S0.Output == E0,
+          S1.Output == E1,
+          S2.Output == E2,
+          S3.Output == E3,
+          S4.Output == E4,
+          S5.Output == E5,
+          S6.Output == E6,
+          S7.Output == E7,
+          S8.Output == E8,
+          S0.Failure == Failure,
+          S1.Failure == Failure,
+          S2.Failure == Failure,
+          S3.Failure == Failure,
+          S4.Failure == Failure,
+          S5.Failure == Failure,
+          S6.Failure == Failure,
+          S7.Failure == Failure,
+          S8.Failure == Failure
+    {
+        guard let lastWhenEvent = whens.last?.event else {return}
+
+        // Invalidate after last when
+        publisher.send(.rollback(after: lastWhenEvent))
+
+        // Send status, extrapolated up to now
+        publisher.send(
+            .status(
+                Status(
+                    when: at,
+                    eq0: eq0, eq1: eq1, eq2: eq2, eq3: eq3, eq4: eq4,
+                    eq5: eq5, eq6: eq6, eq7: eq7, eq8: eq8)))
+
+        // Send publish
+        publisher.send(.publish)
+    }
+    
+    private func complete(with completion: Subscribers.Completion<Failure>) {
+        whens.removeAll()
+        timer.upstream.connect().cancel()
+        publisher.send(completion: completion)
+    }
+    
+    private func event<
+        S0: Publisher,
+        S1: Publisher,
+        S2: Publisher,
+        S3: Publisher,
+        S4: Publisher,
+        S5: Publisher,
+        S6: Publisher,
+        S7: Publisher,
+        S8: Publisher>
+    (
+        when: BiTemporalWhen,
+        _ eq0: EventQueue<S0>,
+        _ eq1: EventQueue<S1>,
+        _ eq2: EventQueue<S2>,
+        _ eq3: EventQueue<S3>,
+        _ eq4: EventQueue<S4>,
+        _ eq5: EventQueue<S5>,
+        _ eq6: EventQueue<S6>,
+        _ eq7: EventQueue<S7>,
+        _ eq8: EventQueue<S8>)
+    where S0.Output == E0,
+          S1.Output == E1,
+          S2.Output == E2,
+          S3.Output == E3,
+          S4.Output == E4,
+          S5.Output == E5,
+          S6.Output == E6,
+          S7.Output == E7,
+          S8.Output == E8,
+          S0.Failure == Failure,
+          S1.Failure == Failure,
+          S2.Failure == Failure,
+          S3.Failure == Failure,
+          S4.Failure == Failure,
+          S5.Failure == Failure,
+          S6.Failure == Failure,
+          S7.Failure == Failure,
+          S8.Failure == Failure
+    {
+        // Invalidate all future status
+        publisher.send(.rollback(after: when.impact))
+        
+        // Insert new status, sorted
+        whens.append(when)
+        whens.sort {$0.event <= $1.event}
+        
+        // Resend all status after impact
+        let idx = whens.firstIndex(where: {($0.event > when.impact) || ($0.event >= when.event)}) ?? whens.endIndex
+        whens.suffix(from: idx).forEach {
+            publisher.send(
+                .status(
+                    Status(
+                        when: $0.event,
+                        eq0: eq0, eq1: eq1, eq2: eq2, eq3: eq3, eq4: eq4,
+                        eq5: eq5, eq6: eq6, eq7: eq7, eq8: eq8)))
+        }
+
+        // Commit defensive earliest event-Q commit-time
+        guard let lastWhenEvent = whens.last?.event else {return}
+        guard let minCommitTime = [
+            eq0.commitTime(upTo: lastWhenEvent),
+            eq1.commitTime(upTo: lastWhenEvent),
+            eq2.commitTime(upTo: lastWhenEvent),
+            eq3.commitTime(upTo: lastWhenEvent),
+            eq4.commitTime(upTo: lastWhenEvent),
+            eq5.commitTime(upTo: lastWhenEvent),
+            eq6.commitTime(upTo: lastWhenEvent),
+            eq7.commitTime(upTo: lastWhenEvent),
+            eq8.commitTime(upTo: lastWhenEvent)
+        ].min() else {return}
+        
+        eq0.commit(before: minCommitTime)
+        eq1.commit(before: minCommitTime)
+        eq2.commit(before: minCommitTime)
+        eq3.commit(before: minCommitTime)
+        eq4.commit(before: minCommitTime)
+        eq5.commit(before: minCommitTime)
+        eq6.commit(before: minCommitTime)
+        eq7.commit(before: minCommitTime)
+        eq8.commit(before: minCommitTime)
+        whens.removeAll {$0.event < minCommitTime}
+        publisher.send(.commit(before: minCommitTime))
     }
 }

@@ -145,10 +145,10 @@ extension Sequence {
     ///
     /// - Returns: A seqeunce of elements in sorted order and merged from all source sequences.
     /// The returned `offset` points to the source-sequence, that did hold the element. `element` is the element itself.
-    func forEachMerged() -> AnySequence<(offset: Int, elements: [Element.Element?])>
+    func mapMerged() -> AnySequence<(offset: Int, elements: [Element.Element?])>
     where Element: Sequence, Element.Element: Comparable
     {
-        forEachMerged(by: <)
+        mapMerged(by: <)
     }
     
     /// Merge multiple sequences of an element into one sequence.
@@ -160,7 +160,7 @@ extension Sequence {
     ///
     /// - Returns: A sequence of elements in sorted order and merged from all source sequences.
     /// The returned `offset` points to the source-sequence, that did hold the element. `element` is the element itself.
-    func forEachMerged(by areInIncreasingOrder: @escaping (Element.Element, Element.Element) -> Bool)
+    func mapMerged(by areInIncreasingOrder: @escaping (Element.Element, Element.Element) -> Bool)
     -> AnySequence<(offset: Int, elements: [Element.Element?])>
     where Element: Sequence
     {
@@ -349,4 +349,50 @@ struct AvgBuilder {
     }
 }
 
-// TODO: an extension for RandomAccessCollection to work over two or more other RAC's
+extension Range where Bound: AdditiveArithmetic {
+    func offset(by offset: Bound) -> Range<Bound> {
+        (lowerBound + offset) ..< (upperBound + offset)
+    }
+    
+    var span: Bound {upperBound - lowerBound}
+}
+
+// MARK: Array, based on discontinuous storage
+struct MultipleArrays<R: RandomAccessCollection>: RandomAccessCollection {
+    typealias Element = R.Element
+    typealias Index = Int
+    typealias Indices = Range<Int>
+    
+    private let arrays: [R]
+    let startIndex: Index
+    let endIndex: Index
+    
+    init(_ arrays: R...) {
+        precondition(!arrays.isEmpty, "must provide at least one collection")
+        
+        self.arrays = arrays
+        self.startIndex = 0
+        self.endIndex = arrays.reduce(0, {$0 + $1.count})
+    }
+    
+    func index(before: Index) -> Index {before - 1}
+    
+    subscript(position: Index) -> Element {
+        var offset = position
+        let array = arrays.first { array in
+            if (0 ..< array.count).contains(offset) {
+                return true
+            } else {
+                offset -= array.count
+                return false
+            }
+        }
+        
+        guard let array = array else {
+            preconditionFailure(
+                "Index out of bounds \(position) not in \(arrays.map {0 ..< $0.count})"
+            )
+        }
+        return array[array.index(array.startIndex, offsetBy: offset)]
+    }
+}

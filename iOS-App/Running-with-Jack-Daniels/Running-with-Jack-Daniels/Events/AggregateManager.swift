@@ -18,7 +18,7 @@ import Combine
  - Segments while started: Begin, end, duration, distance (0, if not running), avg-hr (nan if not running)
  - Whenever duration, distance and avg-hr is known, calculate pace, vdot.
  */
-class AggregateManager {
+class AggregateManager: ObservableObject {
     // MARK: - Initialization
     
     /// Access shared instance of this singleton
@@ -28,6 +28,9 @@ class AggregateManager {
     init() {}
     
     // MARK: - Published
+    
+    @Published public private(set) var total = [Total.Categorical:Total.Continuous]()
+    @Published public private(set) var path = [CLLocation]()
     
     public func start(at: Date = Date()) {
         log()
@@ -47,6 +50,9 @@ class AggregateManager {
                     return nil
                 case .status(let status):
                     return status
+                case .publish:
+                    publish()
+                    return nil
                 }
             }
             .scan(Transition(durationS: 0, distanceM: 0, status: nil))
@@ -144,10 +150,15 @@ class AggregateManager {
         locations.aggregate(transition: transition)
     }
     
-    private struct Total: AggregateContent {
-        static let zero = Self()
+    private func publish() {
+        if let total = totals.read() {self.total = total.totals}
+        if let location = locations.read() {path = location.locations.map {$0.toLocation()}}
+    }
+    
+    struct Total: AggregateContent {
+        fileprivate static let zero = Self()
 
-        static func + (lhs: Self, rhs: Transition) -> Self? {
+        fileprivate static func + (lhs: Self, rhs: Transition) -> Self? {
             guard let isStarted = rhs.status.T.isStarted, isStarted else {return nil}
             
             guard let isRunning = rhs.status.T.isRunning,
@@ -172,13 +183,13 @@ class AggregateManager {
         }
         
         // Categorical features
-        struct Categorical: Hashable {
+        struct Categorical: Hashable, Codable {
             let isRunning: Bool
             let intensity: Intensity
         }
         
         // Continuous features
-        struct Continuous {
+        struct Continuous: Codable {
             let durationSec: TimeInterval
             let distanceM: CLLocationDistance
             let heartrateBpm: Int
@@ -189,7 +200,7 @@ class AggregateManager {
             static let zero = Continuous(durationSec: 0, distanceM: 0, heartrateBpm: 0)
         }
         
-        private let totals: [Categorical: Continuous]
+        let totals: [Categorical: Continuous]
         
         private init(totals: [Categorical: Continuous] = [:]) {self.totals = totals}
     }
@@ -215,17 +226,27 @@ class AggregateManager {
                 rhs.status.T.hrBpm ?? 0, continuous.heartrateBpm,
                 rhs.durationS, continuous.durationSec)
             
-            var location: (CLLocation, Int) {
+            var location: (CodableLocation, Int) {
                 if let rhsLocation = rhs.status.T.location {
                     return (
                         AggregateManager.midLocation(
-                            continuous.midLocation, rhsLocation, cnt: continuous.cntLocation),
+                            continuous.midLocation,
+                            rhsLocation,
+                            cnt: continuous.cntLocation),
                         continuous.cntLocation + 1)
                 } else {
                     return (continuous.midLocation, continuous.cntLocation)
                 }
             }
             
+            var startDate: Date {
+                min(rhs.status.when, segments[categorical]?.timespan.lowerBound ?? .distantFuture)
+            }
+            
+            var endDate: Date {
+                max(rhs.status.when, segments[categorical]?.timespan.upperBound ?? .distantPast)
+            }
+
             segments[categorical] = Continuous(
                 isRunning: isRunning,
                 intensity: intensity,
@@ -233,24 +254,26 @@ class AggregateManager {
                 distanceM: sumDistanceM,
                 heartrateBpm: avgHeartrateBpm,
                 midLocation: location.0,
-                cntLocation: location.1)
+                cntLocation: location.1,
+                timespan: startDate ..< endDate)
             return Self(segments: segments)
         }
         
         // Categorical features
-        struct Categorical: Hashable {
+        struct Categorical: Hashable, Codable {
             let segmentId: Int
         }
         
         // Continuous features
-        struct Continuous {
+        struct Continuous: Codable {
             let isRunning: Bool
             let intensity: Intensity
             let durationSec: TimeInterval
             let distanceM: CLLocationDistance
             let heartrateBpm: Int
-            let midLocation: CLLocation
+            let midLocation: CodableLocation
             let cntLocation: Int
+            let timespan: Range<Date>
             
             var paceSecPerKm: TimeInterval {AggregateManager.paceSecPerKm(distanceM, durationSec)}
             var vdot: Double {AggregateManager.vdot(heartrateBpm, paceSecPerKm)}
@@ -261,8 +284,9 @@ class AggregateManager {
                 durationSec: 0,
                 distanceM: 0,
                 heartrateBpm: 0,
-                midLocation: CLLocation(),
-                cntLocation: 0)
+                midLocation: CodableLocation.fromLocation(CLLocation()),
+                cntLocation: 0,
+                timespan: Range(uncheckedBounds: (lower: .distantFuture, upper: .distantPast)))
         }
         
         fileprivate let segments: [Categorical: Continuous]
@@ -302,9 +326,10 @@ class AggregateManager {
             }
         }
         
-        private let locations: [CLLocation]
+        let locations: [CodableLocation]
+        // TODO: Committed part in static array and use MultipleArrays
         
-        private init(locations: [CLLocation] = []) {self.locations = locations}
+        private init(locations: [CodableLocation] = []) {self.locations = locations}
     }
     
     private var totals = BiTemporalAggregate<Total>()
@@ -323,7 +348,11 @@ class AggregateManager {
         return Int(hr1 + hr2 + 0.5)
     }
     
-    private static func midLocation(_ location1: CLLocation, _ location2: CLLocation, cnt: Int) -> CLLocation {
+    private static func midLocation(
+        _ location1: CodableLocation,
+        _ location2: CodableLocation,
+        cnt: Int) -> CodableLocation
+    {
         location1.moveScaled(by: 1.0 / Double(cnt + 1), to: location2)
     }
     
@@ -356,7 +385,7 @@ class AggregateManager {
     }
 }
 
-private protocol AggregateContent {
+private protocol AggregateContent: Codable {
     static var zero: Self {get}
     static func +(lhs: Self, rhs: AggregateManager.Transition) -> Self?
 }
@@ -379,9 +408,98 @@ private struct BiTemporalAggregate<Content: AggregateContent> {
     /// It is expected, that `aggregate` calls `append` to store the aggregations.
     mutating func aggregate(transition: AggregateManager.Transition) {
         guard let current = read() else {return append(Content.zero, asOf: transition.status.when)}
-        
         guard let next = current + transition else {return} // Filtered out
         
         append(next, asOf: transition.status.when)
     }
+}
+
+struct CodableLocation: Codable {
+    let latitude: Double
+    let longitude: Double
+    let altitude: Double
+    let horizontalAccuracy: Double
+    let verticalAccuracy: Double
+    let course: Double
+    let courseAccuracy: Double
+    let speed: Double
+    let speedAccuracy: Double
+    let timestamp: Date
+    
+    func moveScaled(by p: Double, to next: Self) -> Self {
+        func scale(p: Double, start: Double, end: Double) -> Double {start * (1.0 - p) + end * p}
+        
+        return Self(
+            latitude: scale(
+                p: p,
+                start: latitude,
+                end: next.latitude),
+            longitude: scale(
+                p: p,
+                start: longitude,
+                end: next.longitude),
+            altitude: scale(
+                p: p,
+                start: altitude,
+                end: next.altitude),
+            horizontalAccuracy: scale(
+                p: p,
+                start: horizontalAccuracy,
+                end: next.horizontalAccuracy),
+            verticalAccuracy: scale(
+                p: p,
+                start: verticalAccuracy,
+                end: next.verticalAccuracy),
+            course: scale(
+                p: p,
+                start: course,
+                end: next.course),
+            courseAccuracy: scale(
+                p: p,
+                start: courseAccuracy,
+                end: next.courseAccuracy),
+            speed: scale(
+                p: p,
+                start: speed,
+                end: next.speed),
+            speedAccuracy: scale(
+                p: p,
+                start: speedAccuracy,
+                end: next.speedAccuracy),
+            timestamp: Date(timeIntervalSince1970: scale(
+                p: p,
+                start: timestamp.timeIntervalSince1970,
+                end: next.timestamp.timeIntervalSince1970)))
+    }
+
+    static func fromLocation(_ location: CLLocation) -> CodableLocation {
+        CodableLocation(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude,
+            altitude: location.altitude,
+            horizontalAccuracy: location.horizontalAccuracy,
+            verticalAccuracy: location.verticalAccuracy,
+            course: location.course,
+            courseAccuracy: location.courseAccuracy,
+            speed: location.speed,
+            speedAccuracy: location.speedAccuracy,
+            timestamp: location.timestamp)
+    }
+    
+    func toLocation() -> CLLocation {
+        CLLocation(
+            coordinate: CLLocationCoordinate2D(
+                latitude: latitude,
+                longitude: longitude),
+            altitude: altitude,
+            horizontalAccuracy: horizontalAccuracy,
+            verticalAccuracy: verticalAccuracy,
+            course: course,
+            courseAccuracy: courseAccuracy,
+            speed: speed,
+            speedAccuracy: speedAccuracy,
+            timestamp: timestamp)
+    }
+
+    func distance(from: Self) -> CLLocationDistance {toLocation().distance(from: from.toLocation())}
 }

@@ -95,9 +95,9 @@ class EventTests: XCTestCase {
     
     func testForEachMerged() throws {
         let x = [[0,1,2,3,4,5,6,7,8,9], [3,6,7,9], [], [2,5,7]]
-        XCTAssertEqual(Array(x.forEachMerged().map {$0.offset}), [0,0,0,3,0,1,0,0,3,0,1,0,1,3,0,0,1])
+        XCTAssertEqual(Array(x.mapMerged().map {$0.offset}), [0,0,0,3,0,1,0,0,3,0,1,0,1,3,0,0,1])
         XCTAssertEqual(
-            Array(x.forEachMerged().map {$0.elements}),
+            Array(x.mapMerged().map {$0.elements}),
             [
                 [  0,   3, nil,   2],
                 [  1,   3, nil,   2],
@@ -118,8 +118,8 @@ class EventTests: XCTestCase {
                 [nil,   9, nil, nil],
             ])
         
-        XCTAssertEqual(Array([[Int]]().forEachMerged().map {$0.offset}), [Int]())
-        XCTAssertEqual(Array([[Int]]().forEachMerged().map {$0.elements}), [[Int]]())
+        XCTAssertEqual(Array([[Int]]().mapMerged().map {$0.offset}), [Int]())
+        XCTAssertEqual(Array([[Int]]().mapMerged().map {$0.elements}), [[Int]]())
     }
 
     func testMapExtended() throws {
@@ -216,6 +216,13 @@ class EventTests: XCTestCase {
         XCTAssertEqual(["a", "b", "x"].after(1), "x", "collection at end")
         XCTAssertEqual(["a", "b", "x"].after(0), "b", "collection at start")
         XCTAssertEqual(["a", "b", "x"].after(-1), "a", "collection before start")
+    }
+    
+    func testTwoArray() throws {
+        let x = MultipleArrays([1,2,3,4,5], [6,7,8,9], [0,-1,-2])
+        let expected = [1,2,3,4,5,6,7,8,9, 0, -1, -2]
+        
+        XCTAssertEqual(x.map {$0}, expected)
     }
     
     private struct E: Event {
@@ -356,7 +363,7 @@ class EventTests: XCTestCase {
         let intQ = EventQueue(source: i, type: .forward(deferredBy: 1000))
         let stringQ = EventQueue(source: s, type: .backward)
 
-        let sq = StatusQueue(eq0: intQ, eq1: stringQ, eq2: voidEventQueue, eq3: voidEventQueue, eq4: voidEventQueue, eq5: voidEventQueue, eq6: voidEventQueue, eq7: voidEventQueue, eq8: voidEventQueue)
+        let sq = StatusQueue(eq0: intQ, eq1: stringQ, eq2: voidEventQueue, eq3: voidEventQueue, eq4: voidEventQueue, eq5: voidEventQueue, eq6: voidEventQueue, eq7: voidEventQueue, eq8: voidEventQueue, publishEvery: 100)
 
         // Listen to result
         var subscribers = Set<AnyCancellable>()
@@ -374,6 +381,8 @@ class EventTests: XCTestCase {
                     cnt += 1
                 case .status(let status):
                     print("status", status.when, status.c0, status.c1, status.c2)
+                case .publish:
+                    print("publish")
                 }
             }
             .store(in: &subscribers)

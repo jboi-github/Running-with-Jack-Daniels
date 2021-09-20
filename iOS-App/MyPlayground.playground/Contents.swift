@@ -1,28 +1,7 @@
 import Foundation
-import Combine
 
-var p = PassthroughSubject<Int, Error>()
-var sinks = Set<AnyCancellable>()
+let y = 0 ..< 3
+print(y, y.count)
 
-p.sink {
-    print($0)
-} receiveValue: {
-    print($0)
-}
-.store(in: &sinks)
-
-p.send(1)
-p.send(completion: .finished)
-p.send(2)
-
-p = PassthroughSubject<Int, Error>()
-p.sink {
-    print($0)
-} receiveValue: {
-    print($0)
-}
-.store(in: &sinks)
-
-p.send(3)
-
-sinks.count
+let x = Date(timeIntervalSince1970: 1000) ..< Date(timeIntervalSince1970: 2000)
+print(x, x.)

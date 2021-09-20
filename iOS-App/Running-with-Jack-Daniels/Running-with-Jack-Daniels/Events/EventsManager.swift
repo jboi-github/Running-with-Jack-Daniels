@@ -47,7 +47,7 @@ public class EventsManager {
     
     // MARK: Connect aggregates
     
-    typealias LocationContent = (location: CLLocation, original: Bool)
+    typealias LocationContent = (location: CodableLocation, original: Bool)
     typealias AppStatusType =
         StatusType<Int, Bool, LocationContent, Bool, Bool, AclMotionReceiver.Status, Bool, Intensity, Int>
     typealias AppStatus =
@@ -136,18 +136,17 @@ public class EventsManager {
             let timeInterval = when.timeIntervalSince1970 - content.location.timestamp.timeIntervalSince1970
             let span = MKCoordinateRegion(
                 center: CLLocationCoordinate2D(
-                    latitude: content.location.coordinate.latitude,
-                    longitude: content.location.coordinate.longitude),
+                    latitude: content.location.latitude,
+                    longitude: content.location.longitude),
                 latitudinalMeters: content.location.speed * timeInterval * cos(content.location.course.asRadians),
                 longitudinalMeters: content.location.speed * timeInterval * sin(content.location.course.asRadians))
                 .span
             
             return Self(
                 content: (
-                    location: CLLocation(
-                    coordinate: CLLocationCoordinate2D(
-                        latitude: content.location.coordinate.latitude + span.latitudeDelta,
-                        longitude: content.location.coordinate.longitude + span.longitudeDelta),
+                    location: CodableLocation(
+                        latitude: content.location.latitude + span.latitudeDelta,
+                        longitude: content.location.longitude + span.longitudeDelta,
                         altitude: content.location.altitude,
                         horizontalAccuracy: content.location.horizontalAccuracy,
                         verticalAccuracy: content.location.verticalAccuracy,
@@ -155,7 +154,7 @@ public class EventsManager {
                         courseAccuracy: content.location.courseAccuracy,
                         speed: content.location.speed,
                         speedAccuracy: content.location.speedAccuracy,
-                    timestamp: when),
+                        timestamp: when),
                     original: false))
         }
     }
@@ -272,7 +271,7 @@ public class EventsManager {
             source: GpsLocationReceiver
                 .sharedInstance
                 .location
-                .map {LocationEvent(content: (location: $0, original: true))}
+                .map {LocationEvent(content: (location: CodableLocation.fromLocation($0), original: true))}
                 .eraseToAnyPublisher(),
             type: .backward)
         
@@ -327,7 +326,8 @@ public class EventsManager {
             eq5: acitivityStatusQ,
             eq6: isStartedQ,
             eq7: intensityQ,
-            eq8: segmentIdQ)
+            eq8: segmentIdQ,
+            publishEvery: 1)
             .publisher
             .share()
         
@@ -389,7 +389,7 @@ where
     typealias AppStatusAttributes = (
         hrBpm: Int?,
         bleReceiving: Bool?,
-        location: CLLocation?,
+        location: CodableLocation?,
         locationOriginl: Bool?,
         gpsReceiving: Bool?,
         isRunning: Bool?,
