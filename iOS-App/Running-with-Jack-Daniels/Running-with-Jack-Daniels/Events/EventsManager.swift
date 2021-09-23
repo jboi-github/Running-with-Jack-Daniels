@@ -67,21 +67,21 @@ public class EventsManager {
         AclMotionReceiver.sharedInstance.start()
         IntensityReceiver.sharedInstance.start()
         SegmentIdReceiver.sharedInstance.start()
-
-        isStarted.send(ArtificialIsStartedEvent(when: at, content: true))
     }
     
     private func stopAll(at: Date) {
-        isStarted.send(ArtificialIsStartedEvent(when: at, content: false))
-        isStarted.send(completion: .finished)
-
         BleHeartrateReceiver.sharedInstance.stop()
         GpsLocationReceiver.sharedInstance.stop()
         AclMotionReceiver.sharedInstance.stop()
         IntensityReceiver.sharedInstance.stop()
         SegmentIdReceiver.sharedInstance.stop()
         
-        subscribers.removeAll()
+        serialDispatchQueue.sync {
+            isStarted.send(ArtificialIsStartedEvent(when: at, content: false))
+            isStarted.send(completion: .finished)
+
+            subscribers.removeAll()
+        }
     }
 
     // MARK: Events
@@ -313,7 +313,7 @@ public class EventsManager {
                 .segmentIdChange
                 .map {ArtificialSegmentEvent(when: $0.when, content: $0.segment)}
                 .eraseToAnyPublisher(),
-            type: .forward(deferredBy: 40)) // Intensity + som eprocessing time
+            type: .forward(deferredBy: 40)) // Intensity + some processing time
 
         isStartedQ = EventQueue(source: isStarted.eraseToAnyPublisher(), type: .forward(deferredBy: 1))
 
@@ -347,6 +347,8 @@ public class EventsManager {
                 self.artificialsSink($0)
             }
             .store(in: &subscribers)
+        
+        serialDispatchQueue.async {self.isStarted.send(ArtificialIsStartedEvent(when: at, content: true))}
     }
     
     // MARK: Sink for artificial events
@@ -357,16 +359,12 @@ public class EventsManager {
             if let hrBpm = status.T.hrBpm {
                 IntensityReceiver.sharedInstance.heartrate(hrBpm, at: status.when)
             }
-            if let intensity = status.T.intensity,
-               let isStarted = status.T.isStarted,
-               let isRunning = status.T.isRunning
-            {
-                SegmentIdReceiver.sharedInstance.segment(
-                    isStarted: isStarted,
-                    isRunning: isRunning,
-                    intensity: intensity,
-                    at: status.when)
-            }
+            
+            SegmentIdReceiver.sharedInstance.segment(
+                isStarted: status.T.isStarted ?? false,
+                isRunning: status.T.isRunning ?? false,
+                intensity: status.T.intensity ?? .Easy,
+                at: status.when)
         default:
             break
         }
@@ -390,7 +388,7 @@ where
         hrBpm: Int?,
         bleReceiving: Bool?,
         location: CodableLocation?,
-        locationOriginl: Bool?,
+        locationOriginal: Bool?,
         gpsReceiving: Bool?,
         isRunning: Bool?,
         aclReceiving: AclMotionReceiver.Status?,

@@ -25,18 +25,21 @@ class AggregateManager: ObservableObject {
     static var sharedInstance = AggregateManager()
 
     /// Use singleton @sharedInstance
-    init() {}
+    private init() {}
     
     // MARK: - Published
     
     @Published public private(set) var total = [Total.Categorical:Total.Continuous]()
+    @Published public private(set) var totalTotal = Total.Continuous.zero
     @Published public private(set) var path = [CLLocation]()
+    @Published public private(set) var current = Currents.zero
     
     public func start(at: Date = Date()) {
         log()
         totals.reset()
         segments.reset()
         locations.reset()
+        currents = nil
 
         EventsManager.sharedInstance.start(at: at)
         EventsManager.sharedInstance.statusPublisher
@@ -60,9 +63,14 @@ class AggregateManager: ObservableObject {
                 guard let prevStatus = transition.status else {
                     return Transition(durationS: 0, distanceM: 0, status: status)
                 }
-                
-                guard let prevLocation = prevStatus.T.location, let thisLocation = status.T.location else {
-                    return transition
+
+                guard let prevLocation = prevStatus.T.location,
+                      let thisLocation = status.T.location else
+                {
+                    return Transition(
+                        durationS: prevStatus.when.distance(to: status.when),
+                        distanceM: 0,
+                        status: status)
                 }
                 
                 return Transition(
@@ -82,15 +90,18 @@ class AggregateManager: ObservableObject {
                 if !check(error) {self.stop()}
             } receiveValue: {self.aggregate($0)}
             .store(in: &subscribers)
-
     }
     
     public func stop(at: Date = Date()) {
         log()
         EventsManager.sharedInstance.stop(at: at)
-        totals.save()
-        segments.save()
-        locations.save()
+        do {
+            try totals.save(prefix: "totals")
+            try segments.save(prefix: "segements")
+            try locations.save(prefix: "locations")
+        } catch {
+            _ = check(error)
+        }
     }
     
     public func reset(at: Date = Date()) {
@@ -98,30 +109,12 @@ class AggregateManager: ObservableObject {
         totals.reset()
         segments.reset()
         locations.reset()
+        currents = nil
         EventsManager.sharedInstance.reset(at: at)
     }
     
     // MARK: - Private
     
-    /// Save all raw data:  Info, Locations, heartrates, running periods, start/Stop events
-    private func save() throws { // TODO: !
-        // Create a combined struct
-        let combinedCodable = 3
-        
-        // encode into data and compress
-        let data = try (JSONEncoder().encode(combinedCodable) as NSData).compressed(using: .lzfse)
-        
-        // Write to disk
-        if let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let url = path
-                .appendingPathComponent("Running-with-Jack-Daniels")
-                .appendingPathComponent("\(Date().timeIntervalSince1970).json.lzfse")
-            log(url, data.length, data.write(to: url, atomically: true))
-        } else {
-            throw "Cannot get Document Path"
-        }
-    }
-
     /// Available information that is contained in transition from one state to the next and in addition to what the state gives.
     fileprivate struct Transition {
         let durationS: TimeInterval
@@ -148,11 +141,73 @@ class AggregateManager: ObservableObject {
         totals.aggregate(transition: transition)
         segments.aggregate(transition: transition)
         locations.aggregate(transition: transition)
+        currents = Currents(status: transition.status) ?? currents
     }
     
     private func publish() {
-        if let total = totals.read() {self.total = total.totals}
-        if let location = locations.read() {path = location.locations.map {$0.toLocation()}}
+        DispatchQueue.main.async { [self] in
+            if let total = totals.read() {
+                self.total = total.totals
+                self.totalTotal = total.totals.values.reduce(Total.Continuous.zero) {$1 + $0}
+            }
+            if let location = locations.read() {
+                self.path = location.locations.map {$0.toLocation()}
+            }
+            if let current = currents {self.current = current}
+        }
+    }
+    
+    struct Currents {
+        let heartrateBpm: Int
+        let paceSecPerKm: TimeInterval
+        let vdot: Double
+        let bleReceiving: Bool
+        let gpsReceiving: Bool
+        let aclReceiving: AclMotionReceiver.Status
+        
+        init?(status: EventsManager.AppStatus) {
+            self.bleReceiving = status.T.bleReceiving ?? false
+            self.gpsReceiving = status.T.gpsReceiving ?? false
+            self.aclReceiving = status.T.aclReceiving ?? .off
+            
+            self.heartrateBpm = status.T.hrBpm ?? 0
+            
+            if let isStarted = status.T.isStarted,
+               let isRunning = status.T.isRunning,
+               isStarted && isRunning,
+               let speed = status.T.location?.speed
+            {
+                self.paceSecPerKm = 1000.0 / speed
+                self.vdot = AggregateManager.vdot(heartrateBpm, paceSecPerKm)
+            } else {
+                self.paceSecPerKm = .nan
+                self.vdot = .nan
+            }
+        }
+        
+        private init(
+            heartrateBpm: Int,
+            paceSecPerKm: TimeInterval,
+            vdot: Double,
+            bleReceiving: Bool,
+            gpsReceiving: Bool,
+            aclReceiving: AclMotionReceiver.Status)
+        {
+            self.heartrateBpm = heartrateBpm
+            self.paceSecPerKm = paceSecPerKm
+            self.vdot = vdot
+            self.bleReceiving = bleReceiving
+            self.gpsReceiving = gpsReceiving
+            self.aclReceiving = aclReceiving
+        }
+        
+        static let zero = Self(
+            heartrateBpm: 0,
+            paceSecPerKm: .nan,
+            vdot: .nan,
+            bleReceiving: false,
+            gpsReceiving: false,
+            aclReceiving: .off)
     }
     
     struct Total: AggregateContent {
@@ -160,17 +215,15 @@ class AggregateManager: ObservableObject {
 
         fileprivate static func + (lhs: Self, rhs: Transition) -> Self? {
             guard let isStarted = rhs.status.T.isStarted, isStarted else {return nil}
-            
-            guard let isRunning = rhs.status.T.isRunning,
-                  let intensity = rhs.status.T.intensity
-            else {return nil}
-            
-            let categorical = Categorical(isRunning: isRunning, intensity: intensity)
+
+            let categorical = Categorical(
+                isRunning: rhs.status.T.isRunning ?? false,
+                intensity: rhs.status.T.intensity ?? .Easy)
             let continuous = lhs.totals[categorical, default: Continuous.zero]
             var totals = lhs.totals
             
             let sumDurationSec = rhs.durationS + continuous.durationSec
-            let sumDistanceM = isRunning ? rhs.distanceM + continuous.distanceM : 0
+            let sumDistanceM = (rhs.status.T.isRunning ?? false) ? rhs.distanceM + continuous.distanceM : 0
             let avgHeartrateBpm = AggregateManager.heartreateBpm(
                 rhs.status.T.hrBpm ?? 0, continuous.heartrateBpm,
                 rhs.durationS, continuous.durationSec)
@@ -198,6 +251,14 @@ class AggregateManager: ObservableObject {
             var vdot: Double {AggregateManager.vdot(heartrateBpm, paceSecPerKm)}
 
             static let zero = Continuous(durationSec: 0, distanceM: 0, heartrateBpm: 0)
+            static func +(lhs: Self, rhs: Self) -> Self {
+                Self(
+                    durationSec: lhs.durationSec + rhs.durationSec,
+                    distanceM: lhs.distanceM + rhs.distanceM,
+                    heartrateBpm: AggregateManager.heartreateBpm(
+                        rhs.heartrateBpm, lhs.heartrateBpm,
+                        rhs.durationSec, lhs.durationSec))
+            }
         }
         
         let totals: [Categorical: Continuous]
@@ -211,10 +272,10 @@ class AggregateManager: ObservableObject {
         static func + (lhs: Self, rhs: Transition) -> Self? {
             guard let isStarted = rhs.status.T.isStarted, isStarted else {return nil}
             
-            guard let isRunning = rhs.status.T.isRunning,
-                  let intensity = rhs.status.T.intensity,
-                  let segmentId = rhs.status.T.segmentId
-            else {return nil}
+            let isRunning = rhs.status.T.isRunning ?? false
+            let intensity = rhs.status.T.intensity ?? .Easy
+
+            guard let segmentId = rhs.status.T.segmentId else {return nil}
             
             let categorical = Categorical(segmentId: segmentId)
             let continuous = lhs.segments[categorical, default: Continuous.zero]
@@ -244,7 +305,10 @@ class AggregateManager: ObservableObject {
             }
             
             var endDate: Date {
-                max(rhs.status.when, segments[categorical]?.timespan.upperBound ?? .distantPast)
+                if let ts = segments[categorical]?.timespan.upperBound, ts == .distantFuture {
+                    return rhs.status.when
+                }
+                return max(rhs.status.when, segments[categorical]?.timespan.upperBound ?? .distantPast)
             }
 
             segments[categorical] = Continuous(
@@ -286,7 +350,7 @@ class AggregateManager: ObservableObject {
                 heartrateBpm: 0,
                 midLocation: CodableLocation.fromLocation(CLLocation()),
                 cntLocation: 0,
-                timespan: Range(uncheckedBounds: (lower: .distantFuture, upper: .distantPast)))
+                timespan: Range(uncheckedBounds: (lower: .distantFuture, upper: .distantFuture)))
         }
         
         fileprivate let segments: [Categorical: Continuous]
@@ -303,13 +367,13 @@ class AggregateManager: ObservableObject {
 
         static func + (lhs: Self, rhs: Transition) -> Self? {
             guard let location = rhs.status.T.location,
-                  let original = rhs.status.T.locationOriginl,
+                  let original = rhs.status.T.locationOriginal,
                   let isStarted = rhs.status.T.isStarted,
                   let isRunning = rhs.status.T.isRunning
             else {return nil}
-            
+
             guard isStarted else {return nil}
-            
+
             if original && isRunning {
                 return Self(locations: lhs.locations + [location])
             } else if !isRunning {
@@ -335,6 +399,7 @@ class AggregateManager: ObservableObject {
     private var totals = BiTemporalAggregate<Total>()
     private var segments = BiTemporalAggregate<Segment>()
     private var locations = BiTemporalAggregate<Location>()
+    private var currents: Currents? = nil
 
     // MARK: Helper for calculations
     
@@ -342,6 +407,8 @@ class AggregateManager: ObservableObject {
         _ hrBpm1: Int, _ hrBpm2: Int,
         _ duration1: TimeInterval, _ duration2: TimeInterval) -> Int
     {
+        if duration1 + duration2 == 0 {return 0}
+        
         let hr1 = Double(hrBpm1) * (duration1 / (duration1 + duration2))
         let hr2 = Double(hrBpm1) * (duration2 / (duration1 + duration2))
         
@@ -391,26 +458,39 @@ private protocol AggregateContent: Codable {
 }
 
 private struct BiTemporalAggregate<Content: AggregateContent> {
-    var contentAsOf = [(asOf: Date, content: Content)]()
+    private var contentAsOf = [(asOf: Date, content: Content)]()
     
-    mutating func append(_ content: Content, asOf: Date) {
-        contentAsOf.append((asOf: asOf, content: content))
-    }
-
     func read() -> Content? {contentAsOf.last?.content}
-    func save() {} // TODO: !
+    
+    /// Save current version as compressed json doc to applicatio-support-directory.
+    func save(prefix: String) throws {
+        guard let content = read() else {
+            log("nothing to save")
+            return
+        }
+        
+        // encode into data and compress
+        let data = try (JSONEncoder().encode(content) as NSData).compressed(using: .lzfse)
+        
+        // Write to disk
+        let path = try FileManager
+            .default
+            .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let url = path
+            .appendingPathComponent("Running-with-Jack-Daniels")
+            .appendingPathComponent("\(prefix)-\(Date().timeIntervalSince1970).json.lzfse")
+        log(url, data.length, data.write(to: url, atomically: true))
+    }
 
     mutating func commit(before: Date) {contentAsOf.removeAll {$0.asOf < before}}
     mutating func rollback(after: Date) {contentAsOf.removeAll {$0.asOf > after}}
     mutating func reset() {contentAsOf.removeAll()}
     
     /// Entrypoint to be called, whenever a new status/transition arrives.
-    /// It is expected, that `aggregate` calls `append` to store the aggregations.
+    /// It is expected, that `aggregate` stores the aggregations.
     mutating func aggregate(transition: AggregateManager.Transition) {
-        guard let current = read() else {return append(Content.zero, asOf: transition.status.when)}
-        guard let next = current + transition else {return} // Filtered out
-        
-        append(next, asOf: transition.status.when)
+        guard let next = (read() ?? .zero) + transition else {return} // Filtered out
+        contentAsOf.append((asOf: transition.status.when, content: next))
     }
 }
 

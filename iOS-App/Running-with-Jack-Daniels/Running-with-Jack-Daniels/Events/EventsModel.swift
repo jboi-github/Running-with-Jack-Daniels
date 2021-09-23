@@ -52,7 +52,7 @@ extension Event {
     static func == (lhs: Self, rhs: Self) -> Bool {lhs.when == rhs.when}
     static func < (lhs: Self, rhs: Self) -> Bool {lhs.when < rhs.when}
     
-    // MARK: Defualt implementation for forwarding events
+    // MARK: Default implementation for forwarding events
     func interpolate(at: Date, to: Self) -> Self {extrapolate(at: at)}
     func extrapolate(at: Date) -> Self {Self(when: at, content: content)}
 }
@@ -79,40 +79,43 @@ enum EventType {
     case backward
 }
 
-typealias BiTemporalWhen = (impact: Date, event: Date)
+private typealias BiTemporalWhen = (impact: Date, event: Date)
 
 // MARK: - Event Queue
 
-class EventQueue<S: Publisher> where S.Output: Event {
-    typealias Event = S.Output
-    typealias Publisher = CurrentValueSubject<BiTemporalWhen, S.Failure>
+class EventQueue<P: Publisher> where P.Output: Event {
+    typealias Event = P.Output
+    fileprivate typealias Publisher = CurrentValueSubject<BiTemporalWhen, P.Failure>
     
     private let type: EventType
-    let publisher = Publisher((.distantPast, .distantPast))
+    fileprivate let publisher = Publisher((.distantPast, .distantPast))
 
     private var events = [Event]()
 
-    init(source: S, type: EventType) {
+    init(source: P, type: EventType) {
         self.type = type
         
         source
-            .sink { [self] in
-                events.removeAll()
-                publisher.send(completion: $0)
-            } receiveValue: { [self] event in
-                // Insert event, sorted
-                let idx = events.firstIndex(where: {$0.when > event.when}) ?? events.endIndex
-                events.insert(event, at: idx)
-                
-                // return impact
-                switch type {
-                case .forward:
-                    publisher.send((event.when, event.when))
-                case .backward:
-                    if idx > events.startIndex {
-                        publisher.send((events[events.index(before: idx)].when, event.when))
-                    } else {
+            .sink { completion in
+                serialDispatchQueue.async { [self] in
+                    publisher.send(completion: completion)
+                }
+            } receiveValue: { event in
+                serialDispatchQueue.async { [self] in
+                    // Insert event, sorted
+                    let idx = events.firstIndex(where: {$0.when > event.when}) ?? events.endIndex
+                    events.insert(event, at: idx)
+                    
+                    // return impact
+                    switch type {
+                    case .forward:
                         publisher.send((event.when, event.when))
+                    case .backward:
+                        if idx > events.startIndex {
+                            publisher.send((events[events.index(before: idx)].when, event.when))
+                        } else {
+                            publisher.send((event.when, event.when))
+                        }
                     }
                 }
             }
@@ -316,7 +319,7 @@ class StatusQueue<
             .autoconnect()
         timer
             .sink { at in
-                serialDispatchQueue.async {self.timer(at: at, eq0, eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8)}
+                self.timer(at: at, eq0, eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8)
             }
             .store(in: &subscribers)
         
@@ -324,9 +327,9 @@ class StatusQueue<
             .merge(with: eq1.publisher, eq2.publisher, eq3.publisher, eq4.publisher)
             .merge(with: eq5.publisher, eq6.publisher, eq7.publisher, eq8.publisher)
             .sink { completion in
-                serialDispatchQueue.async {self.complete(with: completion)}
+                self.complete(with: completion)
             } receiveValue: { when in
-                serialDispatchQueue.async {self.event(when: when, eq0, eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8)}
+                self.event(when: when, eq0, eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8)
             }
             .store(in: &subscribers)
     }
@@ -389,7 +392,7 @@ class StatusQueue<
     }
     
     private func complete(with completion: Subscribers.Completion<Failure>) {
-        whens.removeAll()
+        // whens.removeAll()
         timer.upstream.connect().cancel()
         publisher.send(completion: completion)
     }

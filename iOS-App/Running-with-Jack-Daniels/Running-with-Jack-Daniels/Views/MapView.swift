@@ -9,12 +9,12 @@ import SwiftUI
 import MapKit
 
 struct MapView: View {
-    let path: [CLLocation]
+    @ObservedObject var aggs = AggregateManager.sharedInstance
     @State private var userInteraction = false
     
     var body: some View {
         ZStack {
-            MapKitView(path: path, userInteraction: userInteraction)
+            MapKitView(path: aggs.path, userInteraction: userInteraction)
             VStack {
                 Spacer()
                 HStack {
@@ -51,6 +51,6 @@ private struct UserInteractionStyle: ToggleStyle {
 
 struct MapView_Previews: PreviewProvider {
     static var previews: some View {
-        MapView(path: [CLLocation]())
+        MapView()
     }
 }

@@ -15,19 +15,7 @@ class AclMotionReceiver {
     static var sharedInstance = AclMotionReceiver()
     
     /// Use singleton @sharedInstance
-    private init() {
-        log(CMMotionActivityManager.authorizationStatus().rawValue)
-        guard CMMotionActivityManager.isActivityAvailable() else {
-            let error = "Core Motion Activity detection not available"
-            _ = check(error)
-            motionActivityManager = nil
-            
-            receiving.send(completion: .failure(error))
-            isRunning.send(completion: .failure(error))
-            return
-        }
-        motionActivityManager = CMMotionActivityManager()
-    }
+    private init() {}
 
     // MARK: - Published
     
@@ -52,11 +40,23 @@ class AclMotionReceiver {
     public private(set) var isRunning: PassthroughSubject<IsRunning, Error>!
     
     public func start() {
-        log()
+        log(CMMotionActivityManager.authorizationStatus().rawValue)
         
         receiving = PassthroughSubject<Status, Error>()
         isRunning = PassthroughSubject<IsRunning, Error>()
+        serialDispatchQueue.async {self.receiving.send(.off)}
         
+        guard CMMotionActivityManager.isActivityAvailable() else {
+            log()
+            motionActivityManager = nil
+            
+            // Simulate "always running"
+            receiving.send(.off)
+            isRunning.send(IsRunning(isRunning: true, when: Date()))
+            return
+        }
+        motionActivityManager = CMMotionActivityManager()
+
         motionActivityManager?.startActivityUpdates(to: .current ?? .main) { activity in
             guard let activity = activity else {return}
             log(activity.startDate, activity.confidence.rawValue,
@@ -74,20 +74,36 @@ class AclMotionReceiver {
         }
     }
     
-    public func stop() {
+    public func stop(with error: Error? = nil) {
         log()
-        guard let motionActivityManager = motionActivityManager else {return}
-        motionActivityManager.stopActivityUpdates()
-        
+        _stop(with: error)
         serialDispatchQueue.async { [self] in
-            receiving.send(.off)
             receiving.send(completion: .finished)
             isRunning.send(completion: .finished)
         }
     }
     
+    static let minRestartTimeout: TimeInterval = 5
+    static let maxRestartTimeout: TimeInterval = 120
+    static let factorRestartTimeout: TimeInterval = 2
+    
+    private(set) var restartTimeout: TimeInterval = minRestartTimeout
+    
+    func reset() {
+        log("\(restartTimeout)")
+        _stop(with: nil)
+        serialDispatchQueue.asyncAfter(deadline: .now() + restartTimeout) {self.start()}
+        restartTimeout = min(restartTimeout * Self.factorRestartTimeout, Self.maxRestartTimeout)
+        
+        serialDispatchQueue.async {self.receiving.send(.off)}
+    }
+
     // MARK: - Private
-    private let motionActivityManager: CMMotionActivityManager?
+    private func _stop(with error: Error?) {
+        motionActivityManager?.stopActivityUpdates()
+    }
+    
+    private var motionActivityManager: CMMotionActivityManager?
     
     private func status(for activity: CMMotionActivity) -> Status? {
         if activity.stationary {

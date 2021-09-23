@@ -8,133 +8,41 @@
 import SwiftUI
 
 struct RunView: View {
-    /*
-    @ObservedObject var hr = BleHeartrateReceiver.sharedInstance
-    @ObservedObject var loc = GpsLocationReceiver.sharedInstance
-    @ObservedObject var acc = AclMotionReceiver.sharedInstance
- */
-    @ObservedObject var hrLimits = Database.sharedInstance.hrLimits
-
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
     var body: some View {
         GeometryReader { proxy in
             VStack {
-//                MapView(path: workout.path)
-//                    .frame(minHeight: proxy.size.height / 3)
+                MapView()
+                    .frame(minHeight: proxy.size.height / 3)
 
-//                HrView(
-//                    heartrate: hr.heartrate?.heartrate,
-//                    currentPace: 0.0,
-//                    hrLimits: hrLimits.value)
-//                    .padding()
-//                    .border(Color.gray)
+                HrView()
+                    .padding()
+                    .border(Color.gray)
 
-//                StatsView(
-//                    currentPace: 0.0,
-//                    currentTotals: currentTotals,
-//                    currentTotal: currentTotal)
-//                    .padding()
-//                    .border(Color.gray)
-
-//                ErrorMessageView(
-//                    hrError: hr.localizedError,
-//                    locError: loc.localizedError,
-//                    hrReset: hr.start,
-//                    locReset: loc.reset)
-                
-//                HStack {
-//                    Button {
-//                        hr.heartrate = BleHeartrateReceiver.Heartrate(heartrate: 150, when: Date())
-//                        acc.isRunning = AclMotionReceiver.IsRunning(isRunning: true, when: Date())
-//                    } label: {
-//                        Text("150")
-//                    }
-//                    Button {
-//                        acc.isRunning = AclMotionReceiver.IsRunning(isRunning: true, when: Date())
-//                        hr.heartrate = BleHeartrateReceiver.Heartrate(heartrate: 180, when: Date())
-//                    } label: {
-//                        Text("180")
-//                    }
-//                    Button {
-//                        hr.heartrate = BleHeartrateReceiver.Heartrate(heartrate: 190, when: Date())
-//                        acc.isRunning = AclMotionReceiver.IsRunning(isRunning: true, when: Date())
-//                    } label: {
-//                        Text("190")
-//                    }
-//                    Button {
-//                        hr.heartrate = BleHeartrateReceiver.Heartrate(heartrate: 203, when: Date())
-//                        acc.isRunning = AclMotionReceiver.IsRunning(isRunning: true, when: Date())
-//                    } label: {
-//                        Text("203")
-//                    }
-//                }
+                TotalsView()
+                    .padding()
+                    .border(Color.gray)
             }
         }
-//        .toolbar {
-//            ToolbarStatusView(
-//                hrError: hr.localizedError,
-//                locError: loc.localizedError,
-//                hrReceiving: hr.receiving,
-//                locReceiving: loc.receiving,
-//                accReceiving: acc.receiving,
-//                hrLimitsEasy: hrLimits.value[.Easy],
-//                heartrate: hr.heartrate?.heartrate)
-//        }
+        .toolbar {
+            ToolbarStatusView()
+        }
         .onAppear {
             Database.sharedInstance.onAppear()
-//            WorkoutRecorder.sharedInstance.start()
+            AggregateManager.sharedInstance.start()
             UIApplication.shared.isIdleTimerDisabled = true
         }
         .onDisappear {
             Database.sharedInstance.onDisappear()
-//            WorkoutRecorder.sharedInstance.stop()
+            AggregateManager.sharedInstance.stop()
             UIApplication.shared.isIdleTimerDisabled = false
         }
-        .onReceive(timer) {_ in 
-//            let current = workout.current($0)
-//            
-//            currentPace = current.paceSecPerKm
-//            currentTotals = current.totals
-//            currentTotal = current.total
-        }
-    }
-}
-
-private struct ErrorMessageView: View {
-    let hrError: String
-    let locError: String
-    let hrReset: () -> Void
-    let locReset: () -> Void
-    
-    var body: some View {
-        HStack {
-            Spacer()
-            Image(systemName: (hrError > "" || locError > "") ? "bolt" : "checkmark")
-            Text("\(hrError)\(locError)")
-            if (hrError > "" || locError > "") {
-                Button {
-                    if hrError > "" {hrReset()}
-                    if locError > "" {locReset()}
-                } label: {
-                    Image(systemName: "play.fill")
-                }
-            }
-        }
-        .padding()
-        .font(.footnote)
     }
 }
 
 private struct ToolbarStatusView: View {
-    let hrError: String
-    let locError: String
-    let hrReceiving: Bool
-    let locReceiving: Bool
-    let accReceiving: AclMotionReceiver.Status
-    let hrLimitsEasy: ClosedRange<Int>?
-    let heartrate: Int?
-
+    @ObservedObject var hrLimits = Database.sharedInstance.hrLimits
+    @ObservedObject var aggs = AggregateManager.sharedInstance
+    
     var body: some View {
         HStack {
             Image(systemName: getMotion())
@@ -144,27 +52,17 @@ private struct ToolbarStatusView: View {
         .font(.caption)
     }
     
-    private func getLocation() -> String {
-        guard locError == "" else {return "location.slash"}
-        if locReceiving {return "location.fill"}
-        return "location"
-    }
-    
-    private func getHeart() -> String {
-        guard hrError == "" else {return "heart.slash"}
-        if hrReceiving {return "heart.fill"}
-        return "heart"
-    }
-    
+    private func getLocation() -> String {aggs.current.gpsReceiving ? "location.fill" : "location.slash"}
+    private func getHeart() -> String {aggs.current.bleReceiving ? "heart.fill" : "heart.slash"}
+
     private func getMotion() -> String {
-        switch accReceiving {
+        switch aggs.current.aclReceiving {
         case .off:
             return "nosign"
             
         case .stationary:
-            if let heartrate = heartrate,
-               let hrLimitsEasy = hrLimitsEasy,
-               heartrate >= hrLimitsEasy.lowerBound
+            if let hrLimitsEasy = hrLimits.value[.Easy],
+               aggs.current.heartrateBpm >= hrLimitsEasy.lowerBound
             {
                 return "figure.wave"
             } else {
@@ -175,9 +73,8 @@ private struct ToolbarStatusView: View {
             return "figure.walk"
             
         case .running:
-            if let heartrate = heartrate,
-               let hrLimitsEasy = hrLimitsEasy,
-               heartrate < hrLimitsEasy.lowerBound
+            if let hrLimitsEasy = hrLimits.value[.Easy],
+               aggs.current.heartrateBpm < hrLimitsEasy.lowerBound
             {
                 return "tortoise.fill"
             } else {

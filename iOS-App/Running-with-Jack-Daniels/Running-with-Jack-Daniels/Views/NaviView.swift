@@ -17,14 +17,21 @@ struct NaviView: View {
                 Spacer()
                 NavigationLink(destination: PlanView()) {
                     Label("Plan", systemImage: "calendar")
+                        .font(.headline)
                 }
                 NavigationLink(destination: RunView(), isActive: $runViewActive) {
                     Label("Run", systemImage: "hare")
+                        .font(.headline)
                 }
                 NavigationLink(destination: RunView()) {
                     Label("Improve", systemImage: "speedometer")
+                        .font(.headline)
                 }
                 Spacer()
+                NavigationLink(destination: BleScannerViewWrapper()) {
+                    Label("Bluetooth Scanner", systemImage: "antenna.radiowaves.left.and.right")
+                        .font(.footnote)
+                }
             }
             .navigationTitle("Run with Jack Daniels")
             .navigationBarTitleDisplayMode(.inline)

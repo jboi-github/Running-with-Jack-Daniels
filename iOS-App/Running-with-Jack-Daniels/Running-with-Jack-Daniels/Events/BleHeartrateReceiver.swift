@@ -20,6 +20,14 @@ public class BleHeartrateReceiver {
 
     // MARK: - Published
     
+    static let heartRateServiceCBUUID = CBUUID(string: "0x180D")
+    static let servicesCBUUID = [
+        heartRateServiceCBUUID,
+        CBUUID(string: "0xFEE1"),
+        CBUUID(string: "0xFEE0")
+    ]
+    static let heartRateCharacteristicCBUUID = CBUUID(string: "2A37")
+    
     public struct Heartrate {
         let heartrate: Int
         let when: Date
@@ -36,8 +44,24 @@ public class BleHeartrateReceiver {
     public func start() {
         log()
         
+        ignoredUuids = (UserDefaults
+            .standard
+            .array(forKey: BleScannerModel.BleIgnoredUuidsKey) ?? [])
+            .compactMap {
+                if let uuidString = $0 as? String {return UUID(uuidString: uuidString)}
+                return nil
+            }
+        
+        if let uuidString = UserDefaults
+            .standard
+            .string(forKey: BleScannerModel.BlePrimaryUuidKey)
+        {
+            primaryUuid = UUID(uuidString: uuidString)
+        }
+
         receiving = PassthroughSubject<Bool, Error>()
         heartrate = PassthroughSubject<Heartrate, Error>()
+        serialDispatchQueue.async {self.receiving.send(false)}
         
         centralManager = CBCentralManager(
             delegate: centralManagerDelegate,
@@ -47,14 +71,9 @@ public class BleHeartrateReceiver {
     /// Stop receiving heartrate measures and disconnect from peripheral if connected. Also stop scanning if currently scanning for peripherals.
     public func stop(with error: Error? = nil) {
         log()
-        guard let centralManager = centralManager else {return}
-        if centralManager.isScanning {centralManager.stopScan()}
-        
-        guard let peripheral = peripheral else {return}
-        centralManager.cancelPeripheralConnection(peripheral)
+        _stop(with: error)
         
         serialDispatchQueue.async { [self] in
-            receiving.send(false)
             if let error = error {
                 receiving.send(completion: .failure(error))
                 heartrate.send(completion: .failure(error))
@@ -65,28 +84,43 @@ public class BleHeartrateReceiver {
         }
     }
     
-    // MARK: - Private
+    static let minRestartTimeout: TimeInterval = 5
+    static let maxRestartTimeout: TimeInterval = 120
+    static let factorRestartTimeout: TimeInterval = 2
     
-    private func check(_ error: Error?) {
-        _ = Running_with_Jack_Daniels.check(error)
-        guard let error = error else {return} // No real issue
-        
-        stop(with: error)
+    private(set) var restartTimeout: TimeInterval = minRestartTimeout
+    
+    func reset(with error: Error?) {
+        log("restart after \(restartTimeout) secs")
+        _stop(with: error)
+        serialDispatchQueue.asyncAfter(deadline: .now() + restartTimeout) {self.start()}
+        restartTimeout = min(restartTimeout * Self.factorRestartTimeout, Self.maxRestartTimeout)
     }
 
+    // MARK: - Private
+    
+    private func _stop(with error: Error?) {
+        if !check(error) {
+            primaryUuid = nil
+            UserDefaults.standard.removeObject(forKey: BleScannerModel.BlePrimaryUuidKey)
+        }
+        
+        if let centralManager = centralManager, centralManager.isScanning {centralManager.stopScan()}
+        if let peripheral = peripheral {centralManager?.cancelPeripheralConnection(peripheral)}
+        centralManager = nil
+        peripheral = nil
+        
+        serialDispatchQueue.async {self.receiving.send(false)}
+    }
+
+    private var ignoredUuids = [UUID]()
+    private var primaryUuid: UUID?
+    
     private var centralManager: CBCentralManager?
     private let centralManagerDelegate = CentralManagerDelegate()
     
     private var peripheral: CBPeripheral?
     private let peripheralDelegate = PeripheralDelegate()
-    
-    private static let heartRateServiceCBUUID = CBUUID(string: "0x180D")
-    private static let servicesCBUUID = [
-        heartRateServiceCBUUID,
-        CBUUID(string: "0xFEE1"),
-        CBUUID(string: "0xFEE0")
-    ]
-    private static let heartRateCharacteristicCBUUID = CBUUID(string: "2A37")
     
     private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         func centralManagerDidUpdateState(_ central: CBCentralManager) {
@@ -102,11 +136,42 @@ public class BleHeartrateReceiver {
             case .poweredOff:
                 log("powered off", central.isScanning)
             case .poweredOn:
-                log("powered on. Initiate scanning...")
-                central.scanForPeripherals(withServices: BleHeartrateReceiver.servicesCBUUID)
+                log("powered on. Connecting...")
+                connectByPrio(central)
             @unknown default:
                 log("For future use and the future is already here")
             }
+        }
+        
+        private func connectByPrio(_ central: CBCentralManager) {
+            // Try to re-connect primary peripheral
+            if let primaryUuid = BleHeartrateReceiver.sharedInstance.primaryUuid,
+               let peripheral = central.retrievePeripherals(withIdentifiers: [primaryUuid]).first
+            {
+                log("re-connect using primary")
+                connect(central, to: peripheral)
+                return
+            }
+            
+            // Try to connect to any device already connected with the appropriate service
+            if let peripheral = central
+                .retrieveConnectedPeripherals(withServices: [BleHeartrateReceiver.heartRateServiceCBUUID])
+                .first
+            {
+                log("re-connect using already conected heartrate device")
+                connect(central, to: peripheral)
+                return
+            }
+            
+            // Nothing works. Scan for new devices.
+            log("Initiate scanning...")
+            central.scanForPeripherals(withServices: BleHeartrateReceiver.servicesCBUUID)
+        }
+        
+        private func connect(_ central: CBCentralManager, to peripheral: CBPeripheral) {
+            peripheral.delegate = BleHeartrateReceiver.sharedInstance.peripheralDelegate
+            BleHeartrateReceiver.sharedInstance.peripheral = peripheral
+            central.connect(peripheral)
         }
         
         func centralManager(
@@ -116,13 +181,12 @@ public class BleHeartrateReceiver {
             rssi RSSI: NSNumber)
         {
             log(peripheral.name ?? "no-name", RSSI)
+            if BleHeartrateReceiver.sharedInstance.ignoredUuids.contains(peripheral.identifier) {return}
+            
             advertisementData.forEach {log($0.key, $0.value)}
+            central.stopScan()
             
-            peripheral.delegate = BleHeartrateReceiver.sharedInstance.peripheralDelegate
-            BleHeartrateReceiver.sharedInstance.peripheral = peripheral
-            
-            //central.stopScan() // FIXME!
-            central.connect(peripheral)
+            connect(central, to: peripheral)
         }
         
         func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -138,8 +202,11 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name")
-            BleHeartrateReceiver.sharedInstance.check(error)
-            BleHeartrateReceiver.sharedInstance.stop()
+            BleHeartrateReceiver.sharedInstance.peripheral = nil
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         func centralManager(
@@ -148,7 +215,8 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name")
-            BleHeartrateReceiver.sharedInstance.check(error)
+            BleHeartrateReceiver.sharedInstance.peripheral = nil
+            BleHeartrateReceiver.sharedInstance.reset(with: error)
         }
         
         func centralManager(
@@ -178,7 +246,10 @@ public class BleHeartrateReceiver {
     private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
             log(peripheral.name ?? "no-name")
-            BleHeartrateReceiver.sharedInstance.check(error)
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
             
             guard let services = peripheral.services else {
                 log("no services discovered")
@@ -194,7 +265,10 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name")
-            BleHeartrateReceiver.sharedInstance.check(error)
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         func peripheral(
@@ -203,8 +277,11 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name", service.uuid)
-            BleHeartrateReceiver.sharedInstance.check(error)
-            
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
+
             service.characteristics?.forEach {
                 log($0)
                 [
@@ -234,7 +311,7 @@ public class BleHeartrateReceiver {
             } else {
                 BleHeartrateReceiver
                     .sharedInstance
-                    .check("Device has no notification capability for heart rate monitoring")
+                    .reset(with: "Device has no notification capability for heart rate monitoring")
             }
         }
         
@@ -245,6 +322,10 @@ public class BleHeartrateReceiver {
         {
             log(peripheral.name ?? "no-name", characteristic.description)
             characteristic.descriptors?.forEach {log($0)}
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         func peripheral(
@@ -253,13 +334,16 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name", characteristic.uuid)
-            BleHeartrateReceiver.sharedInstance.check(error)
-            
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
+
             serialDispatchQueue.async {
                 guard let heartrate = self.heartrate(from: characteristic) else {return}
-                
-                BleHeartrateReceiver.sharedInstance.heartrate.send(heartrate)
+
                 BleHeartrateReceiver.sharedInstance.receiving.send(true)
+                BleHeartrateReceiver.sharedInstance.heartrate.send(heartrate)
             }
         }
         
@@ -269,7 +353,10 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name", descriptor)
-            BleHeartrateReceiver.sharedInstance.check(error)
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         func peripheral(
@@ -278,7 +365,10 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name", characteristic.uuid)
-            BleHeartrateReceiver.sharedInstance.check(error)
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         func peripheral(
@@ -287,7 +377,10 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name", descriptor)
-            BleHeartrateReceiver.sharedInstance.check(error)
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
@@ -300,7 +393,10 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name", characteristic.uuid, characteristic.isNotifying)
-            BleHeartrateReceiver.sharedInstance.check(error)
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         func peripheral(
@@ -309,7 +405,10 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name", RSSI)
-            BleHeartrateReceiver.sharedInstance.check(error)
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         func peripheralDidUpdateName(_ peripheral: CBPeripheral) {
@@ -324,7 +423,9 @@ public class BleHeartrateReceiver {
             
             let invalidationFatal = invalidatedServices
                 .contains {$0.uuid == BleHeartrateReceiver.heartRateServiceCBUUID}
-            if invalidationFatal {BleHeartrateReceiver.sharedInstance.stop()}
+            if invalidationFatal {
+                BleHeartrateReceiver.sharedInstance.stop(with: "mandatory service invalidated")
+            }
         }
         
         func peripheral(
@@ -333,7 +434,10 @@ public class BleHeartrateReceiver {
             error: Error?)
         {
             log(peripheral.name ?? "no-name")
-            BleHeartrateReceiver.sharedInstance.check(error)
+            guard check(error) else {
+                BleHeartrateReceiver.sharedInstance.reset(with: error)
+                return
+            }
         }
         
         private func heartrate(from characteristic: CBCharacteristic, when: Date = Date()) -> Heartrate? {

@@ -28,9 +28,9 @@ class GpsLocationReceiver {
     /// Start receiving data. Ignore any values, that have an earlier timestamp
     public func start() {
         log()
-        
         receiving = PassthroughSubject<Bool, Error>()
         location = PassthroughSubject<CLLocation, Error>()
+        serialDispatchQueue.async {self.receiving.send(false)}
         
         locationManager = CLLocationManager()
         guard let locationManager = locationManager else {return}
@@ -47,11 +47,9 @@ class GpsLocationReceiver {
 
     /// Stop receiving data. Receiver continues to run till receiving a value, that was actually measured at or after the given end time.
     public func stop(with error: Error? = nil) {
-        guard let locationManager = locationManager else {return}
-
-        locationManager.stopUpdatingLocation()
+        log()
+        _stop(with: error)
         serialDispatchQueue.async { [self] in
-            receiving.send(false)
             if let error = error {
                 location.send(completion: .failure(error))
                 receiving.send(completion: .failure(error))
@@ -61,8 +59,28 @@ class GpsLocationReceiver {
             }
         }
     }
+    
+    static let minRestartTimeout: TimeInterval = 5
+    static let maxRestartTimeout: TimeInterval = 120
+    static let factorRestartTimeout: TimeInterval = 2
+    
+    private(set) var restartTimeout: TimeInterval = minRestartTimeout
+    
+    func reset(with error: Error?) {
+        log("\(restartTimeout)")
+        _stop(with: error)
+        serialDispatchQueue.asyncAfter(deadline: .now() + restartTimeout) {self.start()}
+        restartTimeout = min(restartTimeout * Self.factorRestartTimeout, Self.maxRestartTimeout)
+    }
 
     // MARK: - Private
+    
+    private func _stop(with error: Error?) {
+        _ = check(error)
+        locationManager?.stopUpdatingLocation()
+        serialDispatchQueue.async {self.receiving.send(false)}
+    }
+    
     private var locationManager: CLLocationManager? = nil
     private var delegate = Delegate()
     
@@ -75,8 +93,7 @@ class GpsLocationReceiver {
         }
         
         func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-            _ = check(error)
-            GpsLocationReceiver.sharedInstance.stop(with: error)
+            GpsLocationReceiver.sharedInstance.reset(with: error)
         }
         
         func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {

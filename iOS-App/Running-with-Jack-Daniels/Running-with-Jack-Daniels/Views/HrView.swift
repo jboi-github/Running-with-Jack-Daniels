@@ -8,40 +8,39 @@
 import SwiftUI
 
 struct HrView: View {
-    let heartrate: Int?
-    let currentPace: TimeInterval
-    let hrLimits: [Intensity : ClosedRange<Int>]
-
+    @ObservedObject var aggs = AggregateManager.sharedInstance
+    @ObservedObject var hrLimits = Database.sharedInstance.hrLimits
+    
     var body: some View {
-        guard let heartrate = heartrate else {
+        guard aggs.current.heartrateBpm > 0 else {
             return
                 VStack {
-                    HrLimitsTextView(limits: hrLimits)
-                    HrViewBar(limits: hrLimits, heartrate: nil)
+                    HrLimitsTextView(limits: hrLimits.value)
+                    HrViewBar(limits: hrLimits.value, heartrate: nil)
                 }
                 .anyview
         }
         
-        if !hrLimits.isEmpty {
+        if !hrLimits.value.isEmpty {
             return ZStack {
-                HrViewBar(limits: hrLimits, heartrate: heartrate)
+                HrViewBar(limits: hrLimits.value, heartrate: aggs.current.heartrateBpm)
                 VStack {
                     HStack(spacing: 0) {
                         Spacer()
-                        Text("\(heartrate, specifier: "%3d")")
+                        Text("\(aggs.current.heartrateBpm, specifier: "%3d")")
                             .font(.callout)
                             .background(Color(UIColor.systemBackground))
                         Text(" bpm")
                             .font(.caption)
                         Spacer()
-                        currentPace.asPace(.callout)
+                        aggs.current.paceSecPerKm.asPace(.callout)
                             .background(Color(UIColor.systemBackground))
                         Spacer()
                     }
                     Spacer()
                     HStack {
                         Spacer()
-                        HrLimitsTextView(limits: hrLimits)
+                        HrLimitsTextView(limits: hrLimits.value)
                         Spacer()
                     }
                 }
@@ -50,12 +49,12 @@ struct HrView: View {
         } else {
             return HStack {
                 Spacer()
-                Text("\(heartrate, specifier: "%3d")")
+                Text("\(aggs.current.heartrateBpm, specifier: "%3d")")
                     .font(.largeTitle.monospacedDigit())
                 Text(" bpm")
                     .font(.caption)
                 Spacer()
-                currentPace.asPace(.largeTitle.monospacedDigit())
+                aggs.current.paceSecPerKm.asPace(.largeTitle.monospacedDigit())
                 Spacer()
             }
             .anyview
@@ -243,9 +242,6 @@ private struct RightTriangle: Shape {
 
 struct HrView_Previews: PreviewProvider {
     static var previews: some View {
-        HrView(
-            heartrate: 130,
-            currentPace: 350.0,
-            hrLimits: Database.sharedInstance.hrLimits.value)
+        HrView()
     }
 }

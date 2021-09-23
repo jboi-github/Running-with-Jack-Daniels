@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		15089615267F4D3900D83F4B /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15089614267F4D3900D83F4B /* MapView.swift */; };
-		150896192683881300D83F4B /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150896182683881300D83F4B /* StatsView.swift */; };
+		150896192683881300D83F4B /* TotalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150896182683881300D83F4B /* TotalsView.swift */; };
 		151D16A026A9544E006E6D5E /* Stackoverflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 151D169F26A9544E006E6D5E /* Stackoverflow.swift */; };
 		151D16A226A9B8F5006E6D5E /* HrView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 151D16A126A9B8F5006E6D5E /* HrView.swift */; };
 		153DCED5267A298300D51E56 /* RunningFormulas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153DCED4267A298300D51E56 /* RunningFormulas.swift */; };
@@ -19,6 +19,8 @@
 		156B442D26F1B73700205598 /* IntensityReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B442C26F1B73700205598 /* IntensityReceiver.swift */; };
 		156B442F26F2493800205598 /* SegmentIdReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B442E26F2493800205598 /* SegmentIdReceiver.swift */; };
 		156B443126F26F0500205598 /* AggregateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B443026F26F0500205598 /* AggregateManager.swift */; };
+		156B443426FA0B8700205598 /* BleScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B443326FA0B8700205598 /* BleScannerView.swift */; };
+		156B443826FA334600205598 /* BleScannerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B443726FA334600205598 /* BleScannerModel.swift */; };
 		157DC92726D8FF6500E8A7AE /* EventsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 157DC92626D8FF6500E8A7AE /* EventsModel.swift */; };
 		157DC92926D9040F00E8A7AE /* EventTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 157DC92826D9040F00E8A7AE /* EventTests.swift */; };
 		15A24D882674C65200A08635 /* Running_with_Jack_DanielsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A24D872674C65200A08635 /* Running_with_Jack_DanielsApp.swift */; };
@@ -48,7 +50,7 @@
 
 /* Begin PBXFileReference section */
 		15089614267F4D3900D83F4B /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
-		150896182683881300D83F4B /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		150896182683881300D83F4B /* TotalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalsView.swift; sourceTree = "<group>"; };
 		151D169F26A9544E006E6D5E /* Stackoverflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stackoverflow.swift; sourceTree = "<group>"; };
 		151D16A126A9B8F5006E6D5E /* HrView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HrView.swift; sourceTree = "<group>"; };
 		153DCED4267A298300D51E56 /* RunningFormulas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningFormulas.swift; sourceTree = "<group>"; };
@@ -61,6 +63,8 @@
 		156B442C26F1B73700205598 /* IntensityReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityReceiver.swift; sourceTree = "<group>"; };
 		156B442E26F2493800205598 /* SegmentIdReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentIdReceiver.swift; sourceTree = "<group>"; };
 		156B443026F26F0500205598 /* AggregateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AggregateManager.swift; sourceTree = "<group>"; };
+		156B443326FA0B8700205598 /* BleScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleScannerView.swift; sourceTree = "<group>"; };
+		156B443726FA334600205598 /* BleScannerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleScannerModel.swift; sourceTree = "<group>"; };
 		157DC92626D8FF6500E8A7AE /* EventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsModel.swift; sourceTree = "<group>"; };
 		157DC92826D9040F00E8A7AE /* EventTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTests.swift; sourceTree = "<group>"; };
 		15A24D842674C65200A08635 /* Running-with-Jack-Daniels.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Running-with-Jack-Daniels.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -108,6 +112,7 @@
 				153DCED4267A298300D51E56 /* RunningFormulas.swift */,
 				15A67D19268A4D0C009FD421 /* PlanningFormulas.swift */,
 				156B442826E9FC4300205598 /* Generics.swift */,
+				156B443726FA334600205598 /* BleScannerModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -121,8 +126,9 @@
 				15089614267F4D3900D83F4B /* MapView.swift */,
 				15D31C4726BB115C00CEFD35 /* MapKitView.swift */,
 				151D16A126A9B8F5006E6D5E /* HrView.swift */,
-				150896182683881300D83F4B /* StatsView.swift */,
+				150896182683881300D83F4B /* TotalsView.swift */,
 				151D169F26A9544E006E6D5E /* Stackoverflow.swift */,
+				156B443326FA0B8700205598 /* BleScannerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -321,6 +327,7 @@
 				15A67D1A268A4D0C009FD421 /* PlanningFormulas.swift in Sources */,
 				156B443126F26F0500205598 /* AggregateManager.swift in Sources */,
 				15FF2752269F096D00D2DE50 /* HealthKitModel.swift in Sources */,
+				156B443426FA0B8700205598 /* BleScannerView.swift in Sources */,
 				15D31C4E26BEB2E100CEFD35 /* AclMotionReceiver.swift in Sources */,
 				15A67D1E2695EAC8009FD421 /* Database.swift in Sources */,
 				15A24D882674C65200A08635 /* Running_with_Jack_DanielsApp.swift in Sources */,
@@ -328,9 +335,10 @@
 				156B442F26F2493800205598 /* SegmentIdReceiver.swift in Sources */,
 				153DCED5267A298300D51E56 /* RunningFormulas.swift in Sources */,
 				15D31C4826BB115C00CEFD35 /* MapKitView.swift in Sources */,
-				150896192683881300D83F4B /* StatsView.swift in Sources */,
+				150896192683881300D83F4B /* TotalsView.swift in Sources */,
 				156B442B26F0ED5200205598 /* EventsManager.swift in Sources */,
 				156B442D26F1B73700205598 /* IntensityReceiver.swift in Sources */,
+				156B443826FA334600205598 /* BleScannerModel.swift in Sources */,
 				15FF275426A445FC00D2DE50 /* PlanView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

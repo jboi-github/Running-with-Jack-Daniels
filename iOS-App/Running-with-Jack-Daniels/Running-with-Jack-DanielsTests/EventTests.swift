@@ -352,9 +352,12 @@ class EventTests: XCTestCase {
             .rollback(after: Date(timeIntervalSince1970: 1500)),
             .commit(before: Date(timeIntervalSince1970: 1500)),
             .rollback(after: Date(timeIntervalSince1970: 2100)),
-            .commit(before: Date(timeIntervalSince1970: 2100))
+            .commit(before: Date(timeIntervalSince1970: 2100)),
+            .rollback(after: Date(timeIntervalSince1970: 2400)),
+            .publish
         ]
         var cnt = 0
+        let expectation = self.expectation(description: "Await")
         
         // setup queus and sources
         let i = PassthroughSubject<IntEvent, Never>()
@@ -363,7 +366,7 @@ class EventTests: XCTestCase {
         let intQ = EventQueue(source: i, type: .forward(deferredBy: 1000))
         let stringQ = EventQueue(source: s, type: .backward)
 
-        let sq = StatusQueue(eq0: intQ, eq1: stringQ, eq2: voidEventQueue, eq3: voidEventQueue, eq4: voidEventQueue, eq5: voidEventQueue, eq6: voidEventQueue, eq7: voidEventQueue, eq8: voidEventQueue, publishEvery: 100)
+        let sq = StatusQueue(eq0: intQ, eq1: stringQ, eq2: voidEventQueue, eq3: voidEventQueue, eq4: voidEventQueue, eq5: voidEventQueue, eq6: voidEventQueue, eq7: voidEventQueue, eq8: voidEventQueue, publishEvery: 5)
 
         // Listen to result
         var subscribers = Set<AnyCancellable>()
@@ -383,6 +386,10 @@ class EventTests: XCTestCase {
                     print("status", status.when, status.c0, status.c1, status.c2)
                 case .publish:
                     print("publish")
+                    cnt += 1
+                }
+                if cnt == expected.count {
+                    expectation.fulfill()
                 }
             }
             .store(in: &subscribers)
@@ -406,6 +413,11 @@ class EventTests: XCTestCase {
         i.send(completion: .finished)
         print("send completion / String")
         s.send(completion: .finished)
+        
+        waitForExpectations(timeout: 10) { error in
+            if let error = error {print(error)}
+            XCTAssertEqual(cnt, expected.count)
+        }
     }
     
     private func cmpStatus(

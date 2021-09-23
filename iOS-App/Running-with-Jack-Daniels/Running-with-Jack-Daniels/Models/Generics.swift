@@ -339,13 +339,10 @@ struct AvgBuilder {
     init() {}
     
     mutating func merge(_ x: Double) {
-        defer {
-            _avg = localAvg
-            _error += localError
-            _n += 1
-        }
-        
         let (localAvg, localError) = Double.addWithError(_avg * (_n / (_n + 1)), x / (_n + 1))
+        _avg = localAvg
+        _error += localError
+        _n += 1
     }
 }
 

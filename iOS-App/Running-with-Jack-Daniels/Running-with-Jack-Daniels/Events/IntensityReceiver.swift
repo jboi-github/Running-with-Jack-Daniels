@@ -43,10 +43,10 @@ class IntensityReceiver {
             self.intensityChange.send(completion: .finished)
         }
     }
-    
+
     /// New hertrate was received
     public func heartrate(_ hrBpm: Int, at: Date) {
-        log()
+        if hrBpm == prevHrBpm {return}
         
         let intensity = calcIntensity(hrBpm: hrBpm)
         send(intensity, at: calcAt(at))
@@ -57,7 +57,6 @@ class IntensityReceiver {
     }
     
     // MARK: - Private
-    
     private var prevIntensity: Intensity = .Easy
     private var prevHrBpm: Int? = nil
     private var prevAt: Date? = nil

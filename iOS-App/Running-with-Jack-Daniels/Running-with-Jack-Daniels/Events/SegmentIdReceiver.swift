@@ -39,17 +39,19 @@ class SegmentIdReceiver {
             self.segmentIdChange.send(completion: .finished)
         }
     }
-    
+
     /// New categoricals were received
     public func segment(isStarted: Bool, isRunning: Bool, intensity: Intensity, at: Date) {
-        log()
-        guard let prevSegment = prevSegment, (isStarted, isRunning, intensity) != prevSegment else {return}
+        if prevSegment != nil && prevSegment! == (isStarted, isRunning, intensity) {return}
+        
+        log(segmentId)
         let localSegmentId = segmentId
         
         defer {
             self.prevSegment = (isStarted, isRunning, intensity)
             segmentId += 1
         }
+
         serialDispatchQueue.async {
             self.segmentIdChange.send(SegmentIdChange(segment: localSegmentId, when: at))
         }

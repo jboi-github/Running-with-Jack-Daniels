@@ -51,7 +51,7 @@ struct PlanView: View {
                     title: "Your maximal HR:", attribute: hrMax,
                     range: 100...250, step: 1, specifier: "%3.0f bpm",
                     minLabel: "100 bpm", maxLabel: "250 bpm")
-                HrView(heartrate: nil, currentPace: .infinity, hrLimits: hrLimits.value)
+                HrView()
                     .padding()
             }
         }
