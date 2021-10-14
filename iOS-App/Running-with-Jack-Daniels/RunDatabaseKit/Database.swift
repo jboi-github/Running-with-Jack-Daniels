@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+import RunFormulasKit
+import RunFoundationKit
 
 /// Keep data for users profile, goal, status quo, current planning and wekly constraints.
 /// The data is taken from either manual input, health or a calculated default value. Manual input has highest prio, defaults lowest.
@@ -270,11 +272,11 @@ public class Database {
     
     public static func calcHrLimits() -> [Intensity: ClosedRange<Int>] {
         if Database.sharedInstance.hrMax.value.isFinite && Database.sharedInstance.hrResting.value.isFinite {
-            return Running_with_Jack_Daniels.hrLimits(
+            return RunFormulasKit.hrLimits(
                 hrMaxBpm: Int(Database.sharedInstance.hrMax.value),
                 restingHrBpm: Int(Database.sharedInstance.hrResting.value))
         } else if Database.sharedInstance.hrMax.value.isFinite {
-            return Running_with_Jack_Daniels.hrLimits(hrMaxBpm: Int(Database.sharedInstance.hrMax.value))
+            return RunFormulasKit.hrLimits(hrMaxBpm: Int(Database.sharedInstance.hrMax.value))
         } else {
             return [Intensity: ClosedRange<Int>]()
         }

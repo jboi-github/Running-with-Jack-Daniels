@@ -6,6 +6,8 @@
 //
 
 import HealthKit
+import RunFoundationKit
+import RunFormulasKit
 
 /// Connect to Healthkit and query or save data as requested .
 class HealthKitModel {

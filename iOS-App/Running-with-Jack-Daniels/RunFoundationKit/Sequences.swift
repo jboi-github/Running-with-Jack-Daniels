@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 // MARK: - Extensions for sequences and arrays
 
@@ -42,7 +43,7 @@ extension Sequence {
     /// N-grams of a Sequence.
     /// - Parameter n: maximal number of elements in one result
     /// - Returns: An arrays with all n-grams. The list includes starting adn ending point, which contain between 1 and n elements in one n-gram.
-    func ngram(_ n: Int) -> AnySequence<Array<Element>> {
+    public func ngram(_ n: Int) -> AnySequence<Array<Element>> {
         var ngram = [Element]()
         ngram.reserveCapacity(n + 1)
         
@@ -271,7 +272,7 @@ extension BidirectionalCollection {
 
 extension RandomAccessCollection {
     /// Look forward, backwards or by binary search to get insertion point. Expects collection to be increasingly sorted.
-    func insertIndex<Key>(for key: Key, element2key: (Element) -> Key) -> Index where Key: Comparable {
+    public func insertIndex<Key>(for key: Key, element2key: (Element) -> Key) -> Index where Key: Comparable {
         func forward() -> Index {
             var i = startIndex
             while i < endIndex && key >= element2key(self[i]) {i = index(after: i)}
@@ -314,7 +315,14 @@ extension RandomAccessCollection {
     }
 }
 
-// MARK: Single values
+// MARK: Single values and ranges
+
+/// Global, serial dispatch queue for event handling tasks.
+public let serialQueue = DispatchQueue(
+    label: "com.apps4live.Running-with-Jack-Daniels",
+    qos: .userInitiated)
+
+public var sinks = Set<AnyCancellable>()
 
 extension Double {
     func addWithError(_ other: Double) -> (sum: Double, error: Double) {
@@ -347,12 +355,26 @@ struct AvgBuilder {
 }
 
 extension Range where Bound: AdditiveArithmetic {
-    func offset(by offset: Bound) -> Range<Bound> {
+    public func offset(by offset: Bound) -> Range<Bound> {
         (lowerBound + offset) ..< (upperBound + offset)
     }
     
-    var span: Bound {upperBound - lowerBound}
+    public var span: Bound {upperBound - lowerBound}
 }
+
+extension Range where Bound: Strideable, Bound.Stride: BinaryFloatingPoint {
+    public func relativePosition(of bound: Bound) -> Double {
+        Double(lowerBound.distance(to: bound)) / Double(lowerBound.distance(to: upperBound))
+    }
+}
+
+extension Range where Bound: Strideable, Bound.Stride: BinaryInteger {
+    public func relativePosition(of bound: Bound) -> Double {
+        Double(lowerBound.distance(to: bound)) / Double(lowerBound.distance(to: upperBound))
+    }
+}
+
+extension Date: Strideable {}
 
 // MARK: Array, based on discontinuous storage
 struct MultipleArrays<R: RandomAccessCollection>: RandomAccessCollection {

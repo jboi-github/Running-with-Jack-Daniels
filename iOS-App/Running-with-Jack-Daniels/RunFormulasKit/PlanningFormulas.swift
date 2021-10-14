@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RunFoundationKit
 
 /// A collection of functions to implement Jack Daniels running formulas for building training plans. All functions are stateless by design.
 

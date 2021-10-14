@@ -54,12 +54,14 @@ public func hrLimits(hrMaxBpm: Int, restingHrBpm: Int = 0) -> [Intensity : Close
 }
 
 public enum Intensity: String, CaseIterable, Identifiable, Codable {
-    case Easy, Long, Marathon, Threshold, Interval, Repetition, Race
+    case Cold, Easy, Long, Marathon, Threshold, Interval, Repetition, Race
     
     public var id: String {rawValue}
 
     func getHrPercent() -> ClosedRange<Double>? {
         switch self {
+        case .Cold:
+            return 0...0.65
         case .Easy:
             return 0.65...0.80
         case .Long:
@@ -67,9 +69,9 @@ public enum Intensity: String, CaseIterable, Identifiable, Codable {
         case .Marathon:
             return 0.80...0.90
         case .Threshold:
-            return 0.88...0.92
+            return 0.88...0.98 // Original ...0.92
         case .Interval:
-            return 0.98...1.0
+            return 0.92...1.0 // Original 0.98...
         case .Repetition:
             return nil
         case .Race:
@@ -77,8 +79,21 @@ public enum Intensity: String, CaseIterable, Identifiable, Codable {
         }
     }
     
+    public func getHrLimit(hrMaxBpm: Int, restingBpm: Int = 0) -> ClosedRange<Int>? {
+        guard let hrPercent = getHrPercent() else {return nil}
+        
+        let l = hrPercent.lowerBound * Double(hrMaxBpm)
+            + (1.0 - hrPercent.lowerBound) * Double(restingBpm)
+        let u = hrPercent.upperBound * Double(hrMaxBpm)
+            + (1.0 - hrPercent.upperBound) * Double(restingBpm)
+        
+        return Int(l + 0.5) ... Int(u + 0.5)
+    }
+    
     func getVdotPercent() -> ClosedRange<Double> {
         switch self {
+        case .Cold:
+            return 0...0.59
         case .Easy:
             return 0.59...0.74
         case .Long:
@@ -347,39 +362,18 @@ public func vdot4TimeOff(
 ///     - repetition, if hr is above interval limit.
 ///     - If hr is in the overlap between marathon and threshold, the intensity which is closer to the previous intensity is returned.
 ///     - If hr is in the gep between threshold and interval, the intensity which is closer to the previous intensity is returned.
-public func intensity4Hr(
-    hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0,
-    prevIntensity: Intensity?) -> Intensity?
-{
+public func intensity4Hr(hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0, prevHrBpm: Int?) -> Intensity {
     let hrPercent = Double(hrBpm - restingBpm) / Double(hrMaxBpm - restingBpm)
 
-    // Above or below
-    if let lowerBound = Intensity.Easy.getHrPercent()?.lowerBound, hrPercent < lowerBound {
-        return nil // Pause
-    } else if let upperBound = Intensity.Interval.getHrPercent()?.upperBound, hrPercent > upperBound {
+    let intensities = Intensity
+        .allCases
+        .filter {$0.getHrPercent()?.contains(hrPercent) ?? false}
+    
+    if intensities.isEmpty {
         return .Repetition
-    } else if let lowertT = Intensity.Threshold.getHrPercent()?.lowerBound,
-              let upperM = Intensity.Marathon.getHrPercent()?.upperBound,
-              (lowertT...upperM).contains(hrPercent) {
-        
-        // Take the closer one towards previous intensity
-        return [nil, .Easy, .Marathon].contains(prevIntensity) ? .Marathon : .Threshold
-    } else if let upperT = Intensity.Threshold.getHrPercent()?.upperBound,
-              let lowerI = Intensity.Interval.getHrPercent()?.lowerBound,
-              upperT < hrPercent && hrPercent < lowerI {
-        
-        // Take the closer one towards previous intensity
-        return [nil, .Easy, .Marathon, .Threshold].contains(prevIntensity) ? .Threshold : .Interval
-    } else if let bounds = Intensity.Easy.getHrPercent(), bounds.contains(hrPercent) {
-        return .Easy
-    } else if let bounds = Intensity.Marathon.getHrPercent(), bounds.contains(hrPercent) {
-        return .Marathon
-    } else if let bounds = Intensity.Threshold.getHrPercent(), bounds.contains(hrPercent) {
-        return .Threshold
-    } else if let bounds = Intensity.Interval.getHrPercent(), bounds.contains(hrPercent) {
-        return .Interval
+    } else {
+        return (prevHrBpm ?? 0) < hrBpm ? intensities.first! : intensities.last!
     }
-    return nil
 }
 
 /*
