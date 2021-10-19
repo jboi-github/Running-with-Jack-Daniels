@@ -7,10 +7,11 @@
 
 import Foundation
 import SwiftUI
+import MapKit
 
 // MARK: Formatting
 extension TimeInterval {
-    func asTime(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true)
+    public func asTime(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true)
     -> some View
     {
         guard self.isFinite else {return Text("--:--").font(font).anyview}
@@ -32,7 +33,7 @@ extension TimeInterval {
         .anyview
     }
     
-    func asPace(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true)
+    public func asPace(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true)
     -> some View
     {
         return HStack(spacing: 0) {
@@ -47,7 +48,7 @@ extension Double {
         String(format: self.isFinite ? format : ifNan, self)
     }
 
-    func asDistance(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true)
+    public func asDistance(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true)
     -> some View
     {
         guard self.isFinite else {return Text("-").font(font).anyview}
@@ -67,8 +68,27 @@ extension Double {
         }
     }
     
-    func asVdot(_ font: Font = .body) -> some View {
+    public func asVdot(_ font: Font = .body) -> some View {
         guard self.isFinite else {return Text("--.-").font(font).anyview}
         return Text("\(self, specifier: "%2.1f")").font(font).anyview
+    }
+}
+
+extension MKCoordinateRegion {
+    public func expanded(by expansion: Double, minMeter: CLLocationDistance) -> Self {
+        let spanExpanded = MKCoordinateSpan(
+            latitudeDelta: span.latitudeDelta * expansion,
+            longitudeDelta: span.longitudeDelta * expansion)
+        let spanMinMeter = MKCoordinateRegion(
+            center: center,
+            latitudinalMeters: minMeter,
+            longitudinalMeters: minMeter)
+            .span
+        
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(spanExpanded.latitudeDelta, spanMinMeter.latitudeDelta),
+            longitudeDelta: max(spanExpanded.longitudeDelta, spanMinMeter.longitudeDelta))
+        
+        return Self(center: center, span: span)
     }
 }

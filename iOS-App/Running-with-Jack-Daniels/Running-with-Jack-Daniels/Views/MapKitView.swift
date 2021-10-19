@@ -46,7 +46,7 @@ private extension MKMapView {
             let region = regionThatFits(
                 MKCoordinateRegion(route.boundingMapRect)
                     .expanded(by: 1.1, minMeter: 500))
-            if region.area > 0 {setRegion(region, animated: true)}
+            if !path.isEmpty {setRegion(region, animated: true)}
         }
     }
 }

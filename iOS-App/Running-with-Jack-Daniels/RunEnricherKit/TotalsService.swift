@@ -11,7 +11,6 @@ import CoreLocation
 import RunFoundationKit
 import RunFormulasKit
 import RunReceiversKit
-import RunEnricherKit
 
 public class TotalsService: ObservableObject {
     // MARK: - Initialization
@@ -24,7 +23,7 @@ public class TotalsService: ObservableObject {
         SegmentsService
             .sharedInstance
             .segmentStream
-            .sink { segment, action in
+            .sinkMainStore { segment, action in
                 let activeIntensity = ActiveIntensity(
                     isActive: segment.motion.end,
                     intensity: segment.intensity.end)
@@ -40,37 +39,44 @@ public class TotalsService: ObservableObject {
                     self.totals += (activeIntensity, total)
                 }
             }
-            .store(in: &sinks)
         
         ReceiverService.sharedInstance.heartrateControl
             .merge(with:
                 ReceiverService.sharedInstance.locationControl,
                 ReceiverService.sharedInstance.motionControl)
-            .sink {
+            .sinkMainStore {
                 if case .started = $0 {
                     self.totals.removeAll(keepingCapacity: true)
                 }
             }
-            .store(in: &sinks)
     }
     
     // MARK: - Published
     public struct Total {
-        var duration: TimeInterval
-        var distance: CLLocationDistance
+        public fileprivate(set) var duration: TimeInterval
+        public fileprivate(set) var distance: CLLocationDistance
         fileprivate var heartrateSec: Double
         
-        var heartrateBpm: Int {Int(heartrateSec / duration + 0.5)}
-        var vdot: Double {.nan} // TODO: Implement
-        var paceSecPerKm: TimeInterval {1000.0 * duration / distance}
+        public var heartrateBpm: Int {Int(heartrateSec / duration + 0.5)}
+        public var vdot: Double {.nan} // TODO: Implement
+        public var paceSecPerKm: TimeInterval {1000.0 * duration / distance}
     }
     
     public struct ActiveIntensity: Hashable {
         let isActive: Bool
         let intensity: Intensity
+        
+        public init(isActive: Bool, intensity: Intensity) {
+            self.isActive = isActive
+            self.intensity = intensity
+        }
     }
     
     @Published public private(set) var totals = [ActiveIntensity: Total]()
+    
+    public var sumTotals: Total {
+        totals.reduce(into: Total.zero) {$0 += $1.value}
+    }
 
     // MARK: - Private
 }

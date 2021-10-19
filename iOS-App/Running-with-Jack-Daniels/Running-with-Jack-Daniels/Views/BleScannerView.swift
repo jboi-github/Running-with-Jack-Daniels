@@ -12,7 +12,17 @@ struct BleScannerViewWrapper: View {
     
     var body: some View {
         BleScannerView(
-            peripherals: scanner.peripherals.values.map {$0}.sorted {$0.rssi > $1.rssi},
+            peripherals: scanner
+                .peripherals
+                .values
+                .sorted {
+                    Optional.lessThen(
+                        lhs: $0.peripheral.rssi,
+                        rhs: $1.peripheral.rssi,
+                        isNilMax: false) {
+                            $0.doubleValue < $1.doubleValue
+                        }
+                },
             primary: scanner.primaryPeripheral)
     }
 }
@@ -42,21 +52,21 @@ private struct BleScannerView: View {
                             Text("ignore").font(.subheadline).alignedView(width: $width3)
                         })
                 {
-                    ForEach(peripherals) { peripheral in
+                    ForEach(peripherals) { p in
                         HStack {
                             Button {
-                                BleScannerModel.sharedInstance.setPrimary(peripheral.id)
-                                BleScannerModel.sharedInstance.setIgnore(peripheral.id, ignore: false)
+                                BleScannerModel.sharedInstance.setPrimary(p.id)
+                                BleScannerModel.sharedInstance.setIgnore(p.id, ignore: false)
                             } label: {
                                 HStack {
-                                    Text(Image(systemName: getHeart(peripheral, primary)))
+                                    Text(Image(systemName: getHeart(p, primary)))
                                         .alignedView(width: $width0)
 
-                                    Text("\(peripheral.name)")
+                                    Text("\(p.peripheral.name ?? "no-name")")
                                         .alignedView(width: $width1)
 
                                     Spacer()
-                                    Text("\(peripheral.rssi, specifier: "%3.0f")")
+                                    Text("\(p.peripheral.rssi?.doubleValue ?? .nan, specifier: "%3.0f")")
                                         .font(.caption)
                                         .alignedView(width: $width2)
                                     Spacer()
@@ -66,15 +76,15 @@ private struct BleScannerView: View {
 
                             Button {
                                 BleScannerModel.sharedInstance.setIgnore(
-                                    peripheral.id,
-                                    ignore: !peripheral.ignore)
+                                    p.id,
+                                    ignore: !p.ignore)
                             } label: {
-                                Text(Image(systemName: peripheral.ignore ? "nosign" : "rectangle"))
-                                    .foregroundColor(peripheral.ignore ? Color(UIColor.systemRed) : .secondary)
+                                Text(Image(systemName: p.ignore ? "nosign" : "rectangle"))
+                                    .foregroundColor(p.ignore ? Color(UIColor.systemRed) : .secondary)
                                     .alignedView(width: $width3)
                             }
                             .buttonStyle(PlainButtonStyle())
-                            .disabled(peripheral.id == primary)
+                            .disabled(p.id == primary)
                         }
                     }
                 }
@@ -87,7 +97,7 @@ private struct BleScannerView: View {
     }
     
     private func getHeart(_ peripheral: BleScannerModel.Peripheral, _ primary: UUID) -> String {
-        if !peripheral.available {return "heart.slash"}
+        if peripheral.peripheral.state != .connected {return "heart.slash"}
         if peripheral.id == primary {return "heart.fill"}
         return "heart"
     }

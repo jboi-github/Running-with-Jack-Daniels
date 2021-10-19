@@ -63,26 +63,31 @@ private class LocationManagerDelegate: NSObject, CLLocationManagerDelegate {
     
     private let value: (CLLocation) -> Void
     private let failed: (Error) -> Void
+    private var startedAt: Date
 
     private init(value: @escaping (CLLocation) -> Void, failed: @escaping (Error) -> Void) {
         self.value = value
         self.failed = failed
+        startedAt = Date()
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         log(manager.allowsBackgroundLocationUpdates,
             manager.isAuthorizedForWidgetUpdates,
-            manager.accuracyAuthorization,
-            manager.authorizationStatus)
+            manager.accuracyAuthorization.rawValue,
+            manager.authorizationStatus.rawValue)
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {failed(error)}
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        locations.forEach { location in
-            log(location.timestamp, location.coordinate, location.horizontalAccuracy)
-            value(location)
-        }
+        log()
+        locations
+            .filter {$0.timestamp >= startedAt && $0.horizontalAccuracy >= 0}
+            .forEach {
+                log($0.timestamp, $0.coordinate, $0.horizontalAccuracy)
+                value($0)
+            }
     }
     
     // Detect pauses based on acceleration and motion detection

@@ -10,11 +10,36 @@ import Combine
 import RunFormulasKit
 import RunDatabaseKit
 
+struct DeltaIntensity: DeltaProtocol {
+    typealias Value = Intensity
+    typealias Source = IntensityEvent
+    
+    static var zero: Value = .Cold
+    
+    let span: Range<Date>
+    let begin: Value
+    let end: Value
+    var impactsAfter: Date {span.upperBound}
+
+    static func end(begin: Value, from prev: Source?, to curr: Source) -> Value {curr.intensity}
+    
+    static func timestamp(for source: Source) -> Date {source.timestamp}
+    
+    func value(at: Date) -> Value {classifyingValue(at: at)}
+}
+
 struct IntensityEvent {
     let intensity: Intensity
     let timestamp: Date
     
-    static func fromHr(_ hr: DeltaHeartrate) -> IntensityEvent? {
+    static func fromHr(_ hr: DeltaHeartrate?, _ motion: DeltaMotion?) -> IntensityEvent? {
+        if let motion = motion, hr == nil {
+            return IntensityEvent(
+                intensity: motion.end ? .Easy : .Cold,
+                timestamp: motion.span.upperBound)
+        }
+        guard let hr = hr else {return nil}
+
         func intensity(hrBpm: Int, prevHrBpm: Int) -> (intensity: Intensity, range: ClosedRange<Int>?) {
             let hrMax = Database.sharedInstance.hrMax.value
             let hrResting = Database.sharedInstance.hrResting.value
@@ -54,22 +79,4 @@ struct IntensityEvent {
             intensity: intensity.intensity,
             timestamp: Date(timeIntervalSince1970: t))
     }
-}
-
-struct DeltaIntensity: DeltaProtocol {
-    typealias Value = Intensity
-    typealias Source = IntensityEvent
-    
-    static var zero: Value = .Cold
-    
-    let span: Range<Date>
-    let begin: Value
-    let end: Value
-    var impactsAfter: Date {span.upperBound}
-
-    static func end(begin: Value, from prev: Source?, to curr: Source) -> Value {curr.intensity}
-    
-    static func timestamp(for source: Source) -> Date {source.timestamp}
-    
-    func value(at: Date) -> Value {classifyingValue(at: at)}
 }

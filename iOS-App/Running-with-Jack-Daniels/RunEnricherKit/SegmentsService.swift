@@ -33,27 +33,26 @@ class SegmentsService {
         let m = ReceiverService
             .sharedInstance
             .motionValues
-            .map {$0.startDate}
+            .map {$0.when}
         
         let i = DeltaService
             .sharedInstance
-            .intensityStream.map {$0.timestamp}
+            .intensityStream
+            .map {$0.timestamp}
         
         h.merge(with: l, m, i)
-            .sink {self.actions(at: $0)}
-            .store(in: &sinks)
+            .sinkStore {self.actions(at: $0)}
         
         ReceiverService.sharedInstance.heartrateControl
             .merge(with:
                 ReceiverService.sharedInstance.locationControl,
                 ReceiverService.sharedInstance.motionControl)
-            .sink {
+            .sinkStore {
                 if case .started = $0 {
                     self.sentOut.removeAll(keepingCapacity: true)
                     self.timestamps.removeAll(keepingCapacity: true)
                 }
             }
-            .store(in: &sinks)
     }
     
     // MARK: - Published
@@ -62,6 +61,16 @@ class SegmentsService {
     }
     
     struct Segment {
+        internal init(span: Range<Date>, heartrate: DeltaHeartrate, location: DeltaLocation, motion: DeltaMotion, intensity: DeltaIntensity) {
+            self.span = span
+            self.heartrate = heartrate
+            self.location = location
+            self.motion = motion
+            self.intensity = intensity
+            
+            log(span, heartrate, location, motion, intensity)
+        }
+        
         let span: Range<Date>
         let heartrate: DeltaHeartrate
         let location: DeltaLocation
@@ -78,10 +87,10 @@ class SegmentsService {
     private var timestamps = [Date]()
     
     private func actions(at timestamp: Date) {
-        let insertIdx = timestamps.insertIndex(for: timestamp) {$0}
-        timestamps.insert(timestamp, at: insertIdx)
-        
         DeltaService.sharedInstance.delta(timestamp) { [self] dh, dl, dm, di in
+            let insertIdx = timestamps.insertIndex(for: timestamp) {$0}
+            timestamps.insert(timestamp, at: insertIdx)
+            
             let impactTime = [
                 timestamp,
                 dh.impactsAfter,
@@ -102,9 +111,10 @@ class SegmentsService {
                 .last {timestamps[$0] >= impactTime} ?? timestamps.startIndex
             
             // From impactTimeIdx, ngram(2) forward
-            timestamps[impactIdx...]
+            timestamps[max(timestamps.index(before: impactIdx), timestamps.startIndex)...]
                 .ngram(2)
                 .forEach {
+                    guard $0.count == 2 else {return}
                     let begin = $0[0]
                     let end = $0[1]
                     

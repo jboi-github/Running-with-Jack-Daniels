@@ -24,6 +24,7 @@ class DeltaService {
     /// Use singleton @sharedInstance
     private init() {
         intensityStream = _intensityStream
+            .removeDuplicates {$0.intensity == $1.intensity}
             .share()
             .eraseToAnyPublisher()
 
@@ -31,53 +32,46 @@ class DeltaService {
             .sharedInstance
             .heartrateValues
             .delta {self.deltaHeartrates.last}
-            .sink {self.deltaHeartrates.append($0)}
-            .store(in: &sinks)
+            .sinkStore {self.deltaHeartrates.append($0)}
         ReceiverService
             .sharedInstance
-            .locationValues
+            .locationValues // FIXME: Sort by timestamp
             .delta {self.deltaLocations.last}
-            .sink {self.deltaLocations.append($0)}
-            .store(in: &sinks)
+            .sinkStore {self.deltaLocations.append($0)}
         ReceiverService
             .sharedInstance
             .motionValues
             .delta {self.deltaMotions.last}
-            .sink {self.deltaMotions.append($0)}
-            .store(in: &sinks)
+            .sinkStore {self.deltaMotions.append($0)}
         intensityStream
             .delta {self.deltaIntensities.last}
-            .sink {self.deltaIntensities.append($0)}
-            .store(in: &sinks)
+            .sinkStore {self.deltaIntensities.append($0)}
 
         ReceiverService
             .sharedInstance
             .heartrateControl
-            .sink {
+            .sinkStore {
                 if case .started = $0 {
                     self.deltaHeartrates.removeAll(keepingCapacity: true)
                     self.deltaIntensities.removeAll(keepingCapacity: true)
                 }
             }
-            .store(in: &sinks)
         ReceiverService
             .sharedInstance
             .locationControl
-            .sink {
+            .sinkStore {
                 if case .started = $0 {
                     self.deltaLocations.removeAll(keepingCapacity: true)
                 }
             }
-            .store(in: &sinks)
         ReceiverService
             .sharedInstance
             .motionControl
-            .sink {
+            .sinkStore {
                 if case .started = $0 {
                     self.deltaMotions.removeAll(keepingCapacity: true)
                 }
             }
-            .store(in: &sinks)
     }
     
     // MARK: - Published
@@ -88,26 +82,41 @@ class DeltaService {
         deltas: @escaping (DeltaHeartrate, DeltaLocation, DeltaMotion, DeltaIntensity) -> Void)
     {
         serialQueue.async { [self] in
-            deltas(
-                deltaHeartrates[at],
-                deltaLocations[at],
-                deltaMotions[at],
-                deltaIntensities[at])
+            let dh = deltaHeartrates[at]
+            let dl = deltaLocations[at]
+            let dm = deltaMotions[at]
+            let di = deltaIntensities[at]
+            
+            deltas(dh, dl, dm, di)
         }
     }
     
     // MARK: - Private
     private var deltaHeartrates = [DeltaHeartrate]() {
         didSet {
-            guard let last = deltaHeartrates.last else {return}
-            if let event = IntensityEvent.fromHr(last) {
+            if let last = deltaHeartrates.last {log(last)}
+            if let event = IntensityEvent.fromHr(deltaHeartrates.last, deltaMotions.last) {
                 serialQueue.async {self._intensityStream.send(event)}
             }
         }
     }
-    private var deltaLocations = [DeltaLocation]()
-    private var deltaMotions = [DeltaMotion]()
-    private var deltaIntensities = [DeltaIntensity]()
-
+    private var deltaLocations = [DeltaLocation]() {
+        didSet {
+            if let last = deltaLocations.last {log(last)}
+        }
+    }
+    private var deltaMotions = [DeltaMotion]() {
+        didSet {
+            if let last = deltaMotions.last {log(last)}
+            if let event = IntensityEvent.fromHr(deltaHeartrates.last, deltaMotions.last) {
+                serialQueue.async {self._intensityStream.send(event)}
+            }
+        }
+    }
+    private var deltaIntensities = [DeltaIntensity]() {
+        didSet {
+            if let last = deltaIntensities.last {log(last)}
+        }
+    }
     private let _intensityStream = PassthroughSubject<IntensityEvent, Never>()
 }

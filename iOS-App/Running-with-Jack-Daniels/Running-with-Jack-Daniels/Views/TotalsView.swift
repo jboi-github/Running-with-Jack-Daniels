@@ -6,26 +6,19 @@
 //
 
 import SwiftUI
-
-//private let infoSegmentsInfo: [WorkoutRecorder.InfoSegment: (image: String, color: Color)] = [
-//    WorkoutRecorder.InfoSegment.paused: (image: "pause.rectangle.fill", color: .primary),
-//    .running(intensity: .Easy): (image: "rectangle.fill", color: .blue),
-//    .running(intensity: .Marathon): (image: "rectangle.fill", color: .green),
-//    .running(intensity: .Threshold): (image: "rectangle.fill", color: .yellow),
-//    .running(intensity: .Interval): (image: "rectangle.fill", color: .red),
-//    .running(intensity: .Repetition): (image: "rectangle.fill", color: .primary)
-//]
+import RunFormulasKit
+import RunEnricherKit
 
 private let config = [
-    (isRunning: true, intensity: Intensity.Easy, color: Color.blue, systemname: "rectangle.fill"),
-    (isRunning: true, intensity: Intensity.Marathon, color: Color.green, systemname: "rectangle.fill"),
-    (isRunning: true, intensity: Intensity.Threshold, color: Color.yellow, systemname: "rectangle.fill"),
-    (isRunning: true, intensity: Intensity.Interval, color: Color.red, systemname: "rectangle.fill"),
-    (isRunning: true, intensity: Intensity.Repetition, color: Color.primary, systemname: "rectangle.fill")
+    (isActive: true, intensity: Intensity.Easy, color: Color.blue, systemname: "rectangle.fill"),
+    (isActive: true, intensity: Intensity.Marathon, color: Color.green, systemname: "rectangle.fill"),
+    (isActive: true, intensity: Intensity.Threshold, color: Color.yellow, systemname: "rectangle.fill"),
+    (isActive: true, intensity: Intensity.Interval, color: Color.red, systemname: "rectangle.fill"),
+    (isActive: true, intensity: Intensity.Repetition, color: Color.primary, systemname: "rectangle.fill")
 ]
 
 struct TotalsView: View {
-    @ObservedObject var aggs = AggregateManager.sharedInstance
+    @ObservedObject var totals = TotalsService.sharedInstance
     
     @State private var width0 = CGFloat.zero
     @State private var width1 = CGFloat.zero
@@ -36,7 +29,7 @@ struct TotalsView: View {
     var body: some View {
         VStack {
             ForEach(config.indices) { i in
-                if let total = aggs.total[getCategory(i)] {
+                if let total = totals.totals[getCategory(i)] {
                     TotalsLineView(
                         total: total, color: config[i].color, systemname: config[i].systemname,
                         width: [$width0, $width1, $width2, $width3, $width4])
@@ -44,18 +37,18 @@ struct TotalsView: View {
             }
             Divider()
             TotalsLineView(
-                total: aggs.totalTotal, color: .primary, systemname: "sum",
+                total: totals.sumTotals, color: .primary, systemname: "sum",
                 width: [$width0, $width1, $width2, $width3, $width4])
         }
     }
     
-    private func getCategory(_ i: Int) -> AggregateManager.Total.Categorical {
-        AggregateManager.Total.Categorical(isRunning: config[i].isRunning, intensity: config[i].intensity)
+    private func getCategory(_ i: Int) -> TotalsService.ActiveIntensity {
+        TotalsService.ActiveIntensity(isActive: config[i].isActive, intensity: config[i].intensity)
     }
 }
 
 private struct TotalsLineView: View {
-    let total: AggregateManager.Total.Continuous
+    let total: TotalsService.Total
     let color: Color
     let systemname: String
     let width: [Binding<CGFloat>]
@@ -67,10 +60,10 @@ private struct TotalsLineView: View {
                 .foregroundColor(color)
                 .alignedView(width: width[0])
             Spacer()
-            total.distanceM.asDistance(.callout)
+            total.distance.asDistance(.callout)
                 .alignedView(width: width[1])
             Spacer()
-            total.durationSec.asTime(.callout)
+            total.duration.asTime(.callout)
                 .alignedView(width: width[2])
             Spacer()
             total.paceSecPerKm.asPace(.callout, withMeasure: false)

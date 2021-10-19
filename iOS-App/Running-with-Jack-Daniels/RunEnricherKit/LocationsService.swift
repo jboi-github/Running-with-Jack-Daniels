@@ -22,27 +22,24 @@ public class LocationsService: ObservableObject {
         ReceiverService
             .sharedInstance
             .motionValues
-            .map {($0.walking || $0.running || $0.cycling) && !$0.stationary}
-            .assign(to: &$isActive)
+            .sinkMainStore {self.isActive = $0.isActive}
 
         ReceiverService
             .sharedInstance
             .locationValues
             .filter {_ in self.isActive}
-            .map {self.path + [$0]}
-            .assign(to: &$path)
-        
+            .sinkMainStore {self.path.append($0)} // FIXME: Insert in order of timestamp
+
         ReceiverService.sharedInstance.heartrateControl
             .merge(with:
                 ReceiverService.sharedInstance.locationControl,
                 ReceiverService.sharedInstance.motionControl)
-            .sink {
+            .sinkMainStore {
                 if case .started = $0 {
                     self.path.removeAll(keepingCapacity: true)
                     self.isActive = false
                 }
             }
-            .store(in: &sinks)
     }
     
     // MARK: - Published

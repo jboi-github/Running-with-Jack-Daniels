@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import RunDatabaseKit
+import RunReceiversKit
+import RunEnricherKit
 
 struct RunView: View {
     var body: some View {
@@ -28,12 +31,12 @@ struct RunView: View {
         }
         .onAppear {
             Database.sharedInstance.onAppear()
-            AggregateManager.sharedInstance.start()
+            ReceiverService.sharedInstance.start()
             UIApplication.shared.isIdleTimerDisabled = true
         }
         .onDisappear {
             Database.sharedInstance.onDisappear()
-            AggregateManager.sharedInstance.stop()
+            ReceiverService.sharedInstance.stop()
             UIApplication.shared.isIdleTimerDisabled = false
         }
     }
@@ -41,7 +44,7 @@ struct RunView: View {
 
 private struct ToolbarStatusView: View {
     @ObservedObject var hrLimits = Database.sharedInstance.hrLimits
-    @ObservedObject var aggs = AggregateManager.sharedInstance
+    @ObservedObject var currents = CurrentsService.sharedInstance
     
     var body: some View {
         HStack {
@@ -52,40 +55,40 @@ private struct ToolbarStatusView: View {
         .font(.caption)
     }
     
-    private func getLocation() -> String {aggs.current.gpsReceiving ? "location.fill" : "location.slash"}
-    private func getHeart() -> String {aggs.current.bleReceiving ? "heart.fill" : "heart.slash"}
+    private func getLocation() -> String {
+        currents.gpsControl == .received ? "location.fill" : "location.slash"
+    }
+    private func getHeart() -> String {
+        currents.bleControl == .received ? "heart.fill" : "heart.slash"
+    }
 
     private func getMotion() -> String {
-        switch aggs.current.aclReceiving {
-        case .off:
-            return "nosign"
-            
-        case .stationary:
+        guard currents.aclControl == .received else {return "nosign"}
+        
+        if currents.activity.stationary {
             if let hrLimitsEasy = hrLimits.value[.Easy],
-               aggs.current.heartrateBpm >= hrLimitsEasy.lowerBound
+               currents.heartrateBpm >= hrLimitsEasy.lowerBound
             {
                 return "figure.wave"
             } else {
                 return "figure.stand"
             }
-            
-        case .walking:
+        } else if currents.activity.walking {
             return "figure.walk"
-            
-        case .running:
+        } else if currents.activity.running {
             if let hrLimitsEasy = hrLimits.value[.Easy],
-               aggs.current.heartrateBpm < hrLimitsEasy.lowerBound
+               currents.heartrateBpm < hrLimitsEasy.lowerBound
             {
                 return "tortoise.fill"
             } else {
                 return "hare.fill"
             }
-            
-        case .cycling:
+        } else if currents.activity.cycling {
             return "bicycle"
-            
-        case .automotion:
+        } else if currents.activity.automotive {
             return "tram.fill"
+        } else {
+            return "nosign"
         }
     }
 }

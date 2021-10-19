@@ -9,8 +9,8 @@ import Foundation
 import CoreBluetooth
 import RunFoundationKit
 
-private let BlePrimaryUuidKey = "BlePrimaryUuidKey"
-private let BleIgnoredUuidsKey = "BleIgnoredUuidsKey"
+public let BlePrimaryUuidKey = "BlePrimaryUuidKey"
+public let BleIgnoredUuidsKey = "BleIgnoredUuidsKey"
 
 public struct Heartrate {
     public let timestamp: Date
@@ -89,7 +89,7 @@ class BlePeripheralReceiver: ReceiverProtocol {
             failed: failed,
             discovered: value,
             connectStrategy: .all(readRSSI: 5),
-            serviceUuids: [CBUUID(string: "0x180D"), CBUUID(string: "0xFEE1"), CBUUID(string: "0xFEE0")],
+            serviceUuids: [CBUUID(string: "0x180D")],
             characteristicUuids: [CBUUID(string: "2A37")])
     }
     
@@ -172,15 +172,15 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .unknown:
-            log("unknown", central.isScanning)
+            log("unknown")
         case .resetting:
-            log("resetting", central.isScanning)
+            log("resetting")
         case .unsupported:
-            log("unsupported", central.isScanning)
+            failed("unsupported")
         case .unauthorized:
-            log("unauthorized", central.isScanning)
+            failed("unauthorized")
         case .poweredOff:
-            log("powered off", central.isScanning)
+            log("powered off")
         case .poweredOn:
             log("powered on. Connecting...")
             connectByPrio(central)
@@ -514,5 +514,5 @@ private var rssis = [UUID:NSNumber]()
 
 extension CBPeripheral {
     /// Latest, read RSSI. A new value can be retrieved by calling `readRSSI`.
-    var rssi: NSNumber? {rssis[identifier]}
+    public var rssi: NSNumber? {rssis[identifier]}
 }

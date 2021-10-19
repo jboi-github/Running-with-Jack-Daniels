@@ -7,6 +7,8 @@
 
 import Foundation
 import Combine
+import CoreMotion
+import RunFoundationKit
 import RunReceiversKit
 
 public class CurrentsService: ObservableObject {
@@ -20,30 +22,27 @@ public class CurrentsService: ObservableObject {
         ReceiverService
             .sharedInstance
             .heartrateValues
-            .map {$0.heartrate}
-            .assign(to: &$heartrateBpm)
+            .sinkMainStore {self.heartrateBpm = $0.heartrate}
         
         ReceiverService
             .sharedInstance
             .locationValues
-            .map {self.isActive ? (1000.0 / $0.speed) : .nan}
-            .assign(to: &$paceSecPerKm)
+            .sinkMainStore {self.paceSecPerKm = self.activity.isActive ? (1000.0 / $0.speed) : .nan}
         
         ReceiverService
             .sharedInstance
             .motionValues
-            .map {($0.walking || $0.running || $0.cycling) && !$0.stationary}
-            .assign(to: &$isActive)
+            .sinkMainStore {self.activity = $0}
         
-        ReceiverService.sharedInstance.heartrateControl.assign(to: &$bleControl)
-        ReceiverService.sharedInstance.locationControl.assign(to: &$gpsControl)
-        ReceiverService.sharedInstance.motionControl.assign(to: &$aclControl)
+        ReceiverService.sharedInstance.heartrateControl.sinkMainStore {self.bleControl = $0}
+        ReceiverService.sharedInstance.locationControl.sinkMainStore {self.gpsControl = $0}
+        ReceiverService.sharedInstance.motionControl.sinkMainStore {self.aclControl = $0}
     }
     
     // MARK: - Published
     @Published public private(set) var heartrateBpm: Int = 0
     @Published public private(set) var paceSecPerKm: TimeInterval = .nan
-    @Published public private(set) var isActive: Bool = false
+    @Published public private(set) var activity: CMMotionActivity = CMMotionActivity()
 
     @Published public private(set) var bleControl: ReceiverControl = .stopped
     @Published public private(set) var gpsControl: ReceiverControl = .stopped

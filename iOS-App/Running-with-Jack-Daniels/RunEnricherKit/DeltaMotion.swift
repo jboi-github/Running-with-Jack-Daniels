@@ -12,7 +12,7 @@ struct DeltaMotion: DeltaProtocol {
     typealias Value = Bool
     typealias Source = CMMotionActivity
     
-    static var zero: Value = false
+    static var zero: Value {CMMotionActivity().isActive}
     
     let span: Range<Date>
     let begin: Value
@@ -20,10 +20,10 @@ struct DeltaMotion: DeltaProtocol {
     var impactsAfter: Date {span.upperBound}
 
     static func end(begin: Value, from prev: Source?, to curr: Source) -> Value {
-        curr.confidence == .high ? (curr.walking || curr.running || curr.cycling) && !curr.stationary : begin
+        curr.confidence == .high ? curr.isActive : begin
     }
     
-    static func timestamp(for source: Source) -> Date {source.startDate}
+    static func timestamp(for source: Source) -> Date {source.when}
     
     func value(at: Date) -> Value {classifyingValue(at: at)}
 }

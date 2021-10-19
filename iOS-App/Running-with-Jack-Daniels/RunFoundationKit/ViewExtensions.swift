@@ -9,15 +9,16 @@ import Foundation
 import SwiftUI
 
 extension View {
-    var anyview: AnyView {AnyView(self)}
+    public var anyview: AnyView {AnyView(self)}
 }
 
 // MARK: Aligning columns and rows of a view
 extension View {
-    func alignedView(width: Binding<CGFloat>) -> some View {
+    public func alignedView(width: Binding<CGFloat>) -> some View {
         self.modifier(AlignedWidthView(width: width))
     }
-    func alignedView(height: Binding<CGFloat>) -> some View {
+    
+    public func alignedView(height: Binding<CGFloat>) -> some View {
         self.modifier(AlignedHeightView(height: height))
     }
 }

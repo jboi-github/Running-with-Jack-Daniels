@@ -75,7 +75,19 @@ extension Publisher where Failure == Never{
             return D(last(), prev: prev, curr: source)
         }
     }
+    
+    public func sinkMainStore(receiveValue: @escaping (Self.Output) -> Void) {
+        sinkStore {value in DispatchQueue.main.async {receiveValue(value)}}
+    }
+    
+    func sinkStore(receiveValue: @escaping (Self.Output) -> Void) {
+        self
+            .sink {receiveValue($0)}
+            .store(in: &sinks)
+    }
 }
+
+private var sinks = Set<AnyCancellable>()
 
 extension Array where Element: DeltaProtocol {
     subscript(_ at: Date) -> Element {

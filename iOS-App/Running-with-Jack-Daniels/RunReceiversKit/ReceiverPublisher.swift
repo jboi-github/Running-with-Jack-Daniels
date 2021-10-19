@@ -21,8 +21,9 @@ protocol ReceiverProtocol {
 }
 
 public enum ReceiverControl {
-    case started, stopped
-    case reseting(error: Error, delay: TimeInterval)
+    case stopped, started, received
+    case reset(error: Error, delay: TimeInterval)
+    case retried(error: Error)
 }
 
 class ReceiverPublisher<Receiver: ReceiverProtocol> {
@@ -51,30 +52,24 @@ class ReceiverPublisher<Receiver: ReceiverProtocol> {
         
         _controlStream = PassthroughSubject<ReceiverControl, Never>()
         controlStream = _controlStream
-            .removeDuplicates {
-                switch ($0, $1) {
-                case (.started, .started):
-                    return true
-                case (.stopped, .stopped):
-                    return true
-                case (.reseting, .reseting):
-                    return true
-                default:
-                    return false
-                }
-            }
+            .removeDuplicates {$0 == $1}
             .share()
             .eraseToAnyPublisher()
 
         receiver = Receiver(
-            value: {value in serialQueue.async {self._valueStream.send(value)}},
+            value: {value in
+                serialQueue.async {
+                    self._controlStream.send(.received)
+                    self._valueStream.send(value)
+                }
+            },
             failed: {error in serialQueue.async {self.reset(error)}})
     }
     
     func start() {
         log()
-        receiver.start()
         serialQueue.async {self._controlStream.send(.started)}
+        receiver.start()
     }
     
     func stop() {
@@ -83,11 +78,36 @@ class ReceiverPublisher<Receiver: ReceiverProtocol> {
         serialQueue.async {self._controlStream.send(.stopped)}
     }
     
+    // Is called within serialQueue
     private func reset(_ error: Error) {
         _ = check(error)
-        stop()
-        _controlStream.send(.reseting(error: error, delay: restartTimeout))
-        serialQueue.asyncAfter(deadline: .now() + restartTimeout) {self.start()}
-        restartTimeout = min(restartTimeout * factorRestartTimeout, maxRestartTimeout)
+        defer {restartTimeout = min(restartTimeout * factorRestartTimeout, maxRestartTimeout)}
+
+        receiver.stop()
+        _controlStream.send(.reset(error: error, delay: restartTimeout))
+        
+        serialQueue.asyncAfter(deadline: .now() + restartTimeout) {
+            serialQueue.async {self._controlStream.send(.retried(error: error))}
+            self.receiver.start()
+        }
+    }
+}
+
+extension ReceiverControl: Equatable {
+    public static func == (lhs: ReceiverControl, rhs: ReceiverControl) -> Bool {
+        switch (lhs, rhs) {
+        case (.stopped, .stopped):
+            return true
+        case (.started, .started):
+            return true
+        case (.reset, .reset):
+            return true
+        case (.retried, .retried):
+            return true
+        case (.received, .received):
+            return true
+        default:
+            return false
+        }
     }
 }

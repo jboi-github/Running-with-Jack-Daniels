@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import RunDatabaseKit
+import RunFormulasKit
 
 struct PlanView: View {
     @ObservedObject var birthday = Database.sharedInstance.birthday
@@ -17,9 +19,7 @@ struct PlanView: View {
     @ObservedObject var hrLimits = Database.sharedInstance.hrLimits
 
     var bmi: String {
-        Running_with_Jack_Daniels
-            .bmi(weightKg: weight.value, heightM: height.value)
-            .format("%.1f", ifNan: " - ")
+        RunFormulasKit.bmi(weightKg: weight.value, heightM: height.value).format("%.1f", ifNan: " - ")
     }
     
     var body: some View {

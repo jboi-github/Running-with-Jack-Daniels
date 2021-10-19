@@ -7,14 +7,15 @@
 
 import SwiftUI
 import MapKit
+import RunEnricherKit
 
 struct MapView: View {
-    @ObservedObject var aggs = AggregateManager.sharedInstance
+    @ObservedObject var locations = LocationsService.sharedInstance
     @State private var userInteraction = false
     
     var body: some View {
         ZStack {
-            MapKitView(path: aggs.path, userInteraction: userInteraction)
+            MapKitView(path: locations.path, userInteraction: userInteraction)
             VStack {
                 Spacer()
                 HStack {

@@ -6,13 +6,17 @@
 //
 
 import SwiftUI
+import RunFoundationKit
+import RunDatabaseKit
+import RunFormulasKit
+import RunEnricherKit
 
 struct HrView: View {
-    @ObservedObject var aggs = AggregateManager.sharedInstance
+    @ObservedObject var currents = CurrentsService.sharedInstance
     @ObservedObject var hrLimits = Database.sharedInstance.hrLimits
     
     var body: some View {
-        guard aggs.current.heartrateBpm > 0 else {
+        guard currents.bleControl == .received else {
             return
                 VStack {
                     HrLimitsTextView(limits: hrLimits.value)
@@ -23,17 +27,17 @@ struct HrView: View {
         
         if !hrLimits.value.isEmpty {
             return ZStack {
-                HrViewBar(limits: hrLimits.value, heartrate: aggs.current.heartrateBpm)
+                HrViewBar(limits: hrLimits.value, heartrate: currents.heartrateBpm)
                 VStack {
                     HStack(spacing: 0) {
                         Spacer()
-                        Text("\(aggs.current.heartrateBpm, specifier: "%3d")")
+                        Text("\(currents.heartrateBpm, specifier: "%3d")")
                             .font(.callout)
                             .background(Color(UIColor.systemBackground))
                         Text(" bpm")
                             .font(.caption)
                         Spacer()
-                        aggs.current.paceSecPerKm.asPace(.callout)
+                        currents.paceSecPerKm.asPace(.callout)
                             .background(Color(UIColor.systemBackground))
                         Spacer()
                     }
@@ -49,12 +53,12 @@ struct HrView: View {
         } else {
             return HStack {
                 Spacer()
-                Text("\(aggs.current.heartrateBpm, specifier: "%3d")")
+                Text(currents.heartrateBpm > 0 ? "\(currents.heartrateBpm, specifier: "%3d")" : " - ")
                     .font(.largeTitle.monospacedDigit())
                 Text(" bpm")
                     .font(.caption)
                 Spacer()
-                aggs.current.paceSecPerKm.asPace(.largeTitle.monospacedDigit())
+                currents.paceSecPerKm.asPace(.largeTitle.monospacedDigit())
                 Spacer()
             }
             .anyview
@@ -67,16 +71,15 @@ private struct HrViewBar: View {
     let heartrate: Int?
 
     var body: some View {
-        let min = limits.values.map {$0.lowerBound}.min()
-        let max = limits.values.map {$0.upperBound}.max()
-        guard let min = min, let max = max else {return EmptyView().anyview}
+        guard let min = limits[.Easy]?.lowerBound,
+              let max = limits[.Interval]?.upperBound else {
+            return EmptyView().anyview
+        }
         
         func t(_ x: Int?) -> CGFloat? {
             guard let x = x else {return nil}
-            return tNotNil(x)
+            return CGFloat(x - min) / CGFloat(max - min)
         }
-        
-        func tNotNil(_ x: Int) -> CGFloat {CGFloat(x - min) / CGFloat(max - min)}
         
         // Get all relevant x-positions
         guard let startE = t(limits[.Easy]?.lowerBound) else {return EmptyView().anyview}
@@ -113,13 +116,12 @@ private struct HrViewBar: View {
                     .opacity(0.5)
 
                     // The Indication
-                    if let heartrateNotNil = self.heartrate {
-                        if heartrateNotNil <= max && heartrateNotNil >= min {
-                            MovedSizedRectangle(
-                                minX: tNotNil(heartrateNotNil) - 0.01,
-                                maxX: tNotNil(heartrateNotNil) + 0.01)
-                                .fill(Color.primary)
-                        }
+                    if let heartrateNotNil = self.heartrate,
+                       (min...max).contains(heartrateNotNil),
+                       let midX = t(heartrateNotNil)
+                    {
+                        MovedSizedRectangle(minX: midX - 0.01, maxX: midX + 0.01)
+                            .fill(Color.primary)
                     }
                 }
                 if let heartrateNotNil = self.heartrate {

@@ -12,7 +12,7 @@ import Combine
 
 /// Very basic thing first: Compare two optionals
 extension Optional {
-    static func lessThen(
+    public static func lessThen(
         lhs: Self, rhs: Self,
         isNilMax: Bool,
         by areInIncreasingOrder: (Wrapped, Wrapped) -> Bool) -> Bool
@@ -28,7 +28,7 @@ extension Optional {
         }
     }
     
-    static func lessThen(
+    public static func lessThen(
         lhs: Self, rhs: Self,
         isNilMax: Bool) -> Bool
     where Wrapped: Comparable
@@ -321,8 +321,6 @@ extension RandomAccessCollection {
 public let serialQueue = DispatchQueue(
     label: "com.apps4live.Running-with-Jack-Daniels",
     qos: .userInitiated)
-
-public var sinks = Set<AnyCancellable>()
 
 extension Double {
     func addWithError(_ other: Double) -> (sum: Double, error: Double) {

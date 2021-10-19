@@ -18,30 +18,28 @@ class AclReceiver: ReceiverProtocol {
     required init(value: @escaping (CMMotionActivity) -> Void, failed: @escaping (Error) -> Void) {
         self.value = value
         self.failed = failed
-        
+    }
+
+    func start() {
         guard CMMotionActivityManager.isActivityAvailable() else {
-            log()
-            failed("motion data not available on current device")
+            _ = check("motion data not available on current device")
+            value(CMMotionActivity())
             return
         }
         
         guard [.notDetermined, .denied].contains(CMMotionActivityManager.authorizationStatus()) else {
-            log()
-            failed("access to motion data denied")
+            _ = check("access to motion data denied")
+            value(CMMotionActivity())
             return
         }
-    }
 
-    func start() {
         motionActivityManager = CMMotionActivityManager()
-        let value = self.value
-
         motionActivityManager?.startActivityUpdates(to: .current ?? .main) { activity in
             guard let activity = activity else {return}
             guard activity.confidence != .low else {return}
             
             log()
-            value(activity)
+            self.value(activity)
         }
     }
     
@@ -54,5 +52,20 @@ class AclReceiver: ReceiverProtocol {
         lhs.walking == rhs.walking &&
         lhs.running == rhs.running &&
         lhs.cycling == rhs.cycling
+    }
+}
+
+extension CMMotionActivity {
+    /// Return, if user is currently detected in any activity. If motion detection cannot be used, report as active user.
+    public var isActive: Bool {((walking || running || cycling) && !stationary) || !Self.canUse}
+    
+    /// Return true, if device has motion detection and it is authorized by user or authorizaiotn was not yet asked for.
+    public static var canUse: Bool {
+        CMMotionActivityManager.isActivityAvailable() &&
+        [.notDetermined, .authorized].contains(CMMotionActivityManager.authorizationStatus())
+    }
+    
+    public var when: Date {
+        startDate > Date(timeIntervalSinceReferenceDate: 3600) ? startDate : Date()
     }
 }

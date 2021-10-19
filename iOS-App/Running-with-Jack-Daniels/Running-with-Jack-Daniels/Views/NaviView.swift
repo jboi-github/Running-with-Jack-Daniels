@@ -14,7 +14,6 @@ struct NaviView: View {
     var body: some View {
         NavigationView {
             List {
-                Spacer()
                 NavigationLink(destination: PlanView()) {
                     Label("Plan", systemImage: "calendar")
                         .font(.headline)
@@ -33,7 +32,7 @@ struct NaviView: View {
                         .font(.footnote)
                 }
             }
-            .navigationTitle("Run with Jack Daniels")
+//            .navigationTitle("Run with Jack Daniels")
             .navigationBarTitleDisplayMode(.inline)
         }
         .colorScheme(runViewActive ? .dark : colorScheme)

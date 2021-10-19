@@ -21,22 +21,22 @@ public class PeripheralsService: ObservableObject {
         ReceiverService
             .sharedInstance
             .peripheralValues
-            .sink {self.peripherals.append($0)}
-            .store(in: &sinks)
+            .sinkMainStore {self.peripherals.append($0)}
         
         ReceiverService
             .sharedInstance
             .peripheralControl
-            .sink {
+            .sinkMainStore {
                 if case .started = $0 {
                     self.peripherals.removeAll(keepingCapacity: true)
                 }
+                self.bleControl = $0
             }
-            .store(in: &sinks)
     }
     
     // MARK: - Published
     @Published public private(set) var peripherals = [CBPeripheral]()
+    @Published public private(set) var bleControl: ReceiverControl = .stopped
 
     // MARK: - Private
 }
