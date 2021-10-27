@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
 // MARK: - Extensions for sequences and arrays
 
@@ -227,12 +228,12 @@ extension Sequence {
 // MARK: Collections
 
 extension Collection {
-    func indexOrNil(after: Index) -> Index? {
+    public func indexOrNil(after: Index) -> Index? {
         let afterIdx = index(after: after)
         return indices.contains(afterIdx) ? afterIdx : nil
     }
     
-    func after(_ after: Index) -> Element? {
+    public func after(_ after: Index) -> Element? {
         guard let idx = indexOrNil(after: after) else {return nil}
         return self[idx]
     }
@@ -257,12 +258,12 @@ extension Collection {
 extension BidirectionalCollection {
     var lastIndex: Index? {isEmpty ? nil : index(before: endIndex)}
     
-    func indexOrNil(before: Index) -> Index? {
+    public func indexOrNil(before: Index) -> Index? {
         let beforeIdx = index(before: before)
         return indices.contains(beforeIdx) ? beforeIdx : nil
     }
     
-    func before(_ before: Index) -> Element? {
+    public func before(_ before: Index) -> Element? {
         guard let idx = indexOrNil(before: before) else {return nil}
         return self[idx]
     }
@@ -311,6 +312,98 @@ extension RandomAccessCollection {
             return forward()
         } else {
             return binarySearch(startIndex ..< endIndex)
+        }
+    }
+}
+
+// MARK: Work with sets of ranges
+public protocol Rangable {
+    associatedtype C: Comparable
+    
+    var range: Range<C> {get}
+}
+
+public protocol RangableMergeDelegate {
+    associatedtype R: Rangable
+
+    /// Reduce or expand a rangable to a new range. The returning rangables range must be equivalent to `to`.
+    func reduce(_ rangable: R, to: Range<R.C>) -> R
+    
+    /// Resolve between two conflicting/overlapping rangables into a new range. The returning rangables range must be equivalent to `to`.
+    func resolve(_ r1: R, _ r2: R, to: Range<R.C>) -> R
+    
+    /// A rangable element is no longer valid and will be removed.
+    func drop(_ rangable: R)
+    
+    /// A new rangable element gets valid and will be inserted.
+    func add(_ rangable: R)
+}
+
+extension Array where Element: Rangable {
+    /// Self must be a sorted list of ranges without gaps or overlaps. Then `merge` creates the differences to be applied to get a new collection
+    /// That is:
+    /// - A sorted collection of ranges without gaps and overlaps.
+    /// - At least one range starts at the merged rangable and one range ends with the merged rangable.
+    /// - Ranges are added only. No merging of consectutive ranges happens.
+    /// - The content of the overlapping part of rangeable and an element is determined by a callback.
+    public mutating func merge<D: RangableMergeDelegate>(_ rangable: Element, delegate: D)
+    where D.R == Element
+    {
+        // Overalpping elements
+        var first = endIndex
+        var last = startIndex
+        for idx in indices.reversed() {
+            if self[idx].range.overlaps(rangable.range) {
+                if first > idx {first = idx}
+                if last < idx {last = idx}
+            } else if self[idx].range.isBefore(rangable.range) {
+                break
+            }
+        }
+        
+        if first <= last {
+            // overlapping elements exist
+            var replacer = [Element]()
+            
+            // First overlapping element
+            let minLower = Swift.min(rangable.range.lowerBound, self[first].range.lowerBound)
+            let maxLower = Swift.max(rangable.range.lowerBound, self[first].range.lowerBound)
+            if minLower < maxLower {
+                replacer.append(
+                    delegate.reduce(
+                        rangable.range.lowerBound < self[first].range.lowerBound ? rangable : self[first],
+                        to: minLower ..< maxLower))
+            }
+
+            replacer.append(
+                contentsOf: self[first ... last]
+                    .mapNoStore {
+                        delegate.resolve($0, rangable, to: $0.range.clamped(to: rangable.range))
+                    })
+            
+            // Last overlapping element
+            let minUpper = Swift.min(rangable.range.upperBound, self[last].range.upperBound)
+            let maxUpper = Swift.max(rangable.range.upperBound, self[last].range.upperBound)
+            if minUpper < maxUpper {
+                replacer.append(
+                    delegate.reduce(
+                        rangable.range.upperBound > self[last].range.upperBound ? rangable : self[last],
+                        to: minUpper ..< maxUpper))
+            }
+            
+            // Replace existing elements
+            self[first ... last].forEach {delegate.drop($0)}
+            replacer.forEach {delegate.add($0)}
+            self[first ... last] = replacer[replacer.startIndex ..< replacer.endIndex]
+
+        } else if let last = self.last, rangable.range.isAfter(last.range) {
+            // range is behind all elements
+            self.append(rangable)
+            delegate.add(rangable)
+        } else if let first = self.first, rangable.range.isBefore(first.range) {
+            // range is before all elements
+            self.insert(rangable, at: startIndex)
+            delegate.add(rangable)
         }
     }
 }
@@ -370,6 +463,27 @@ extension Range where Bound: Strideable, Bound.Stride: BinaryInteger {
     public func relativePosition(of bound: Bound) -> Double {
         Double(lowerBound.distance(to: bound)) / Double(lowerBound.distance(to: upperBound))
     }
+}
+
+extension Range {
+    /// `self \ other`. Returns the parts of `self`, that do not overlap with `other`. This might be 0, 1 or 2 ranges.
+    public func without(_ other: Self) -> [Self] {
+        let intersection = clamped(to: other)
+        if intersection.isEmpty {return []}
+        
+        var result = [Self]()
+        
+        if lowerBound < intersection.lowerBound {
+            result.append(lowerBound ..< intersection.lowerBound)
+        }
+        if intersection.upperBound < upperBound {
+            result.append(intersection.upperBound ..< upperBound)
+        }
+        return result
+    }
+    
+    public func isBefore(_ other: Self) -> Bool {upperBound <= other.lowerBound}
+    public func isAfter(_ other: Self) -> Bool {lowerBound >= other.upperBound}
 }
 
 extension Date: Strideable {}

@@ -7,8 +7,11 @@
 
 import Foundation
 import Combine
+import CoreLocation
+import CoreMotion
 import RunFoundationKit
 import RunReceiversKit
+import RunFormulasKit
 
 /// Create and send out segments by finest granular time spans around given events.
 /// Events might not arrive in order and therefore segments might be rolled back
@@ -20,132 +23,168 @@ class SegmentsService {
 
     /// Use singleton @sharedInstance
     private init() {
-        let h = ReceiverService
+        ReceiverService
             .sharedInstance
             .heartrateValues
-            .map {$0.timestamp}
-        
-        let l = ReceiverService
+            .sinkStore { [self] in
+                segments.merge(
+                    Segment(
+                        range: $0.timestamp ..< .distantFuture,
+                        heartrate: $0,
+                        location: nil,
+                        motion: nil,
+                        intensity: nil,
+                        speed: nil),
+                    delegate: delegate)
+            }
+        ReceiverService
             .sharedInstance
             .locationValues
-            .map {$0.timestamp}
-        
-        let m = ReceiverService
+            .sinkStore { [self] in
+                segments.merge(
+                    Segment(
+                        range: $0.timestamp ..< .distantFuture,
+                        heartrate: nil,
+                        location: $0,
+                        motion: nil,
+                        intensity: nil,
+                        speed: nil),
+                    delegate: delegate)
+            }
+        ReceiverService
             .sharedInstance
             .motionValues
-            .map {$0.when}
+            .sinkStore { [self] in
+                segments.merge(
+                    Segment(
+                        range: $0.startDate ..< .distantFuture,
+                        heartrate: nil,
+                        location: nil,
+                        motion: $0,
+                        intensity: nil,
+                        speed: nil),
+                    delegate: delegate)
+            }
+        IntensityEvent
+            .producer
+            .sinkStore { [self] in
+                segments.merge(
+                    Segment(
+                        range: $0.timestamp ..< .distantFuture,
+                        heartrate: nil,
+                        location: nil,
+                        motion: nil,
+                        intensity: $0,
+                        speed: nil),
+                    delegate: delegate)
+            }
+        SpeedEvent
+            .producer
+            .sinkStore { [self] in
+                segments.merge(
+                    Segment(
+                        range: $0.timestamp ..< .distantFuture,
+                        heartrate: nil,
+                        location: nil,
+                        motion: nil,
+                        intensity: nil,
+                        speed: $0),
+                    delegate: delegate)
+            }
         
-        let i = DeltaService
-            .sharedInstance
-            .intensityStream
-            .map {$0.timestamp}
-        
-        h.merge(with: l, m, i)
-            .sinkStore {self.actions(at: $0)}
-        
+        // Reset on start
         ReceiverService.sharedInstance.heartrateControl
             .merge(with:
                 ReceiverService.sharedInstance.locationControl,
                 ReceiverService.sharedInstance.motionControl)
             .sinkStore {
-                if case .started = $0 {
-                    self.sentOut.removeAll(keepingCapacity: true)
-                    self.timestamps.removeAll(keepingCapacity: true)
+                if $0 == .started {
+                    self.segments.removeAll(keepingCapacity: true)
                 }
             }
     }
     
     // MARK: - Published
-    enum Action {
-        case rollforward, rollback
-    }
-    
-    struct Segment {
-        internal init(span: Range<Date>, heartrate: DeltaHeartrate, location: DeltaLocation, motion: DeltaMotion, intensity: DeltaIntensity) {
-            self.span = span
-            self.heartrate = heartrate
-            self.location = location
-            self.motion = motion
-            self.intensity = intensity
+    struct Segment: Rangable {
+        typealias C = Date
+        
+        let range: Range<Date>
+        let heartrate: Heartrate?
+        let location: CLLocation?
+        let motion: CMMotionActivity?
+        
+        let intensity: IntensityEvent?
+        let speed: SpeedEvent?
+        
+        struct Delta {
+            let asOf: Date
+            let inRange: Bool
             
-            log(span, heartrate, location, motion, intensity)
+            let intensity: Intensity
+            let activity: Activity
+            
+            let duration: TimeInterval
+            let distance: CLLocationDistance
+            let hrSec: Double
         }
         
-        let span: Range<Date>
-        let heartrate: DeltaHeartrate
-        let location: DeltaLocation
-        let motion: DeltaMotion
-        let intensity: DeltaIntensity
-    }
-    
-    typealias SegmentAction = (Segment, Action)
-    
-    let segmentStream = PassthroughSubject<SegmentAction, Never>()
-
-    // MARK: - Private
-    private var sentOut = [Segment]()
-    private var timestamps = [Date]()
-    
-    private func actions(at timestamp: Date) {
-        DeltaService.sharedInstance.delta(timestamp) { [self] dh, dl, dm, di in
-            let insertIdx = timestamps.insertIndex(for: timestamp) {$0}
-            timestamps.insert(timestamp, at: insertIdx)
+        /// Returns delta up to given date. If date is omitted, returns delta for the full intervall.
+        func delta(at: Date? = nil) -> Delta {
+            let asOF = at ?? range.upperBound
+            let duration = range.lowerBound.distance(to: asOF)
             
-            let impactTime = [
-                timestamp,
-                dh.impactsAfter,
-                dl.impactsAfter,
-                dm.impactsAfter,
-                di.impactsAfter].min()!
-            
-            // Rollback
-            while let last = sentOut.last, last.span.upperBound > impactTime {
-                sentOut.removeLast()
-                segmentStream.send((last, .rollback))
-            }
-            
-            // Rollforward
-            // Search backwards from insertIdx of timestamp to find impactTime
-            let impactIdx = (timestamps.startIndex ... insertIdx)
-                .reversed()
-                .last {timestamps[$0] >= impactTime} ?? timestamps.startIndex
-            
-            // From impactTimeIdx, ngram(2) forward
-            timestamps[max(timestamps.index(before: impactIdx), timestamps.startIndex)...]
-                .ngram(2)
-                .forEach {
-                    guard $0.count == 2 else {return}
-                    let begin = $0[0]
-                    let end = $0[1]
-                    
-                    // Create Segment (2 levels of closures)
-                    DeltaService.sharedInstance.delta(begin) { [self] dhb, dlb, dmb, dib in
-                        DeltaService.sharedInstance.delta(end) { [self] dhe, dle, dme, die in
-                            let segment = Segment(
-                                span: begin..<end,
-                                heartrate: DeltaHeartrate(
-                                    span: begin..<end,
-                                    begin: dhb.value(at: begin),
-                                    end: dhe.value(at: end)),
-                                location: DeltaLocation(
-                                    span: begin..<end,
-                                    begin: dlb.value(at: begin),
-                                    end: dle.value(at: end)),
-                                motion: DeltaMotion(
-                                    span: begin..<end,
-                                    begin: dmb.value(at: begin),
-                                    end: dme.value(at: end)),
-                                intensity: DeltaIntensity(
-                                    span: begin..<end,
-                                    begin: dib.value(at: begin),
-                                    end: die.value(at: end)))
-                            
-                            // Send and append
-                            sentOut.append(segment)
-                            segmentStream.send((segment, .rollforward))
-                        }
-                    }
-                }
+            return Delta(
+                asOf: asOF, inRange: range.contains(asOF),
+                intensity: intensity?.intensity ?? .Cold,
+                activity: Activity.from(motion),
+                duration: duration,
+                distance: duration * (speed?.speedMperSec ?? 0),
+                hrSec: duration * Double(heartrate?.heartrate ?? 0))
         }
     }
+    
+    @Published private(set) var segments = [Segment]()
+
+    // MARK: - Private
+    
+    private struct Delegate: RangableMergeDelegate {
+        typealias R = Segment
+        
+        func reduce(_ rangable: Segment, to: Range<Date>) -> Segment {
+            Segment(
+                range: to,
+                heartrate: rangable.heartrate,
+                location: rangable.location,
+                motion: rangable.motion,
+                intensity: rangable.intensity,
+                speed: rangable.speed)
+        }
+        
+        func resolve(_ r1: Segment, _ r2: Segment, to: Range<Date>) -> Segment {
+            Segment(
+                range: to,
+                heartrate: r2.heartrate ?? r1.heartrate,
+                location: r2.location ?? r1.location,
+                motion: r2.motion ?? r1.motion,
+                intensity: r2.intensity ?? r1.intensity,
+                speed: r2.speed ?? r1.speed)
+        }
+        
+        func drop(_ rangable: Segment) {
+            // Subtract from totals
+            TotalsService.sharedInstance.drop(rangable)
+        }
+        
+        func add(_ rangable: Segment) {
+            // Add to totals
+            TotalsService.sharedInstance.add(rangable)
+            
+            // If this is open-end, it's the new current
+            if rangable.range.upperBound == .distantFuture {
+                CurrentsService.sharedInstance.newCurrent(rangable)
+            }
+        }
+    }
+    
+    private let delegate = Delegate()
 }

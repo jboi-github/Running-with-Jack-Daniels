@@ -47,49 +47,19 @@ private struct ToolbarStatusView: View {
     @ObservedObject var currents = CurrentsService.sharedInstance
     
     var body: some View {
-        HStack {
-            Image(systemName: getMotion())
-            Image(systemName: getLocation())
-            Image(systemName: getHeart())
+        let highHr = currents.heartrateBpm >= (hrLimits.value[.Easy]?.lowerBound ?? Int.max)
+        return HStack {
+            currents
+                .aclControl
+                .asImage(onReceiving: currents.activity.asImage(highHr: highHr))
+            currents.gpsControl.asImage(
+                onReceiving: Image(systemName: "location.fill"),
+                nonOk: Image(systemName: "location.slash"))
+            currents.bleControl.asImage(
+                onReceiving: Image(systemName: "heart.fill"),
+                nonOk: Image(systemName: "heart.slash"))
         }
         .font(.caption)
-    }
-    
-    private func getLocation() -> String {
-        currents.gpsControl == .received ? "location.fill" : "location.slash"
-    }
-    private func getHeart() -> String {
-        currents.bleControl == .received ? "heart.fill" : "heart.slash"
-    }
-
-    private func getMotion() -> String {
-        guard currents.aclControl == .received else {return "nosign"}
-        
-        if currents.activity.stationary {
-            if let hrLimitsEasy = hrLimits.value[.Easy],
-               currents.heartrateBpm >= hrLimitsEasy.lowerBound
-            {
-                return "figure.wave"
-            } else {
-                return "figure.stand"
-            }
-        } else if currents.activity.walking {
-            return "figure.walk"
-        } else if currents.activity.running {
-            if let hrLimitsEasy = hrLimits.value[.Easy],
-               currents.heartrateBpm < hrLimitsEasy.lowerBound
-            {
-                return "tortoise.fill"
-            } else {
-                return "hare.fill"
-            }
-        } else if currents.activity.cycling {
-            return "bicycle"
-        } else if currents.activity.automotive {
-            return "tram.fill"
-        } else {
-            return "nosign"
-        }
     }
 }
 

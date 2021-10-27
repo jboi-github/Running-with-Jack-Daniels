@@ -11,8 +11,9 @@ import CoreLocation
 import RunFoundationKit
 import RunFormulasKit
 import RunReceiversKit
+import RunDatabaseKit
 
-public class TotalsService: ObservableObject {
+public class TotalsService {
     // MARK: - Initialization
     
     /// Access shared instance of this singleton
@@ -20,26 +21,6 @@ public class TotalsService: ObservableObject {
 
     /// Use singleton @sharedInstance
     private init() {
-        SegmentsService
-            .sharedInstance
-            .segmentStream
-            .sinkMainStore { segment, action in
-                let activeIntensity = ActiveIntensity(
-                    isActive: segment.motion.end,
-                    intensity: segment.intensity.end)
-                let total = Total(
-                    duration: segment.span.lowerBound.distance(to: segment.span.upperBound),
-                    distance: segment.location.end - segment.location.begin,
-                    heartrateSec: segment.heartrate.duration * Double(segment.heartrate.end))
-
-                switch action {
-                case .rollback:
-                    self.totals -= (activeIntensity, total)
-                case .rollforward:
-                    self.totals += (activeIntensity, total)
-                }
-            }
-        
         ReceiverService.sharedInstance.heartrateControl
             .merge(with:
                 ReceiverService.sharedInstance.locationControl,
@@ -58,54 +39,104 @@ public class TotalsService: ObservableObject {
         fileprivate var heartrateSec: Double
         
         public var heartrateBpm: Int {Int(heartrateSec / duration + 0.5)}
-        public var vdot: Double {.nan} // TODO: Implement
         public var paceSecPerKm: TimeInterval {1000.0 * duration / distance}
-    }
-    
-    public struct ActiveIntensity: Hashable {
-        let isActive: Bool
-        let intensity: Intensity
-        
-        public init(isActive: Bool, intensity: Intensity) {
-            self.isActive = isActive
-            self.intensity = intensity
+        public var vdot: Double {
+            let hrMax = Database.sharedInstance.hrMax.value
+            let hrResting = Database.sharedInstance.hrResting.value
+
+            if hrMax.isFinite && hrResting.isFinite {
+                return train(
+                    hrBpm: heartrateBpm,
+                    hrMaxBpm: Int(hrMax + 0.5),
+                    paceSecPerKm: paceSecPerKm) ?? .nan
+            } else if hrMax.isFinite {
+                return train(
+                    hrBpm: heartrateBpm,
+                    hrMaxBpm: Int(hrMax + 0.5),
+                    restingBpm: Int(hrResting + 0.5),
+                    paceSecPerKm: paceSecPerKm) ?? .nan
+            } else {
+                return .nan
+            }
         }
     }
     
-    @Published public private(set) var totals = [ActiveIntensity: Total]()
+    /// Add currently last segment to totals up to give time.
+    public func current(at: Date = Date()) -> (sum: Total, totals: [(Activity, Intensity, Total)]) {
+        // Add up to date extrapolation
+        var totals = totals
+        if let last = SegmentsService.sharedInstance.segments.last {
+            let delta = last.delta(at: at)
+            totals[ActivityIntensity.fromDelta(delta), default: Total.zero] += delta
+        }
+        
+        var result = [(Activity, Intensity, Total)]()
+        func appendToResult(_ activity: Activity, _ intensity: Intensity) {
+            let ai = ActivityIntensity(activity: activity, intensity: intensity)
+            guard let total = totals[ai] else {return}
+            
+            result.append((activity, intensity, total))
+        }
+        
+        appendToResult(.walking, .Cold)
+        appendToResult(.walking, .Easy)
+        appendToResult(.walking, .Marathon)
+        appendToResult(.walking, .Threshold)
+        appendToResult(.walking, .Interval)
+        appendToResult(.walking, .Repetition)
+
+        appendToResult(.running, .Cold)
+        appendToResult(.running, .Easy)
+        appendToResult(.running, .Marathon)
+        appendToResult(.running, .Threshold)
+        appendToResult(.running, .Interval)
+        appendToResult(.running, .Repetition)
+
+        appendToResult(.cycling, .Cold)
+        appendToResult(.cycling, .Easy)
+        appendToResult(.cycling, .Marathon)
+        appendToResult(.cycling, .Threshold)
+        appendToResult(.cycling, .Interval)
+        appendToResult(.cycling, .Repetition)
+        
+        return (totals.reduce(into: Total.zero) {$0 += $1.value}, result)
+    }
+
+    func drop(_ segment: SegmentsService.Segment) {
+        let delta = segment.delta()
+        totals[ActivityIntensity.fromDelta(delta), default: Total.zero] -= delta
+    }
     
-    public var sumTotals: Total {
-        totals.reduce(into: Total.zero) {$0 += $1.value}
+    func add(_ segment: SegmentsService.Segment) {
+        let delta = segment.delta()
+        totals[ActivityIntensity.fromDelta(delta), default: Total.zero] += delta
     }
 
     // MARK: - Private
+    
+    private var totals = [ActivityIntensity: Total]()
 }
 
 extension TotalsService.Total {
-    static var zero: Self {
+    public static var zero: Self {
         Self(duration: 0, distance: 0, heartrateSec: 0)
+    }
+
+    static func +=(lhs: inout Self, rhs: SegmentsService.Segment.Delta) {
+        lhs.duration += rhs.duration
+        lhs.distance += rhs.distance
+        lhs.heartrateSec += rhs.hrSec
+    }
+
+    static func -=(lhs: inout Self, rhs: SegmentsService.Segment.Delta) {
+        lhs.duration -= rhs.duration
+        lhs.distance -= rhs.distance
+        lhs.heartrateSec -= rhs.hrSec
     }
 
     static func +=(lhs: inout Self, rhs: Self) {
         lhs.duration += rhs.duration
         lhs.distance += rhs.distance
         lhs.heartrateSec += rhs.heartrateSec
-    }
-
-    static func -=(lhs: inout Self, rhs: Self) {
-        lhs.duration -= rhs.duration
-        lhs.distance -= rhs.distance
-        lhs.heartrateSec -= rhs.heartrateSec
-    }
-}
-
-extension Dictionary where Key == TotalsService.ActiveIntensity, Value == TotalsService.Total {
-    static var zero: Self {Self()}
-    
-    static func +=(lhs: inout Self, rhs: Element) {
-        lhs[rhs.key, default: Value.zero] += rhs.value
-    }
-    static func -=(lhs: inout Self, rhs: Element) {
-        lhs[rhs.key, default: Value.zero] -= rhs.value
     }
 }

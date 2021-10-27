@@ -7,10 +7,11 @@
 
 import SwiftUI
 import MapKit
+import RunEnricherKit
 
 /// MapView utiliziing the older but (still) better customizable MKMapView
 struct MapKitView: UIViewRepresentable {
-    let path: [CLLocation]
+    let path: Set<LocationsService.PathPoint>
     let userInteraction: Bool
     let mapViewDelegate = MapViewDelegate()
 
@@ -32,21 +33,19 @@ struct MapKitView: UIViewRepresentable {
 }
 
 private extension MKMapView {
-    func addPath(_ path: [CLLocation], autoRegion: Bool) {
+    func addPath(_ path: Set<LocationsService.PathPoint>, autoRegion: Bool) {
         if !overlays.isEmpty {removeOverlays(overlays)}
         
-        // The path
-        let route = MKPolyline(coordinates: path.map {$0.coordinate}, count: path.count)
-        addOverlay(route)
-
         // Circles with accuracy
-        addOverlays(path.map {MKCircle(center: $0.coordinate, radius: $0.horizontalAccuracy)})
+        addOverlays(
+            path.map {
+                MKCircle(center: $0.location.coordinate, radius: $0.location.horizontalAccuracy)
+            })
         
         if autoRegion {
-            let region = regionThatFits(
-                MKCoordinateRegion(route.boundingMapRect)
-                    .expanded(by: 1.1, minMeter: 500))
-            if !path.isEmpty {setRegion(region, animated: true)}
+            let boundingMapRect = overlays.reduce(MKMapRect.null) {$0.union($1.boundingMapRect)}
+            let region = MKCoordinateRegion(boundingMapRect).expanded(by: 1.1, minMeter: 500)
+            if !path.isEmpty {setRegion(regionThatFits(region), animated: true)}
         }
     }
 }
@@ -72,6 +71,6 @@ class MapViewDelegate: NSObject, MKMapViewDelegate {
 
 struct MapKitView_Previews: PreviewProvider {
     static var previews: some View {
-        MapKitView(path: [CLLocation](), userInteraction: false)
+        MapKitView(path: Set<LocationsService.PathPoint>(), userInteraction: false)
     }
 }

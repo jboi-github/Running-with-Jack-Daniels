@@ -11,6 +11,10 @@ import Combine
 import RunFoundationKit
 import RunReceiversKit
 
+/**
+ A cleaned locations path as set. CLLocations + ActivityIntensity. Non-active locations are filtered out.
+ Hashing for the set treats hr-changes as eauql elements.
+ */
 public class LocationsService: ObservableObject {
     // MARK: - Initialization
     
@@ -19,17 +23,6 @@ public class LocationsService: ObservableObject {
 
     /// Use singleton @sharedInstance
     private init() {
-        ReceiverService
-            .sharedInstance
-            .motionValues
-            .sinkMainStore {self.isActive = $0.isActive}
-
-        ReceiverService
-            .sharedInstance
-            .locationValues
-            .filter {_ in self.isActive}
-            .sinkMainStore {self.path.append($0)} // FIXME: Insert in order of timestamp
-
         ReceiverService.sharedInstance.heartrateControl
             .merge(with:
                 ReceiverService.sharedInstance.locationControl,
@@ -37,14 +30,38 @@ public class LocationsService: ObservableObject {
             .sinkMainStore {
                 if case .started = $0 {
                     self.path.removeAll(keepingCapacity: true)
-                    self.isActive = false
                 }
             }
     }
     
     // MARK: - Published
-    @Published public private(set) var path = [CLLocation]()
-    @Published public private(set) var isActive: Bool = false
+    public struct PathPoint: Hashable {
+        public let location: CLLocation
+        public let activityIntensity: ActivityIntensity
+        
+        /// Get path point from segment. If segment contains none-activity, nil is returned.
+        static func fromSegment(_ segment: SegmentsService.Segment) -> Self? {
+            guard let location = segment.location else {return nil}
+
+            let activityIntensity = ActivityIntensity(
+                activity: Activity.from(segment.motion),
+                intensity: segment.intensity?.intensity ?? .Cold)
+            
+            return PathPoint(location: location, activityIntensity: activityIntensity)
+        }
+    }
+    
+    @Published public private(set) var path = Set<PathPoint>()
+    
+    func drop(_ segment: SegmentsService.Segment) {
+        guard let pp = PathPoint.fromSegment(segment) else {return}
+        path.remove(pp)
+    }
+    
+    func add(_ segment: SegmentsService.Segment) {
+        guard let pp = PathPoint.fromSegment(segment) else {return}
+        if pp.activityIntensity.activity != .none {path.insert(pp)}
+    }
 
     // MARK: - Private
 }

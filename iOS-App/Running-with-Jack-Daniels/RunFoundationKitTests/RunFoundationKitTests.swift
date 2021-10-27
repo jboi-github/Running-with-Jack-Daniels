@@ -248,6 +248,44 @@ class RunFoundationKitTests: XCTestCase {
         XCTAssertEqual([Int]().insertIndex(for: 500, element2key: {$0}), 0)
     }
     
+    struct Rx : Rangable, Equatable {
+        typealias C = Double
+        let range: Range<Double>
+        
+        init(_ range: Range<Double>) {self.range = range}
+    }
+    
+    struct Dx: RangableMergeDelegate {
+        typealias R = Rx
+        
+        func reduce(_ rangable: Rx, to: Range<Double>) -> Rx {Rx(to)}
+        func resolve(_ r1: Rx, _ r2: Rx, to: Range<Double>) -> Rx {Rx(to)}
+        func drop(_ rangable: Rx) {print("drop", rangable.range)}
+        func add(_ rangable: Rx) {print("add", rangable.range)}
+    }
+    
+    func testInsertIndexRanges() throws {
+        let x: [Rx] = [Rx(0..<1), Rx(1..<2), Rx(2..<3), Rx(8..<9)]
+
+        r(0.5 ..< 0.75, expected: [Rx(0..<0.5), Rx(0.5..<0.75), Rx(0.75..<1), Rx(1..<2), Rx(2..<3), Rx(8..<9)])
+        r(0.5 ..< 1, expected: [Rx(0..<0.5), Rx(0.5..<1), Rx(1..<2), Rx(2..<3), Rx(8..<9)])
+        r(0.5 ..< 1.5, expected: [Rx(0..<0.5), Rx(0.5..<1), Rx(1..<1.5), Rx(1.5..<2), Rx(2..<3), Rx(8..<9)])
+        r(0.5 ..< 2, expected: [Rx(0..<0.5), Rx(0.5..<1), Rx(1..<2), Rx(2..<3), Rx(8..<9)])
+        r(0.5 ..< 2.5, expected: [Rx(0..<0.5), Rx(0.5..<1), Rx(1..<2), Rx(2..<2.5), Rx(2.5..<3), Rx(8..<9)])
+        r(2 ..< 2.5, expected: [Rx(0..<1), Rx(1..<2), Rx(2..<2.5), Rx(2.5..<3), Rx(8..<9)])
+        r(2.5 ..< 2.75, expected: [Rx(0..<1), Rx(1..<2), Rx(2..<2.5), Rx(2.5..<2.75), Rx(2.75..<3), Rx(8..<9)])
+        r(-1 ..< -0.5, expected: [Rx(-1 ..< -0.5), Rx(0..<1), Rx(1..<2), Rx(2..<3), Rx(8..<9)])
+        r(10 ..< 10.5, expected: [Rx(0..<1), Rx(1..<2), Rx(2..<3), Rx(8..<9), Rx(10..<10.5)])
+        r(8.5 ..< 10, expected: [Rx(0..<1), Rx(1..<2), Rx(2..<3), Rx(8..<8.5), Rx(8.5..<9), Rx(9..<10)])
+        r(9 ..< 10, expected: [Rx(0..<1), Rx(1..<2), Rx(2..<3), Rx(8..<9), Rx(9..<10)])
+
+        func r(_ range: Range<Double>, expected: [Rx]) {
+            var x = x
+            x.merge(Rx(range), delegate: Dx())
+            XCTAssertEqual(x, expected, "\(range)")
+        }
+    }
+    
     func testInsertIndexPerf() throws {
         let x: [Int] = stride(from: 600, to: 1000000*60+600, by: 60).map {$0}
         

@@ -19,34 +19,27 @@ public class CurrentsService: ObservableObject {
 
     /// Use singleton @sharedInstance
     private init() {
-        ReceiverService
-            .sharedInstance
-            .heartrateValues
-            .sinkMainStore {self.heartrateBpm = $0.heartrate}
-        
-        ReceiverService
-            .sharedInstance
-            .locationValues
-            .sinkMainStore {self.paceSecPerKm = self.activity.isActive ? (1000.0 / $0.speed) : .nan}
-        
-        ReceiverService
-            .sharedInstance
-            .motionValues
-            .sinkMainStore {self.activity = $0}
-        
         ReceiverService.sharedInstance.heartrateControl.sinkMainStore {self.bleControl = $0}
         ReceiverService.sharedInstance.locationControl.sinkMainStore {self.gpsControl = $0}
         ReceiverService.sharedInstance.motionControl.sinkMainStore {self.aclControl = $0}
     }
     
     // MARK: - Published
+    @Published public private(set) var asOf: Date = .distantPast
     @Published public private(set) var heartrateBpm: Int = 0
     @Published public private(set) var paceSecPerKm: TimeInterval = .nan
-    @Published public private(set) var activity: CMMotionActivity = CMMotionActivity()
+    @Published public private(set) var activity: Activity = .none
 
     @Published public private(set) var bleControl: ReceiverControl = .stopped
     @Published public private(set) var gpsControl: ReceiverControl = .stopped
     @Published public private(set) var aclControl: ReceiverControl = .stopped
 
+    func newCurrent(_ segment: SegmentsService.Segment) {
+        asOf = segment.range.lowerBound
+        heartrateBpm = segment.heartrate?.heartrate ?? 0
+        paceSecPerKm = 1000 / (segment.speed?.speedMperSec ?? .nan)
+        activity = Activity.from(segment.motion)
+    }
+    
     // MARK: - Private
 }
