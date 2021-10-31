@@ -35,10 +35,12 @@ public class CurrentsService: ObservableObject {
     @Published public private(set) var aclControl: ReceiverControl = .stopped
 
     func newCurrent(_ segment: SegmentsService.Segment) {
-        asOf = segment.range.lowerBound
-        heartrateBpm = segment.heartrate?.heartrate ?? 0
-        paceSecPerKm = 1000 / (segment.speed?.speedMperSec ?? .nan)
-        activity = Activity.from(segment.motion)
+        DispatchQueue.main.async { [self] in
+            asOf = segment.range.lowerBound
+            heartrateBpm = segment.heartrate?.heartrate ?? 0
+            paceSecPerKm = 1000 / (segment.speed?.speedMperSec ?? .nan)
+            activity = Activity.from(segment.motion)
+        }
     }
     
     // MARK: - Private

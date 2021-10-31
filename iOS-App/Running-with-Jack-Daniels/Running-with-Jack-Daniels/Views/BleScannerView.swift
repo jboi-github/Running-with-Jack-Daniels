@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import RunFoundationKit
 
 struct BleScannerViewWrapper: View {
     @ObservedObject var scanner = BleScannerModel.sharedInstance
@@ -20,7 +21,7 @@ struct BleScannerViewWrapper: View {
                         lhs: $0.peripheral.rssi,
                         rhs: $1.peripheral.rssi,
                         isNilMax: false) {
-                            $0.doubleValue < $1.doubleValue
+                            $0.doubleValue >= $1.doubleValue
                         }
                 },
             primary: scanner.primaryPeripheral)

@@ -24,6 +24,8 @@ extension Activity {
             return Image(systemName: "bicycle")
         case .getMoved:
             return Image(systemName: "tram.fill")
+        case .replaced:
+            return Image(systemName: "nosign")
         }
     }
 }

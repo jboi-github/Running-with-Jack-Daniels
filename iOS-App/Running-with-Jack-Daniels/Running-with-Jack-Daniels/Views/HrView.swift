@@ -104,13 +104,13 @@ private struct HrViewBar: View {
                     // Background
                     Group {
                         MovedSizedRectangle(minX: startE, maxX: stopE)
-                            .fill(Color.blue)
+                            .fill(Intensity.Easy.asColor())
                         MovedSizedWithTransition(minX: startM, midX: startT, maxX: stopM, leftSided: false)
-                            .fill(Color.green)
+                            .fill(Intensity.Marathon.asColor())
                         MovedSizedWithTransition(minX: startT, midX: stopM, maxX: stopT, leftSided: true)
-                            .fill(Color.yellow)
+                            .fill(Intensity.Threshold.asColor())
                         MovedSizedRectangle(minX: startI, maxX: stopI)
-                            .fill(Color.red)
+                            .fill(Intensity.Interval.asColor())
                     }
                     .scaleEffect(x: 1, y: 0.5, anchor: .center)
                     .opacity(0.5)

@@ -349,6 +349,12 @@ extension Array where Element: Rangable {
     public mutating func merge<D: RangableMergeDelegate>(_ rangable: Element, delegate: D)
     where D.R == Element
     {
+        // Special case. Self is empty
+        if self.isEmpty {
+            self.append(rangable)
+            delegate.add(rangable)
+        }
+        
         // Overalpping elements
         var first = endIndex
         var last = startIndex

@@ -17,6 +17,22 @@ public struct Heartrate {
     public let heartrate: Int
 }
 
+private var primaryUuid: UUID? {
+    if let primaryString = UserDefaults.standard.string(forKey: BlePrimaryUuidKey) {
+        return UUID(uuidString: primaryString)
+    } else {
+        return nil
+    }
+}
+
+private var ignoredUuids: [UUID]? {
+    if let ignoredStrings = UserDefaults.standard.stringArray(forKey: BleIgnoredUuidsKey) {
+        return ignoredStrings.compactMap {UUID(uuidString: $0)}
+    } else {
+        return nil
+    }
+}
+
 class BleHeartrateReceiver: ReceiverProtocol {
     typealias Value = Heartrate
 
@@ -35,28 +51,12 @@ class BleHeartrateReceiver: ReceiverProtocol {
     }
     
     func start() {
-        var primaryUuid: UUID? {
-            if let primaryString = UserDefaults.standard.string(forKey: BlePrimaryUuidKey) {
-                return UUID(uuidString: primaryString)
-            } else {
-                return nil
-            }
-        }
-        
-        var ignoredUuids: [UUID]? {
-            if let ignoredStrings = UserDefaults.standard.stringArray(forKey: BleIgnoredUuidsKey) {
-                return ignoredStrings.compactMap {UUID(uuidString: $0)}
-            } else {
-                return nil
-            }
-        }
-        
         (centralManager, centralManagerDelegate) = CentralManagerDelegate.configure(
             value: value,
             failed: failed,
             discovered: {log($0)},
             connectStrategy: .first(primaryUuid: primaryUuid, ignoredUuids: ignoredUuids ?? []),
-            serviceUuids: [CBUUID(string: "0x180D"), CBUUID(string: "0xFEE1"), CBUUID(string: "0xFEE0")],
+            serviceUuids: [CBUUID(string: "0x180D")],
             characteristicUuids: [CBUUID(string: "2A37")])
     }
     
@@ -77,6 +77,8 @@ class BlePeripheralReceiver: ReceiverProtocol {
 
     private let value: (CBPeripheral) -> Void
     private let failed: (Error) -> Void
+    
+    private var timer: Timer? = nil
 
     required init(value: @escaping (CBPeripheral) -> Void, failed: @escaping (Error) -> Void) {
         self.value = value
@@ -88,14 +90,23 @@ class BlePeripheralReceiver: ReceiverProtocol {
             value: {log($0)},
             failed: failed,
             discovered: value,
-            connectStrategy: .all(readRSSI: 5),
+            connectStrategy: .all(
+                primaryUuid: primaryUuid,
+                ignoredUuids: ignoredUuids ?? []),
             serviceUuids: [CBUUID(string: "0x180D")],
             characteristicUuids: [CBUUID(string: "2A37")])
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) {
+            log($0)
+            self.centralManagerDelegate?.readRssiAll()
+        }
     }
     
     func stop() {
         guard let centralManager = centralManager else {return}
         if centralManager.isScanning {centralManager.stopScan()}
+        timer?.invalidate()
+        timer = nil
         centralManagerDelegate?.cancelAll(centralManager)
     }
     
@@ -107,7 +118,16 @@ class BlePeripheralReceiver: ReceiverProtocol {
 private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     enum ConnectStrategy {
         case first(primaryUuid: UUID?, ignoredUuids: [UUID])
-        case all(readRSSI: TimeInterval)
+        case all(primaryUuid: UUID?, ignoredUuids: [UUID])
+        
+        var willNotify: Bool {
+            switch self {
+            case .first(_,_):
+                return true
+            case .all(_,_):
+                return false
+            }
+        }
     }
     
     static func configure(
@@ -159,7 +179,8 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
             value: value,
             failed: failed,
             serviceUuids: serviceUuids,
-            characteristicUuids: characteristicUuids)
+            characteristicUuids: characteristicUuids,
+            notifyOnUpdateValue: connectStrategy.willNotify)
     }
     
     fileprivate func cancelAll(_ central: CBCentralManager) {
@@ -167,6 +188,13 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
             central.cancelPeripheralConnection($0)
         }
         peripherals.removeAll()
+    }
+    
+    fileprivate func readRssiAll() {
+        peripherals.forEach {
+            log($0.name ?? "no-name")
+            $0.readRSSI()
+        }
     }
     
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
@@ -203,14 +231,10 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         case .first(_, let ignoredUuids):
             if ignoredUuids.contains(peripheral.identifier) {return}
             central.stopScan()
-        case .all(let readRSSI):
+            connect(central, to: peripheral)
+        case .all(_, _):
             rssis[peripheral.identifier] = RSSI
-            Timer.scheduledTimer(withTimeInterval: readRSSI, repeats: true) { _ in
-                serialQueue.async {peripheral.readRSSI()}
-            }
         }
-        
-        connect(central, to: peripheral)
     }
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -232,7 +256,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
                 connectStrategy = .first(
                     primaryUuid: primaryUuid,
                     ignoredUuids: ignoredUuids + [peripheral.identifier])
-            case .all(_):
+            case .all(_, _):
                 break
             }
             failed(error)
@@ -250,7 +274,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
             connectStrategy = .first(
                 primaryUuid: primaryUuid,
                 ignoredUuids: ignoredUuids + [peripheral.identifier])
-        case .all(_):
+        case .all(_, _):
             break
         }
         if let error = error {failed(error)}
@@ -301,13 +325,37 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
                 connect(central, to: peripheral)
                 return
             }
-        case .all(_):
-            break
+            
+            // Scan for new devices.
+            log("Initiate scanning...")
+            central.scanForPeripherals(withServices: serviceUuids)
+
+        case .all(let primaryUuid, let ignoredUuids):
+            // Try to re-connect primary peripheral
+            central
+                .retrievePeripherals(
+                    withIdentifiers: ignoredUuids + (primaryUuid != nil ? [primaryUuid!] : []))
+                .forEach {
+                    log("known UUID", $0.name ?? "no-name")
+                    discovered($0)
+                    connect(central, to: $0)
+                }
+            
+            // Try to connect to any device already connected with the appropriate service
+            if let serviceUuids = serviceUuids {
+                central
+                 .retrieveConnectedPeripherals(withServices: serviceUuids)
+                 .forEach {
+                     log("already connected with expected service", $0.name ?? "no-name")
+                     discovered($0)
+                     connect(central, to: $0)
+                 }
+            }
+            
+            // Scan for new devices.
+            log("Initiate scanning...")
+            central.scanForPeripherals(withServices: serviceUuids)
         }
-        
-        // Scan for new devices.
-        log("Initiate scanning...")
-        central.scanForPeripherals(withServices: serviceUuids)
     }
     
     private func connect(_ central: CBCentralManager, to peripheral: CBPeripheral) {
@@ -322,17 +370,20 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     private let failed: (Error) -> Void
     private let serviceUuids: Set<CBUUID>
     private let characteristicUuids: [CBUUID]?
+    private let notifyOnUpdateValue: Bool
 
     init(
         value: @escaping (Heartrate) -> Void,
         failed: @escaping (Error) -> Void,
         serviceUuids: [CBUUID]?,
-        characteristicUuids: [CBUUID]?)
+        characteristicUuids: [CBUUID]?,
+        notifyOnUpdateValue: Bool)
     {
         self.value = value
         self.failed = failed
         self.serviceUuids = Set<CBUUID>(serviceUuids ?? [])
         self.characteristicUuids = characteristicUuids
+        self.notifyOnUpdateValue = notifyOnUpdateValue
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -382,6 +433,9 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
             .forEach {log($0.key)}
         }
 
+        // Are we looking for data or just for scanning peripherals?
+        guard notifyOnUpdateValue else {return}
+        
         // Let's finally get notifications from the first peripheral with
         // HR service, HR characteristics and notification property
         if let charateristic = service
@@ -412,7 +466,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         didUpdateValueFor characteristic: CBCharacteristic,
         error: Error?)
     {
-        log(peripheral.name ?? "no-name", characteristic.uuid)
+        log(peripheral.name ?? "no-name", characteristic.uuid, peripheral.state.rawValue)
         if let error = error {failed(error)}
         if let heartrate = characteristic.asInt {
             self.value(Heartrate(timestamp: Date(), heartrate: heartrate))
@@ -499,6 +553,7 @@ extension CBCharacteristic {
     var asInt: Int? {
         guard let value = value else {return nil}
         let bytes = [UInt8](value)
+        log(bytes.map {"\(String($0, radix: 2)):\(String($0, radix: 16))"}.joined(separator: " - "))
 
         if bytes[0] & 0x01 == 0 {
             // Value is in the 2nd byte

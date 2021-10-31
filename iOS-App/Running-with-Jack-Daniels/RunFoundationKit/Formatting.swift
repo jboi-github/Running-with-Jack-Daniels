@@ -11,10 +11,14 @@ import MapKit
 
 // MARK: Formatting
 extension TimeInterval {
-    public func asTime(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true)
+    public func asTime(
+        _ font: Font = .body,
+        measureFont: Font = .caption,
+        withMeasure: Bool = true,
+        max: Self = .infinity)
     -> some View
     {
-        guard self.isFinite else {return Text("--:--").font(font).anyview}
+        guard self < max else {return Text("-:--").font(font).anyview}
         
         let hours = Int(self / 3600.0)
         let minutes = Int(self.truncatingRemainder(dividingBy: 3600) / 60.0)
@@ -33,11 +37,15 @@ extension TimeInterval {
         .anyview
     }
     
-    public func asPace(_ font: Font = .body, measureFont: Font = .caption, withMeasure: Bool = true)
+    public func asPace(
+        _ font: Font = .body,
+        measureFont: Font = .caption,
+        withMeasure: Bool = true,
+        max: Self = 3600)
     -> some View
     {
         return HStack(spacing: 0) {
-            asTime(font, measureFont: measureFont, withMeasure: withMeasure)
+            asTime(font, measureFont: measureFont, withMeasure: withMeasure, max: max)
             Text("\(withMeasure ? "/km" : " /km")").font(measureFont)
         }
     }

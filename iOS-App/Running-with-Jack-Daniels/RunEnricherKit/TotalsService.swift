@@ -38,8 +38,14 @@ public class TotalsService {
         public fileprivate(set) var distance: CLLocationDistance
         fileprivate var heartrateSec: Double
         
-        public var heartrateBpm: Int {Int(heartrateSec / duration + 0.5)}
-        public var paceSecPerKm: TimeInterval {1000.0 * duration / distance}
+        public var heartrateBpm: Int {
+            duration > 0 ? Int(heartrateSec / duration + 0.5) : 0
+        }
+        
+        public var paceSecPerKm: TimeInterval {
+            distance > 0 ? 1000.0 * duration / distance : .nan
+        }
+        
         public var vdot: Double {
             let hrMax = Database.sharedInstance.hrMax.value
             let hrResting = Database.sharedInstance.hrResting.value
@@ -48,12 +54,12 @@ public class TotalsService {
                 return train(
                     hrBpm: heartrateBpm,
                     hrMaxBpm: Int(hrMax + 0.5),
+                    restingBpm: Int(hrResting + 0.5),
                     paceSecPerKm: paceSecPerKm) ?? .nan
             } else if hrMax.isFinite {
                 return train(
                     hrBpm: heartrateBpm,
                     hrMaxBpm: Int(hrMax + 0.5),
-                    restingBpm: Int(hrResting + 0.5),
                     paceSecPerKm: paceSecPerKm) ?? .nan
             } else {
                 return .nan
@@ -99,7 +105,9 @@ public class TotalsService {
         appendToResult(.cycling, .Interval)
         appendToResult(.cycling, .Repetition)
         
-        return (totals.reduce(into: Total.zero) {$0 += $1.value}, result)
+        return (
+            totals.filter {$0.key.activity.isActive}.reduce(into: Total.zero) {$0 += $1.value},
+            result)
     }
 
     func drop(_ segment: SegmentsService.Segment) {

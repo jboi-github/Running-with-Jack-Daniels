@@ -11,16 +11,22 @@ import Combine
 import RunFormulasKit
 
 public enum Activity: Hashable {
-    case none, walking, running, cycling, getMoved
+    case none, walking, running, cycling, getMoved, replaced
     
     static func from(_ motion: CMMotionActivity?) -> Activity {
-        guard let motion = motion else {return .none}
+        guard let motion = motion else {return .replaced}
+
+        if !CMMotionActivity.canUse {return .replaced}
+
         if motion.stationary {return .none}
         if motion.walking {return .walking}
         if motion.running {return .running}
         if motion.cycling {return .cycling}
+
         return .getMoved
     }
+    
+    public var isActive: Bool {![.none, .getMoved].contains(self)}
 }
 
 public struct ActivityIntensity: Hashable {

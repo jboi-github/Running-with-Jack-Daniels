@@ -9,6 +9,7 @@ import Foundation
 import MapKit
 import Combine
 import RunReceiversKit
+import RunFoundationKit
 
 struct SpeedEvent {
     let speedMperSec: CLLocationSpeed
@@ -20,8 +21,8 @@ struct SpeedEvent {
         speedDegreesPerSec: MKCoordinateSpan(),
         timestamp: .distantPast)
     
-    static func fromLocations(_ prev: CLLocation, _ curr: CLLocation) -> SpeedEvent {
-        guard prev.timestamp > .distantPast, prev.timestamp < curr.timestamp else {
+    static func fromLocations(_ prev: CLLocation?, _ curr: CLLocation) -> SpeedEvent {
+        guard let prev = prev, prev.timestamp > .distantPast, prev.timestamp < curr.timestamp else {
             return SpeedEvent(
                 speedMperSec: 0,
                 speedDegreesPerSec: MKCoordinateSpan(),
@@ -45,8 +46,10 @@ struct SpeedEvent {
         ReceiverService
             .sharedInstance
             .locationValues
-            .scan((s: SpeedEvent.zero, l: CLLocation())) {
-                (s: SpeedEvent.fromLocations($0.l, $1), l: $1)
+            .scan((s: SpeedEvent.zero, l: nil as CLLocation?)) {
+                let s = SpeedEvent.fromLocations($0.l, $1)
+                log(s.timestamp, s.speedMperSec)
+                return (s: s, l: $1)
             }
             .map {$0.s}
             .share()

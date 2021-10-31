@@ -171,18 +171,22 @@ class SegmentsService {
         }
         
         func drop(_ rangable: Segment) {
-            // Subtract from totals
-            TotalsService.sharedInstance.drop(rangable)
+            if rangable.range.upperBound < .distantFuture {
+                // Subtract from totals
+                TotalsService.sharedInstance.drop(rangable)
+            }
+            LocationsService.sharedInstance.drop(rangable)
         }
         
         func add(_ rangable: Segment) {
-            // Add to totals
-            TotalsService.sharedInstance.add(rangable)
-            
             // If this is open-end, it's the new current
             if rangable.range.upperBound == .distantFuture {
                 CurrentsService.sharedInstance.newCurrent(rangable)
+            } else {
+                // Add to totals
+                TotalsService.sharedInstance.add(rangable)
             }
+            LocationsService.sharedInstance.add(rangable)
         }
     }
     

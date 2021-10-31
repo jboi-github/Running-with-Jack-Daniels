@@ -45,7 +45,7 @@ class BleScannerModel: ObservableObject {
 
     struct Peripheral: Identifiable {
         var id: UUID {peripheral.identifier}
-        let peripheral: CBPeripheral
+        let peripheral: CBPeripheral // As class might change without further notice
         var ignore: Bool // Might be changed by user
     }
     
@@ -54,10 +54,16 @@ class BleScannerModel: ObservableObject {
         applyPrimary()
         applyIgnores()
         ReceiverService.sharedInstance.startBleScanner()
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            BleScannerModel.sharedInstance.objectWillChange.send()
+        }
     }
     
     func stop() {
         log()
+        
+        timer?.invalidate()
         ReceiverService.sharedInstance.stopBleScanner()
         savePrimary()
         saveIgnores()
@@ -113,4 +119,8 @@ class BleScannerModel: ObservableObject {
             forKey: BleIgnoredUuidsKey)
         log(UserDefaults.standard.array(forKey: BleIgnoredUuidsKey) as? [String] ?? [])
     }
+    
+    // Timer to get updates when peripheral-class chnages.
+    // As class is changed by BLE-System, use polling mechanism.
+    private var timer: Timer? = nil
 }

@@ -23,13 +23,11 @@ class AclReceiver: ReceiverProtocol {
     func start() {
         guard CMMotionActivityManager.isActivityAvailable() else {
             _ = check("motion data not available on current device")
-            value(CMMotionActivity())
             return
         }
         
-        guard [.notDetermined, .denied].contains(CMMotionActivityManager.authorizationStatus()) else {
+        if [.notDetermined, .denied].contains(CMMotionActivityManager.authorizationStatus()) {
             _ = check("access to motion data denied")
-            value(CMMotionActivity())
             return
         }
 
@@ -56,9 +54,6 @@ class AclReceiver: ReceiverProtocol {
 }
 
 extension CMMotionActivity {
-    /// Return, if user is currently detected in any activity. If motion detection cannot be used, report as active user.
-    public var isActive: Bool {((walking || running || cycling) && !stationary) || !Self.canUse}
-    
     /// Return true, if device has motion detection and it is authorized by user or authorizaiotn was not yet asked for.
     public static var canUse: Bool {
         CMMotionActivityManager.isActivityAvailable() &&

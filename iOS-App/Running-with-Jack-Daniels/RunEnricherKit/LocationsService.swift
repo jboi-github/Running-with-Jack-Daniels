@@ -51,16 +51,26 @@ public class LocationsService: ObservableObject {
         }
     }
     
-    @Published public private(set) var path = Set<PathPoint>()
+    @Published public private(set) var path = [PathPoint]()
     
     func drop(_ segment: SegmentsService.Segment) {
         guard let pp = PathPoint.fromSegment(segment) else {return}
-        path.remove(pp)
+        DispatchQueue.main.async { [self] in
+            let insertIdx = path.insertIndex(for: pp.location.timestamp) {$0.location.timestamp}
+            if insertIdx > path.startIndex {
+                self.path.remove(at: path.index(before: insertIdx))
+            }
+        }
     }
     
     func add(_ segment: SegmentsService.Segment) {
         guard let pp = PathPoint.fromSegment(segment) else {return}
-        if pp.activityIntensity.activity != .none {path.insert(pp)}
+        if pp.activityIntensity.activity.isActive {
+            DispatchQueue.main.async { [self] in
+                let insertIdx = path.insertIndex(for: pp.location.timestamp) {$0.location.timestamp}
+                path.insert(pp, at: insertIdx)
+            }
+        }
     }
 
     // MARK: - Private
