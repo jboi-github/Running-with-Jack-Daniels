@@ -14,16 +14,17 @@ public enum Activity: Hashable {
     case none, walking, running, cycling, getMoved, replaced
     
     static func from(_ motion: CMMotionActivity?) -> Activity {
-        guard let motion = motion else {return .replaced}
-
         if !CMMotionActivity.canUse {return .replaced}
+
+        guard let motion = motion else {return .none}
 
         if motion.stationary {return .none}
         if motion.walking {return .walking}
         if motion.running {return .running}
         if motion.cycling {return .cycling}
+        if motion.automotive {return .getMoved}
 
-        return .getMoved
+        return .none
     }
     
     public var isActive: Bool {![.none, .getMoved].contains(self)}

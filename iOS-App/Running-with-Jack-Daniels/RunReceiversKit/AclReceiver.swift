@@ -34,7 +34,7 @@ class AclReceiver: ReceiverProtocol {
         motionActivityManager = CMMotionActivityManager()
         motionActivityManager?.startActivityUpdates(to: .current ?? .main) { activity in
             guard let activity = activity else {return}
-            guard activity.confidence != .low else {return}
+            if activity.confidence == .low {return}
             
             log()
             self.value(activity)

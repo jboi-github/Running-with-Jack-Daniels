@@ -15,6 +15,19 @@ public let BleIgnoredUuidsKey = "BleIgnoredUuidsKey"
 public struct Heartrate {
     public let timestamp: Date
     public let heartrate: Int
+    
+    // Optional values, if supported by the device and contained in this notification
+    public let skinIsContacted: Bool?
+    public let energyExpended: Int?
+    public let rr: [TimeInterval]?
+    
+    // Offline changed based values
+    public let batteryLevel: Double?
+    public let bodySensorLocation: BodySensorLocation?
+    
+    public enum BodySensorLocation: UInt8 {
+        case Other, Chest, Wrist, Finger, Hand, EarLobe, Foot
+    }
 }
 
 private var primaryUuid: UUID? {
@@ -42,6 +55,8 @@ class BleHeartrateReceiver: ReceiverProtocol {
     private let value: (Heartrate) -> Void
     private let failed: (Error) -> Void
 
+    private var timer: Timer? = nil
+
     required init(
         value: @escaping (Heartrate) -> Void,
         failed: @escaping (Error) -> Void)
@@ -56,13 +71,26 @@ class BleHeartrateReceiver: ReceiverProtocol {
             failed: failed,
             discovered: {log($0)},
             connectStrategy: .first(primaryUuid: primaryUuid, ignoredUuids: ignoredUuids ?? []),
-            serviceUuids: [CBUUID(string: "0x180D")],
-            characteristicUuids: [CBUUID(string: "2A37")])
+            serviceUuids: [CBUUID(string: "180D"), CBUUID(string: "180F")],
+            characteristicUuids: [
+                CBUUID(string: "2A37"), // Heartrate measurement
+                CBUUID(string: "2A38"), // Body Sensor Location
+                CBUUID(string: "2A39"), // Heart rate control point (reset energy expedition)
+                CBUUID(string: "2A19") // Battery Level
+            ])
+        
+        // Read battery level every 5 minutes
+        timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) {
+            log($0.fireDate)
+            self.centralManagerDelegate?.readBatteryLevelAll()
+        }
     }
     
     func stop() {
         guard let centralManager = centralManager else {return}
         if centralManager.isScanning {centralManager.stopScan()}
+        timer?.invalidate()
+        timer = nil
         centralManagerDelegate?.cancelAll(centralManager)
     }
     
@@ -93,11 +121,11 @@ class BlePeripheralReceiver: ReceiverProtocol {
             connectStrategy: .all(
                 primaryUuid: primaryUuid,
                 ignoredUuids: ignoredUuids ?? []),
-            serviceUuids: [CBUUID(string: "0x180D")],
-            characteristicUuids: [CBUUID(string: "2A37")])
+            serviceUuids: [CBUUID(string: "0x180D"), CBUUID(string: "180F")],
+            characteristicUuids: [CBUUID(string: "2A37"), CBUUID(string: "2A19")])
         
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) {
-            log($0)
+            log($0.fireDate)
             self.centralManagerDelegate?.readRssiAll()
         }
     }
@@ -147,7 +175,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
             serviceUuids: serviceUuids,
             characteristicUuids: characteristicUuids)
         let centralManager = CBCentralManager(delegate: centralManagerDelegate, queue: serialQueue)
-        
+
         return (centralManager, centralManagerDelegate)
     }
     
@@ -194,6 +222,16 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         peripherals.forEach {
             log($0.name ?? "no-name")
             $0.readRSSI()
+        }
+    }
+    
+    // Battery Level
+    fileprivate func readBatteryLevelAll() {
+        peripherals.forEach {
+            $0.execIfAvailable(
+                service: CBUUID(string: "180F"),
+                characteristic: CBUUID(string: "2A19"),
+                property: .read)
         }
     }
     
@@ -432,23 +470,41 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
             .filter {$0.value}
             .forEach {log($0.key)}
         }
+        
+        // Read first time battery level
+        peripheral.execIfAvailable(
+            service: CBUUID(string: "180F"),
+            characteristic: CBUUID(string: "2A19"),
+            property: .read)
 
         // Are we looking for data or just for scanning peripherals?
         guard notifyOnUpdateValue else {return}
         
         // Let's finally get notifications from the first peripheral with
         // HR service, HR characteristics and notification property
-        if let charateristic = service
-            .characteristics?
-            .first(where: {
-                (characteristicUuids?.contains($0.uuid) ?? true) && $0.properties.contains(.notify)
-            })
+
+        // Heart rate service - notify about heart rate measures
+        if !peripheral.execIfAvailable(
+            service: CBUUID(string: "180D"),
+            characteristic: CBUUID(string: "2A37"),
+            property: .notify)
         {
-            peripheral.setNotifyValue(true, for: charateristic)
-            self.peripheral(peripheral, didUpdateValueFor: charateristic, error: nil)
-        } else {
-            failed("no notification property for characteristics")
+            // Heart rate measures are mandatory
+            failed("Cannot notify about heart rate measures")
         }
+
+        // Heart rate service - read Body Sensor Location
+        peripheral.execIfAvailable(
+            service: CBUUID(string: "180D"),
+            characteristic: CBUUID(string: "2A38"),
+            property: .read)
+
+        // Heart rate service - write control point
+        peripheral.execIfAvailable(
+            service: CBUUID(string: "180D"),
+            characteristic: CBUUID(string: "2A39"),
+            property: .writeWithoutResponse,
+            data: Data([UInt8(0x01)]))
     }
     
     func peripheral(
@@ -468,8 +524,24 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     {
         log(peripheral.name ?? "no-name", characteristic.uuid, peripheral.state.rawValue)
         if let error = error {failed(error)}
-        if let heartrate = characteristic.asInt {
-            self.value(Heartrate(timestamp: Date(), heartrate: heartrate))
+
+        if characteristic.uuid == CBUUID(string: "2A37") {
+            // Heartrate measurement
+            if let heartrate = characteristic.asHeartrate() {value(heartrate)}
+            log()
+        } else if characteristic.uuid == CBUUID(string: "2A38") {
+            // Body Sensor Location
+            if let value = characteristic.value {
+                bodySensorLocations[peripheral.identifier] = Heartrate
+                    .BodySensorLocation(rawValue: [UInt8](value)[0])
+            }
+            log((bodySensorLocations[peripheral.identifier] ?? .Other).rawValue)
+        } else if characteristic.uuid == CBUUID(string: "2A19") {
+            // Battery Level
+            if let value = characteristic.value {
+                batteryLevels[peripheral.identifier] = Double([UInt8](value)[0]) / 100
+            }
+            log("\(batteryLevels[peripheral.identifier] ?? .nan)")
         }
     }
     
@@ -550,24 +622,101 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
 }
 
 extension CBCharacteristic {
-    var asInt: Int? {
+    func asHeartrate(_ timestamp: Date = Date()) -> Heartrate? {
         guard let value = value else {return nil}
         let bytes = [UInt8](value)
-        log(bytes.map {"\(String($0, radix: 2)):\(String($0, radix: 16))"}.joined(separator: " - "))
 
-        if bytes[0] & 0x01 == 0 {
-            // Value is in the 2nd byte
-            return Int(bytes[1])
-        } else {
-            // Value is in the 2nd and 3rd bytes
-            return (Int(bytes[1]) << 8) + Int(bytes[2])
+        var i: Int = 0
+        func uint8() -> Int {
+            defer {i += 1}
+            return Int(bytes[i])
         }
+        func uint16() -> Int {
+            defer {i += 2}
+            return Int((UInt16(bytes[i+1]) << 8) | UInt16(bytes[i]))
+        }
+
+        // Read flags field
+        let flags = uint8()
+        let hrValueFormatIs16Bit = flags & (0x01 << 0) > 0
+        let skinContactIsSupported = flags & (0x01 << 2) > 0
+        let energyExpensionIsPresent = flags & (0x01 << 3) > 0
+        let rrValuesArePresent = flags & (0x01 << 4) > 0
+
+        // Get hr
+        let heartrate = hrValueFormatIs16Bit ? uint16() : uint8()
+        
+        // Get skin contact if suported
+        let skinIsContacted = skinContactIsSupported ? (flags & (0x01 << 1) > 0) : nil
+
+        // Energy expended if present
+        let energyExpended = energyExpensionIsPresent ? uint16() : nil
+        
+        var rr = rrValuesArePresent ? [TimeInterval]() : nil
+        while rrValuesArePresent && (i+1 < bytes.count) {
+            rr?.append(TimeInterval(uint16()) / 1024)
+        }
+
+        return Heartrate(
+            timestamp: timestamp,
+            heartrate: heartrate,
+            skinIsContacted: skinIsContacted,
+            energyExpended: energyExpended,
+            rr: rr,
+            batteryLevel: service?.peripheral?.batteryLevel,
+            bodySensorLocation: service?.peripheral?.bodySensorLocation)
     }
 }
 
 private var rssis = [UUID:NSNumber]()
+private var batteryLevels = [UUID:Double]()
+private var bodySensorLocations = [UUID:Heartrate.BodySensorLocation]()
 
 extension CBPeripheral {
     /// Latest, read RSSI. A new value can be retrieved by calling `readRSSI`.
     public var rssi: NSNumber? {rssis[identifier]}
+    
+    /// Latest, read battery level. The value is re-read every 5 minutes.
+    public var batteryLevel: Double? {batteryLevels[identifier]}
+    
+    /// Latest, read body location. A new value is read when connecting.
+    public var bodySensorLocation: Heartrate.BodySensorLocation? {bodySensorLocations[identifier]}
+    
+    /// Ask, if the peripheral claims to be able to handle a given property-action with the given service and characteristic.
+    /// if claimed, execute the corresponding action.
+    ///
+    /// - Note: This should be called earliest after characteristics were discovered.
+    /// - Parameters:
+    ///   - service: uuid of requested service.
+    ///   - characteristic: uuid of requested characteristic
+    ///   - property: requested property. Currently supported: `.read, .writeWithoutResponse, .notify`.
+    ///     Results are provided by the corresponding delegate-functions.
+    ///   - data: data to write with `property == .writeWithoutResponse`. Must not be `nil` to write. Otherwise ignored.
+    /// - Returns: true, if the call was succesful, false if combination of property, characteristic and service was not available.
+    @discardableResult public func execIfAvailable(
+        service: CBUUID,
+        characteristic: CBUUID,
+        property: CBCharacteristicProperties,
+        data: Data? = nil) -> Bool
+    {
+        for svc in services ?? [] {
+            if svc.uuid != service {continue}
+            
+            for chr in svc.characteristics ?? [] {
+                if chr.uuid != characteristic {continue}
+                
+                if chr.properties.contains(property) {
+                    if property == .notify {
+                        setNotifyValue(true, for: chr)
+                    } else if property == .read {
+                        readValue(for: chr)
+                    } else if property == .writeWithoutResponse {
+                        writeValue(data!, for: chr, type: .withoutResponse)
+                    }
+                    return true
+                }
+            }
+        }
+        return false
+    }
 }

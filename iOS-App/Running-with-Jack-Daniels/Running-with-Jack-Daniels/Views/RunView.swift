@@ -55,11 +55,18 @@ private struct ToolbarStatusView: View {
             currents.gpsControl.asImage(
                 onReceiving: Image(systemName: "location.fill"),
                 nonOk: Image(systemName: "location.slash"))
-            currents.bleControl.asImage(
-                onReceiving: Image(systemName: "heart.fill"),
-                nonOk: Image(systemName: "heart.slash"))
+            HStack(spacing: 0) {
+                currents.bleControl.asImage(
+                    onReceiving: Image(systemName: "heart.fill"),
+                    nonOk: Image(systemName: "heart.slash"))
+                currents
+                    .batteryLevel
+                    .asBatteryLevel
+                    .scaleEffect(0.5, anchor: .bottomLeading)
+            }
         }
         .font(.caption)
+        .foregroundColor(.secondary)
     }
 }
 

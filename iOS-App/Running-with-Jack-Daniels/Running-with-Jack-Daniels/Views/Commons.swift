@@ -65,3 +65,15 @@ extension Intensity {
         }
     }
 }
+
+extension Double {
+    var asBatteryLevel: some View {
+        guard (0...1).contains(self) else {
+            return Text(Image(systemName: "questionmark")).font(.caption).anyview
+        }
+        return Text(Image(systemName: "battery.\(Int(self * 4 + 0.5) * 25)"))
+            .rotationEffect(Angle(degrees: -90))
+            .font(.caption)
+            .anyview
+    }
+}

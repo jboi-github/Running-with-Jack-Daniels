@@ -23,7 +23,10 @@ class BleScannerModel: ObservableObject {
             .sharedInstance
             .peripheralValues
             .sinkMainStore { [self] in
-                peripherals[$0.identifier] = Peripheral(peripheral: $0, ignore: false)
+                peripherals[$0.identifier] = Peripheral(
+                    id: $0.identifier,
+                    peripheral: $0,
+                    ignore: false)
                 applyIgnores()
             }
         
@@ -44,8 +47,8 @@ class BleScannerModel: ObservableObject {
         UUID(uuidString: UserDefaults.standard.string(forKey: BlePrimaryUuidKey) ?? "") ?? UUID()
 
     struct Peripheral: Identifiable {
-        var id: UUID {peripheral.identifier}
-        let peripheral: CBPeripheral // As class might change without further notice
+        var id: UUID
+        let peripheral: CBPeripheral? // As class might change without further notice
         var ignore: Bool // Might be changed by user
     }
     
@@ -106,11 +109,17 @@ class BleScannerModel: ObservableObject {
         else {return}
         
         ignores
-            .compactMap {
-                if let uuidString = $0 as? String {return UUID(uuidString: uuidString)}
-                return nil
+            .forEach {
+                guard
+                    let uuidString = $0 as? String,
+                    let id = UUID(uuidString: uuidString) else {return}
+                
+                if peripherals[id] != nil {
+                    peripherals[id]?.ignore = true
+                } else {
+                    peripherals[id] = Peripheral(id: id, peripheral: nil, ignore: true)
+                }
             }
-            .forEach {peripherals[$0]?.ignore = true}
     }
 
     private func saveIgnores() {

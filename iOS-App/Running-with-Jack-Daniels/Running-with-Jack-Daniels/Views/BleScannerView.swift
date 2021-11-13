@@ -18,11 +18,9 @@ struct BleScannerViewWrapper: View {
                 .values
                 .sorted {
                     Optional.lessThen(
-                        lhs: $0.peripheral.rssi,
-                        rhs: $1.peripheral.rssi,
-                        isNilMax: false) {
-                            $0.doubleValue >= $1.doubleValue
-                        }
+                        lhs: $0.peripheral?.rssi?.doubleValue ?? .nan,
+                        rhs: $1.peripheral?.rssi?.doubleValue ?? .nan,
+                        isNilMax: false) {$0 >= $1}
                 },
             primary: scanner.primaryPeripheral)
     }
@@ -36,6 +34,7 @@ private struct BleScannerView: View {
     @State private var width1 = CGFloat.zero
     @State private var width2 = CGFloat.zero
     @State private var width3 = CGFloat.zero
+    @State private var width4 = CGFloat.zero
 
     var body: some View {
         VStack {
@@ -63,13 +62,23 @@ private struct BleScannerView: View {
                                     Text(Image(systemName: getHeart(p, primary)))
                                         .alignedView(width: $width0)
 
-                                    Text("\(p.peripheral.name ?? "no-name")")
+                                    Text("\(p.peripheral?.name ?? "no-name")")
                                         .alignedView(width: $width1)
 
                                     Spacer()
-                                    Text("\(p.peripheral.rssi?.doubleValue ?? .nan, specifier: "%3.0f")")
-                                        .font(.caption)
-                                        .alignedView(width: $width2)
+                                    HStack(spacing: 0) {
+                                        if let rssi = p.peripheral?.rssi?.doubleValue {
+                                            Text("\(rssi, specifier: "%3.0f")")
+                                                .font(.caption)
+                                                .alignedView(width: $width2)
+                                        } else {
+                                            Text(Image(systemName: "infinity"))
+                                                .font(.caption)
+                                                .alignedView(width: $width2)
+                                        }
+                                        (p.peripheral?.batteryLevel ?? .nan).asBatteryLevel
+                                            .alignedView(width: $width3)
+                                    }
                                     Spacer()
                                 }
                             }
@@ -82,7 +91,7 @@ private struct BleScannerView: View {
                             } label: {
                                 Text(Image(systemName: p.ignore ? "nosign" : "rectangle"))
                                     .foregroundColor(p.ignore ? Color(UIColor.systemRed) : .secondary)
-                                    .alignedView(width: $width3)
+                                    .alignedView(width: $width4)
                             }
                             .buttonStyle(PlainButtonStyle())
                             .disabled(p.id == primary)
@@ -98,7 +107,7 @@ private struct BleScannerView: View {
     }
     
     private func getHeart(_ peripheral: BleScannerModel.Peripheral, _ primary: UUID) -> String {
-        if peripheral.peripheral.state != .connected {return "heart.slash"}
+        if peripheral.peripheral == nil {return "heart.slash"}
         if peripheral.id == primary {return "heart.fill"}
         return "heart"
     }

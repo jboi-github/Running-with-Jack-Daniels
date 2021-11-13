@@ -42,12 +42,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 // FIXME: What happens if some or all services are switched off?
 
 // TODO: Get Battery Level of BLE devices -> In scanner and in currents-toolbar.
-// TODO: Get all heartrate BLE infos available
+// DONE: Get all heartrate BLE infos available
 // TODO: ACL, motion to get steps, distance (rough estimation compared to GPS) and pace. If no GPS, use this as alternative but do not show map on UI.
 // TODO: Make Map collapsable on UI. Thus save power.
 // TODO: Link to system-preferences on Navi-UI
 // TODO: Give "Power-Saver"-Button on UI: No location (Pedometer only), no Map.
-// TODO: Build segments without Location and HR changes (Changes very often). Keep them seperate for path and healthkit.
+// TODO: Build segments without Location and HR changes (changes very often). Keep them seperate for path and healthkit.
 // DONE: GPS lets get and process deferred info while in background
 
 // TODO: Add banner commercial
@@ -61,7 +61,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 // TODO: Create integration-Test cases
 // DONE: Reduce CPU Usage: (1) locations as ordered array instead of set. (2) Reuse Overlays. (3) Minimize points with RDP-Algo
-// FIXME: When HR not available but GPS (speed) it is not shown
+// FIXME: When HR not available but GPS (speed), it is not shown
 // FIXME: Ble crashes App after some time during reset?
 // DONE: No distance counting in sum, when paused
 // TODO: Can Ble be used to get speed on treadmills?
+// FIXME: Location shown shortly but dissappears on next HR
+// FIXME: Location does not restart after returning from background
+// TODO: Simplify BLE receiver with Params: Peripheral-service-chars-props + data/action when read.
