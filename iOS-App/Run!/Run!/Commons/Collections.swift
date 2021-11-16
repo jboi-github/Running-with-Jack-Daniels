@@ -55,7 +55,7 @@ extension RandomAccessCollection {
 
 // MARK: index
 extension BidirectionalCollection {
-    public var lastIndex: Index {index(before: endIndex)}
+    public var lastIndex: Index? {isEmpty ? nil : index(before: endIndex)}
 }
 
 // MARK: Identifiable, Hashable

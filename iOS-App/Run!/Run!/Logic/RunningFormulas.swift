@@ -36,21 +36,11 @@ public func hrMaxBpm(birthday: Date, gender: Gender, weightKg: Double) -> Int? {
     return maxHr.isFinite ? Int(maxHr) : nil
 }
 
-public func hrLimits(hrMaxBpm: Int, restingHrBpm: Int = 0) -> [Intensity : ClosedRange<Int>] {
+public func hrLimits(hrMaxBpm: Int, restingHrBpm: Int = 0) -> [Intensity : Range<Int>] {
     Intensity
         .allCases
-        .compactMap { (intensity: Intensity) -> (intensity: Intensity, lower: Int, upper: Int)? in
-            if let percent = intensity.getHrPercent() {
-                let lower = percent.lowerBound * Double(hrMaxBpm - restingHrBpm) + Double(restingHrBpm)
-                let upper = percent.upperBound * Double(hrMaxBpm - restingHrBpm) + Double(restingHrBpm)
-                return (intensity: intensity, lower: Int(lower + 0.5), upper: Int(upper + 0.5))
-            } else {
-                return nil
-            }
-        }
-        .reduce(into: [:]) { dict, item in
-            dict[item.intensity] = (item.lower...item.upper)
-        }
+        .compactMap {($0, $0.getHrLimit(hrMaxBpm: hrMaxBpm, restingBpm: restingHrBpm))}
+        .reduce(into: [:]) {$0[$1.0] = $1.1}
 }
 
 public enum Intensity: String, CaseIterable, Identifiable, Codable, Comparable {

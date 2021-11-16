@@ -9,27 +9,30 @@ import Foundation
 import CoreBluetooth
 
 protocol BodySensorLocationProducer {
-    var bodySensorLocation: ((CBPeripheral, HeartrateProducer.BodySensorLocation) -> Void )? {get}
+    var bodySensorLocation: ((UUID, HeartrateProducer.BodySensorLocation) -> Void )? {get}
 }
 
 extension BodySensorLocationProducer {
-    func readBodySensorLocation(_ characteristic: CBCharacteristic) -> Void {
-        log(characteristic)
-        guard let peripheral = characteristic.service?.peripheral else {return}
-        guard characteristic.properties.contains(.read) else {return}
+    func readBodySensorLocation(
+        _ producer: BleProducerProtocol,
+        _ peripheralUuid: UUID,
+        _ characteristicUuid: CBUUID,
+        _ properties: CBCharacteristicProperties) -> Void
+    {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.read) else {return}
         
-        peripheral.readValue(for: characteristic)
+        producer.readValue(peripheralUuid, characteristicUuid)
     }
     
-    func parseBodySensorLocation(_ peripheral: CBPeripheral, _ data: Data?) {
+    func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?) {
         guard let data = data, !data.isEmpty else {return}
         log(data.map {String(format: "%02hhX", $0)}.joined(separator: " "))
 
         if let bsl = HeartrateProducer.BodySensorLocation(rawValue: [UInt8](data)[0]) {
-            bodySensorLocation?(peripheral, bsl)
+            bodySensorLocation?(peripheralUuid, bsl)
         }
     }
-
 }
 
 class HeartrateProducer: BodySensorLocationProducer {
@@ -57,7 +60,7 @@ class HeartrateProducer: BodySensorLocationProducer {
     /// To be used by dispatcher to connect to `BleProducer`
     func config(
         heartrate: @escaping (Heartrate) -> Void,
-        bodySensorLocation: @escaping (CBPeripheral, BodySensorLocation) -> Void,
+        bodySensorLocation: @escaping (UUID, BodySensorLocation) -> Void,
         status: @escaping (BleProducer.Status) -> Void) -> BleProducer.Config
     {
         self.heartrate = heartrate
@@ -87,28 +90,37 @@ class HeartrateProducer: BodySensorLocationProducer {
                 CBUUID(string: "2A37"): parseHrMeasure,
                 CBUUID(string: "2A38"): parseBodySensorLocation
             ])
+        // TODO: Battery Level for currents
     }
     
     private var heartrate: ((Heartrate) -> Void)? = nil
-    internal private(set) var bodySensorLocation: ((CBPeripheral, BodySensorLocation) -> Void)? = nil
+    internal private(set) var bodySensorLocation: ((UUID, BodySensorLocation) -> Void)? = nil
     
-    private func notifyHrMeasures(_ characteristic: CBCharacteristic) -> Void {
-        log(characteristic)
-        guard let peripheral = characteristic.service?.peripheral else {return}
-        guard characteristic.properties.contains(.notify) else {return}
+    private func notifyHrMeasures(
+        _ producer: BleProducerProtocol,
+        _ peripheralUuid: UUID,
+        _ characteristicUuid: CBUUID,
+        _ properties: CBCharacteristicProperties) -> Void
+    {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.notify) else {return}
         
-        peripheral.setNotifyValue(true, for: characteristic)
+        producer.setNotifyValue(peripheralUuid, characteristicUuid, true)
     }
     
-    private func writeHrControlPoint(_ characteristic: CBCharacteristic) -> Void {
-        log(characteristic)
-        guard let peripheral = characteristic.service?.peripheral else {return}
-        guard characteristic.properties.contains(.write) else {return}
+    private func writeHrControlPoint(
+        _ producer: BleProducerProtocol,
+        _ peripheralUuid: UUID,
+        _ characteristicUuid: CBUUID,
+        _ properties: CBCharacteristicProperties) -> Void
+    {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.write) else {return}
         
-        peripheral.writeValue(Data([UInt8(0x01)]), for: characteristic, type: .withResponse)
+        producer.writeValue(peripheralUuid, characteristicUuid, Data([UInt8(0x01)]))
     }
     
-    private func parseHrMeasure(_ peripheral: CBPeripheral, _ data: Data?) {
+    private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?) {
         guard let bytes = data, !bytes.isEmpty else {return}
         let timestamp = Date()
         log(bytes.map {String(format: "%02hhX", $0)}.joined(separator: " "))

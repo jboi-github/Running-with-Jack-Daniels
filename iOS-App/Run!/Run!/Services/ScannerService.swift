@@ -62,33 +62,24 @@ class ScannerService: ObservableObject {
         }
     }
     
-    private func failedPeripheral(_ peripheral: CBPeripheral, _ error: Error?) {
+    private func failedPeripheral(_ peripheralUuid: UUID, _ error: Error?) {
         DispatchQueue.main.async {
-            self.peripherals[
-                peripheral.identifier,
-                default: Peripheral(id: peripheral.identifier, peripheral: peripheral)]
-                .error = error
+            self.peripherals[peripheralUuid]?.error = error
         }
     }
     
-    private func rssi(_ peripheral: CBPeripheral, _ rssi: NSNumber) {
+    private func rssi(_ peripheralUuid: UUID, _ rssi: NSNumber) {
         DispatchQueue.main.async {
-            self.peripherals[
-                peripheral.identifier,
-                default: Peripheral(id: peripheral.identifier, peripheral: peripheral)]
-                .rssi = rssi.doubleValue
+            self.peripherals[peripheralUuid]?.rssi = rssi.doubleValue
         }
     }
     
     private func bodySensorLocation(
-        _ peripheral: CBPeripheral,
+        _ peripheralUuid: UUID,
         _ bodySensorLocation: HeartrateProducer.BodySensorLocation)
     {
         DispatchQueue.main.async {
-            self.peripherals[
-                peripheral.identifier,
-                default: Peripheral(id: peripheral.identifier, peripheral: peripheral)]
-                .bodySensorLocation = bodySensorLocation
+            self.peripherals[peripheralUuid]?.bodySensorLocation = bodySensorLocation
         }
     }
     

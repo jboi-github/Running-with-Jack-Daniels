@@ -12,9 +12,9 @@ class PeripheralProducer: BodySensorLocationProducer {
     /// To be used by dispatcher to connect to `BleProducer`
     func config(
         discoveredPeripheral: @escaping (CBPeripheral) -> Void,
-        failedPeripheral: @escaping (CBPeripheral, Error?) -> Void,
-        rssi: @escaping (CBPeripheral, NSNumber) -> Void,
-        bodySensorLocation: @escaping (CBPeripheral, HeartrateProducer.BodySensorLocation) -> Void,
+        failedPeripheral: @escaping (UUID, Error?) -> Void,
+        rssi: @escaping (UUID, NSNumber) -> Void,
+        bodySensorLocation: @escaping (UUID, HeartrateProducer.BodySensorLocation) -> Void,
         status: @escaping (BleProducer.Status) -> Void) -> BleProducer.Config
     {
         self.bodySensorLocation = bodySensorLocation
@@ -39,9 +39,10 @@ class PeripheralProducer: BodySensorLocationProducer {
             readers: [
                 CBUUID(string: "2A38"): parseBodySensorLocation
             ])
+        // TODO: Battery Level
     }
     
     internal private(set) var bodySensorLocation: ((
-        CBPeripheral,
+        UUID,
         HeartrateProducer.BodySensorLocation) -> Void)? = nil
 }

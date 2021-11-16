@@ -127,7 +127,7 @@ class HrGraphService: ObservableObject {
             fileName = "heartrate-\(now).json"
         case .stopped:
             if let last = graph.last, last.range.upperBound == .distantFuture {
-                graph[graph.lastIndex] = MergeDelegate()
+                graph[graph.lastIndex!] = MergeDelegate()
                     .reduce(last, to: last.range.clamped(to: .distantPast ..< now))
             }
             FileHandling.write(graph, to: fileName)

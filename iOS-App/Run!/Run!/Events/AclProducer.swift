@@ -11,7 +11,9 @@ import CoreMotion
 protocol AclProducerProtocol {
     static var sharedInstance: AclProducerProtocol {get}
     
-    func start(value: @escaping (CMMotionActivity) -> Void, status: @escaping (AclProducer.Status) -> Void)
+    func start(
+        value: @escaping (MotionActivityProtocol) -> Void,
+        status: @escaping (AclProducer.Status) -> Void)
     func stop()
     func pause()
     func resume()
@@ -23,6 +25,32 @@ extension AclProducerProtocol {
         lhs.walking == rhs.walking &&
         lhs.running == rhs.running &&
         lhs.cycling == rhs.cycling
+    }
+}
+
+protocol MotionActivityProtocol {
+    static var canUse: Bool {get}
+    
+    var startDate: Date {get}
+    var stationary: Bool {get}
+    var walking: Bool {get}
+    var running: Bool {get}
+    var cycling: Bool {get}
+    var confidence: CMMotionActivityConfidence {get}
+}
+
+extension MotionActivityProtocol {
+    /// Either walking, running or cycling. If Acl is not available, consider User as always active.
+    var isActive: Bool {!stationary && (walking || running || cycling) || !Self.canUse}
+    
+    var activityType: IsActiveProducer.ActivityType {
+        if !Self.canUse {return .unknown}
+        if stationary {return .pause}
+        
+        if walking {return .walking}
+        if running {return .running}
+        if cycling {return .cycling}
+        return .pause
     }
 }
 
@@ -40,7 +68,7 @@ class AclProducer: AclProducerProtocol {
         case started, stopped, paused, resumed, nonRecoverableError(Error), notAuthorized
     }
 
-    func start(value: @escaping (CMMotionActivity) -> Void, status: @escaping (Status) -> Void) {
+    func start(value: @escaping (MotionActivityProtocol) -> Void, status: @escaping (Status) -> Void) {
         self.status = status
         self.value = value
 

@@ -57,6 +57,9 @@
 		155D27202731AE2D007125CB /* Collections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155D271F2731AE2D007125CB /* Collections.swift */; };
 		155D27222731AE42007125CB /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155D27212731AE42007125CB /* Extensions.swift */; };
 		155D27242731AFC8007125CB /* Views.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155D27232731AFC8007125CB /* Views.swift */; };
+		15B358B427426F0F001702D6 /* LogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358B327426F0F001702D6 /* LogicTests.swift */; };
+		15B358B627428927001702D6 /* CommonsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358B527428927001702D6 /* CommonsTests.swift */; };
+		15B358B8274297B6001702D6 /* EventsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358B7274297B6001702D6 /* EventsTests.swift */; };
 		15F82CA527329E1B00AA5E70 /* HeartrateProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F82CA427329E1B00AA5E70 /* HeartrateProducer.swift */; };
 		15F82CAB2732EE8300AA5E70 /* PeripheralProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F82CAA2732EE8300AA5E70 /* PeripheralProducer.swift */; };
 		15F82CAD2732F30700AA5E70 /* ConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F82CAC2732F30700AA5E70 /* ConfigService.swift */; };
@@ -135,6 +138,10 @@
 		155D271F2731AE2D007125CB /* Collections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Collections.swift; sourceTree = "<group>"; };
 		155D27212731AE42007125CB /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		155D27232731AFC8007125CB /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
+		15B358B327426F0F001702D6 /* LogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicTests.swift; sourceTree = "<group>"; };
+		15B358B527428927001702D6 /* CommonsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommonsTests.swift; sourceTree = "<group>"; };
+		15B358B7274297B6001702D6 /* EventsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsTests.swift; sourceTree = "<group>"; };
+		15B358BB274300EC001702D6 /* Run--Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Run--Info.plist"; sourceTree = SOURCE_ROOT; };
 		15F82CA427329E1B00AA5E70 /* HeartrateProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartrateProducer.swift; sourceTree = "<group>"; };
 		15F82CAA2732EE8300AA5E70 /* PeripheralProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralProducer.swift; sourceTree = "<group>"; };
 		15F82CAC2732F30700AA5E70 /* ConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigService.swift; sourceTree = "<group>"; };
@@ -190,6 +197,7 @@
 		155D269C2731A580007125CB /* Run! */ = {
 			isa = PBXGroup;
 			children = (
+				15B358BB274300EC001702D6 /* Run--Info.plist */,
 				155D26CC2731A6AE007125CB /* Views */,
 				155D26CB2731A691007125CB /* UI Elements */,
 				155D26CA2731A64B007125CB /* Services */,
@@ -215,6 +223,9 @@
 			isa = PBXGroup;
 			children = (
 				155D26AE2731A595007125CB /* Run_Tests.swift */,
+				15B358B527428927001702D6 /* CommonsTests.swift */,
+				15B358B327426F0F001702D6 /* LogicTests.swift */,
+				15B358B7274297B6001702D6 /* EventsTests.swift */,
 			);
 			path = "Run!Tests";
 			sourceTree = "<group>";
@@ -506,6 +517,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				15B358B8274297B6001702D6 /* EventsTests.swift in Sources */,
+				15B358B427426F0F001702D6 /* LogicTests.swift in Sources */,
+				15B358B627428927001702D6 /* CommonsTests.swift in Sources */,
 				155D26AF2731A595007125CB /* Run_Tests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -662,6 +676,9 @@
 				DEVELOPMENT_TEAM = YW52XX5QKJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Run--Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Die muss ich lesen um zu verstehen";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Es ist einfachbesser so. Vielen Dank für die Aufmerksamkeit";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -692,6 +709,9 @@
 				DEVELOPMENT_TEAM = YW52XX5QKJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Run--Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Die muss ich lesen um zu verstehen";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Es ist einfachbesser so. Vielen Dank für die Aufmerksamkeit";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

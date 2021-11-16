@@ -26,7 +26,7 @@ class IsActiveProducer {
     }
     
     /// To be used by dispatcher to connect to `AclProducer`
-    func value(_ motion: CMMotionActivity) {
+    func value(_ motion: MotionActivityProtocol) {
         isActive?(
             IsActive(
                 timestamp: motion.startDate,
@@ -47,23 +47,10 @@ class IsActiveProducer {
     }
 }
 
-extension CMMotionActivity {
+extension CMMotionActivity: MotionActivityProtocol {
     /// Return true, if device has motion detection and it is authorized by user or authorizaiotn was not yet asked for.
     public static var canUse: Bool {
         CMMotionActivityManager.isActivityAvailable() &&
         [.notDetermined, .authorized].contains(CMMotionActivityManager.authorizationStatus())
-    }
-    
-    /// Either walking, running or cycling. If Acl is not available, consider User as always active.
-    var isActive: Bool {!stationary && (walking || running || cycling) || !Self.canUse}
-    
-    var activityType: IsActiveProducer.ActivityType {
-        if !Self.canUse {return .unknown}
-        if stationary {return .pause}
-        
-        if walking {return .walking}
-        if running {return .running}
-        if cycling {return .cycling}
-        return .pause
     }
 }

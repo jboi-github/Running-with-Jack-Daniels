@@ -26,14 +26,14 @@ class RunService {
     struct Config: HashedIdentifiable {
         let id = UUID()
 
-        let motion: ((CMMotionActivity) -> Void)?
+        let motion: ((MotionActivityProtocol) -> Void)?
         let aclStatus: ((AclProducer.Status) -> Void)?
         
         let location: ((CLLocation) -> Void)?
         let gpsStatus: ((GpsProducer.Status) -> Void)?
         
         let heartrate: ((HeartrateProducer.Heartrate) -> Void)?
-        let bodySensorLocation: ((CBPeripheral, HeartrateProducer.BodySensorLocation) -> Void)?
+        let bodySensorLocation: ((UUID, HeartrateProducer.BodySensorLocation) -> Void)?
         let bleStatus: ((BleProducer.Status) -> Void)?
         
         let isActive: ((IsActiveProducer.IsActive) -> Void)?
@@ -97,7 +97,7 @@ class RunService {
         configs.forEach {$0.isActive?(isActive)}
     }
     
-    private func motion(_ motion: CMMotionActivity) {
+    private func motion(_ motion: MotionActivityProtocol) {
         if configs.isEmpty {log(motion)}
         configs.forEach {$0.motion?(motion)}
         isActiveProducer.value(motion)
@@ -137,11 +137,11 @@ class RunService {
     }
     
     private func bodySensorLocation(
-        _ peripheral: CBPeripheral,
+        _ peripheralUuid: UUID,
         _ bodySensorLocation: HeartrateProducer.BodySensorLocation)
     {
-        if configs.isEmpty {log(peripheral, bodySensorLocation)}
-        configs.forEach {$0.bodySensorLocation?(peripheral, bodySensorLocation)}
+        if configs.isEmpty {log(peripheralUuid, bodySensorLocation)}
+        configs.forEach {$0.bodySensorLocation?(peripheralUuid, bodySensorLocation)}
     }
     
     private func bleStatus(_ status: BleProducer.Status) {

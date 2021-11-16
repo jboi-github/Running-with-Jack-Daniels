@@ -16,6 +16,10 @@ protocol BleProducerProtocol {
     func stop()
     func pause()
     func resume()
+    
+    func readValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID)
+    func writeValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ data: Data)
+    func setNotifyValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ notify: Bool)
 }
 
 // MARK: - Producer
@@ -45,28 +49,28 @@ class BleProducer: BleProducerProtocol {
         let discoveredPeripheral: ((CBPeripheral) -> Void)?
         
         /// Callback, whenever a peripheral was disconnected
-        let failedPeripheral: ((CBPeripheral, Error?) -> Void)?
+        let failedPeripheral: ((UUID, Error?) -> Void)?
         
         /// Callback, whenever a new RSSI is detected for a device.
         /// If not `nil`, a timer runs every 5seconds to re-read RSSI.
         /// If `nil` bo timer is started.
-        let rssi: ((CBPeripheral, NSNumber) -> Void)?
+        let rssi: ((UUID, NSNumber) -> Void)?
         
         /// Services and corresponding characteristics to be detected.
         let servicesCharacteristicsMap: [CBUUID : [CBUUID]]
         
-        /// Action to be taken, when one charactersitcs is detected.
+        /// Action to be taken, when one characterstic is detected.
         /// The actual characteristic is given as parameter. It contains initial data, properties and a link to the corresponding service.
         /// Actions can depend on properties and start writing, reading, polling or getting notified.
-        let actions: [CBUUID : (CBCharacteristic) -> Void]
+        let actions: [CBUUID : (BleProducerProtocol, UUID, CBUUID, CBCharacteristicProperties) -> Void]
         
-        /// Callback, when data is received for a given characteristic.This can be due to reading, polling or getting notified.
-        let readers: [CBUUID : (CBPeripheral, Data?) -> Void]
+        /// Callback, when data is received for a given characteristic. This can be due to reading, polling or getting notified.
+        let readers: [CBUUID : (UUID, Data?) -> Void]
     }
     
     enum Status {
         case started, stopped, paused, resumed, nonRecoverableError(Error), notAuthorized
-        case error(CBPeripheral, Error)
+        case error(UUID, Error)
     }
 
     func start(config: Config, transientFailedPeripheralUuid: UUID? = nil) {
@@ -94,7 +98,7 @@ class BleProducer: BleProducerProtocol {
         if config.rssi != nil {
             rssiTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) {
                 log($0.fireDate)
-                self.peripherals.forEach {$0.readRSSI()}
+                self.peripherals.values.forEach {$0.readRSSI()}
             }
         }
         
@@ -117,6 +121,42 @@ class BleProducer: BleProducerProtocol {
         _start()
         config?.status(.resumed)
     }
+    
+    func readValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID) {
+        guard let peripheral = peripherals[peripheralUuid] else {return}
+        let characteristic = peripheral
+            .services?
+            .compactMap {$0.characteristics}
+            .flatMap {$0}
+            .first {$0.uuid == characteristicUuid}
+        guard let characteristic = characteristic else {return}
+
+        peripheral.readValue(for: characteristic)
+    }
+    
+    func writeValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ data: Data) {
+        guard let peripheral = peripherals[peripheralUuid] else {return}
+        let characteristic = peripheral
+            .services?
+            .compactMap {$0.characteristics}
+            .flatMap {$0}
+            .first {$0.uuid == characteristicUuid}
+        guard let characteristic = characteristic else {return}
+
+        peripheral.writeValue(data, for: characteristic, type: .withResponse)
+    }
+    
+    func setNotifyValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ notify: Bool) {
+        guard let peripheral = peripherals[peripheralUuid] else {return}
+        let characteristic = peripheral
+            .services?
+            .compactMap {$0.characteristics}
+            .flatMap {$0}
+            .first {$0.uuid == characteristicUuid}
+        guard let characteristic = characteristic else {return}
+
+        peripheral.setNotifyValue(notify, for: characteristic)
+    }
 
     // MARK: Private
     private var config: Config?
@@ -126,7 +166,7 @@ class BleProducer: BleProducerProtocol {
     private var rssiTimer: Timer?
     
     private var centralManager: CBCentralManager?
-    private var peripherals = Set<CBPeripheral>()
+    private var peripherals = [UUID: CBPeripheral]()
     
     private func _start() {
         centralManager = CBCentralManager(
@@ -137,7 +177,7 @@ class BleProducer: BleProducerProtocol {
     private func _stop() {
         guard let centralManager = centralManager else {return}
         if centralManager.isScanning {centralManager.stopScan()}
-        peripherals.forEach {
+        peripherals.values.forEach {
             centralManager.cancelPeripheralConnection($0)
         }
         peripherals.removeAll()
@@ -145,15 +185,15 @@ class BleProducer: BleProducerProtocol {
     
     private func discoveredPeripheral(_ peripheral: CBPeripheral) {
         peripheral.delegate = peripheralDelegate
-        peripherals.insert(peripheral)
+        peripherals[peripheral.identifier] = peripheral
         config?.discoveredPeripheral?(peripheral)
         
         if config?.rssi != nil {peripheral.readRSSI()}
     }
 
-    private func failedPeripheral(_ peripheral: CBPeripheral, _ error: Error?) {
-        peripherals.remove(peripheral)
-        config?.failedPeripheral?(peripheral, error)
+    private func failedPeripheral(_ peripheralUuid: UUID, _ error: Error?) {
+        peripherals.removeValue(forKey: peripheralUuid)
+        config?.failedPeripheral?(peripheralUuid, error)
         
         // If no more peripherals are discovered and central manager is not currently scanning, restart it.
         if peripherals.isEmpty && centralManager?.isScanning ?? false {
@@ -163,12 +203,12 @@ class BleProducer: BleProducerProtocol {
                 .global(qos: .userInteractive)
                 .asyncAfter(deadline: .now() + 10) { [self] in
                     if let config = config {
-                        start(config: config, transientFailedPeripheralUuid: peripheral.identifier)
+                        start(config: config, transientFailedPeripheralUuid: peripheralUuid)
                     }
                 }
         }
         
-        if let error = error {config?.status(.error(peripheral, error))}
+        if let error = error {config?.status(.error(peripheralUuid, error))}
     }
 }
 
@@ -178,8 +218,8 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         status: @escaping (BleProducer.Status) -> Void,
         stopScanningAfterFirst: Bool,
         discoveredPeripheral: @escaping (CBPeripheral) -> Void,
-        failedPeripheral: @escaping (CBPeripheral, Error?) -> Void,
-        rssi: ((CBPeripheral, NSNumber) -> Void)?,
+        failedPeripheral: @escaping (UUID, Error?) -> Void,
+        rssi: ((UUID, NSNumber) -> Void)?,
         primaryUuid: UUID?, ignoredUuids: [UUID], serviceUuids: [CBUUID])
     {
         self.status = status
@@ -198,8 +238,8 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
 
     ///  Events along peripherals
     private let discoveredPeripheral: (CBPeripheral) -> Void
-    private let failedPeripheral: (CBPeripheral, Error?) -> Void
-    private let rssi: ((CBPeripheral, NSNumber) -> Void)?
+    private let failedPeripheral: (UUID, Error?) -> Void
+    private let rssi: ((UUID, NSNumber) -> Void)?
     
     /// Uuid's to look for or ignore
     private let primaryUuid: UUID?
@@ -234,7 +274,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     {
         log(peripheral.name ?? "no-name", RSSI, advertisementData.map {"\($0.key): \($0.value)"})
         discoveredPeripheral(peripheral)
-        rssi?(peripheral, RSSI)
+        rssi?(peripheral.identifier, RSSI)
         
         guard !ignoredUuids.contains(peripheral.identifier) else {return}
         
@@ -253,7 +293,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         error: Error?)
     {
         log(peripheral.name ?? "no-name")
-        if !check(error) {failedPeripheral(peripheral, error)}
+        if !check(error) {failedPeripheral(peripheral.identifier, error)}
     }
     
     func centralManager(
@@ -262,7 +302,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         error: Error?)
     {
         log(peripheral.name ?? "no-name")
-        if !check(error) {failedPeripheral(peripheral, error)}
+        if !check(error) {failedPeripheral(peripheral.identifier, error)}
     }
     
     private func discover(_ central: CBCentralManager) {
@@ -301,9 +341,9 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
 private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     fileprivate init(
         characteristicUuids: [CBUUID : [CBUUID]],
-        actions: [CBUUID : (CBCharacteristic) -> Void],
-        readers: [CBUUID : (CBPeripheral, Data?) -> Void],
-        rssi: ((CBPeripheral, NSNumber) -> Void)?)
+        actions: [CBUUID : (BleProducerProtocol, UUID, CBUUID, CBCharacteristicProperties) -> Void],
+        readers: [CBUUID : (UUID, Data?) -> Void],
+        rssi: ((UUID, NSNumber) -> Void)?)
     {
         self.characteristicUuids = characteristicUuids
         self.actions = actions
@@ -312,9 +352,9 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     }
     
     private let characteristicUuids: [CBUUID: [CBUUID]]
-    private let actions: [CBUUID: (CBCharacteristic) -> Void]
-    private let readers: [CBUUID: (CBPeripheral, Data?) -> Void]
-    private let rssi: ((CBPeripheral, NSNumber) -> Void)?
+    private let actions: [CBUUID: (BleProducerProtocol, UUID, CBUUID, CBCharacteristicProperties) -> Void]
+    private let readers: [CBUUID: (UUID, Data?) -> Void]
+    private let rssi: ((UUID, NSNumber) -> Void)?
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         log(peripheral.name ?? "no-name")
@@ -335,7 +375,13 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         log(peripheral.name ?? "no-name")
         guard check(error) else {return}
 
-        service.characteristics?.forEach {actions[$0.uuid]?($0)}
+        service.characteristics?.forEach {
+            actions[$0.uuid]?(
+                BleProducer.sharedInstance,
+                peripheral.identifier,
+                $0.uuid,
+                $0.properties)
+        }
     }
     
     func peripheral(
@@ -346,14 +392,14 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         log(peripheral.name ?? "no-name")
         guard check(error) else {return}
 
-        readers[characteristic.uuid]?(peripheral, characteristic.value)
+        readers[characteristic.uuid]?(peripheral.identifier, characteristic.value)
     }
     
     func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {
         log(peripheral.name ?? "no-name")
         guard check(error) else {return}
 
-        rssi?(peripheral, RSSI)
+        rssi?(peripheral.identifier, RSSI)
     }
     
     func peripheral(
