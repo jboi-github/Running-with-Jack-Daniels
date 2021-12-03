@@ -38,7 +38,7 @@ class ScannerService: ObservableObject {
             rssi: rssi,
             bodySensorLocation: bodySensorLocation,
             status: status)
-        producer.start(config: config, transientFailedPeripheralUuid: nil)
+        producer.start(config: config, asOf: Date(), transientFailedPeripheralUuid: nil)
     }
     
     func stop(producer: BleProducerProtocol) {

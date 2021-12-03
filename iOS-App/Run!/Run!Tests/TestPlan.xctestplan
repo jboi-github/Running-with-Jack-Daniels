@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+
+  ],
+  "defaultOptions" : {
+    "testExecutionOrdering" : "random",
+    "testRepetitionMode" : "untilFailure",
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "skippedTests" : [
+        "IntegrationTests\/testCollectAclNotAllowed()",
+        "IntegrationTests\/testCollectNormalOperation()"
+      ],
+      "target" : {
+        "containerPath" : "container:Run!.xcodeproj",
+        "identifier" : "155D26A92731A595007125CB",
+        "name" : "Run!Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -13,16 +13,26 @@ class IsActiveProducer {
         let timestamp: Date
         let isActive: Bool
         let type: ActivityType
+        
+        static var zero: IsActive {IsActive(timestamp: .distantPast, isActive: false, type: .unknown)}
     }
     
-    enum ActivityType: Codable {
+    enum ActivityType: Int, Codable {
         case pause, walking, running, cycling, unknown
     }
     
     private var isActive: ((IsActive) -> Void)?
+    private var constantActivity: IsActive?
     
     func start(isActive: @escaping (IsActive) -> Void) {
         self.isActive = isActive
+        constantActivity = nil
+    }
+    
+    /// Optionally send a constant activity, e.g. in case of an error or missing authoritization
+    func afterStart() {
+        guard let constantActivity = constantActivity else {return}
+        isActive?(constantActivity)
     }
     
     /// To be used by dispatcher to connect to `AclProducer`
@@ -37,12 +47,12 @@ class IsActiveProducer {
     /// To be used by dispatcher to connect to `AclProducer`
     func status(_ status: AclProducer.Status) {
         switch status {
-        case .nonRecoverableError(_):
-            isActive?(IsActive(timestamp: Date(), isActive: true, type: .unknown))
-        case .notAuthorized:
-            isActive?(IsActive(timestamp: Date(), isActive: true, type: .unknown))
+        case .nonRecoverableError(let asOf, _):
+            constantActivity = IsActive(timestamp: asOf, isActive: true, type: .unknown)
+        case .notAuthorized(let asOf):
+            constantActivity = IsActive(timestamp: asOf, isActive: true, type: .unknown)
         default:
-            break
+            constantActivity = nil
         }
     }
 }

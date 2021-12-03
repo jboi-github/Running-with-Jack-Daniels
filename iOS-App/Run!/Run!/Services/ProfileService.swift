@@ -71,7 +71,7 @@ class ProfileService {
     class Attribute<Value>: ObservableObject {
         struct Config {
             let readFromStore: () -> (Date, Value)?
-            let readFromHealth: ( (@escaping (Date, Value) -> Void) -> Void)?
+            let readFromHealth: ((@escaping (Date, Value) -> Void) -> Void)?
             let calculate: (() -> Value?)?
             
             let writeToStore: (Date, Value) -> Void
@@ -124,9 +124,9 @@ class ProfileService {
         }
         
         /// Change value
-        func onChange(to newValue: Value) {
+        func onChange(to newValue: Value?, asOf: Date = Date()) {
             source = .manually
-            timestamp = Date()
+            timestamp = asOf
             value = newValue
         }
         

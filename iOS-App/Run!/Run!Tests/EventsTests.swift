@@ -29,9 +29,9 @@ class EventsTests: XCTestCase {
         
         private var config: BleProducer.Config?
         
-        func start(config: BleProducer.Config, transientFailedPeripheralUuid: UUID?) {
+        func start(config: BleProducer.Config, asOf: Date, transientFailedPeripheralUuid: UUID?) {
             self.config = config
-            config.status(BleProducer.Status.started)
+            config.status(BleProducer.Status.started(asOf: asOf))
             
             config.actions[CBUUID(string: "2A38")]?(
                 BPHeartrate.sharedInstance,
@@ -54,13 +54,13 @@ class EventsTests: XCTestCase {
             XCTAssertEqual(peripheralUuid, EventsTests.expectedPeripheralUuid)
             XCTAssertEqual(characteristicUuid, CBUUID(string: "2A38"))
             
-            config?.readers[CBUUID(string: "2A38")]?(peripheralUuid, Data([UInt8(2)]))
+            config?.readers[CBUUID(string: "2A38")]?(peripheralUuid, Data([UInt8(2)]), Date())
             
-            config?.readers[CBUUID(string: "2A37")]?(peripheralUuid, Data([UInt8(0x00), UInt8(0x30)]))
+            config?.readers[CBUUID(string: "2A37")]?(peripheralUuid, Data([UInt8(0x00), UInt8(0x30)]), Date())
             
-            config?.readers[CBUUID(string: "2A37")]?(peripheralUuid, Data([UInt8(0x06), UInt8(0x2e)]))
+            config?.readers[CBUUID(string: "2A37")]?(peripheralUuid, Data([UInt8(0x06), UInt8(0x2e)]), Date())
             
-            config?.readers[CBUUID(string: "2A37")]?(peripheralUuid, Data([UInt8(0x16), UInt8(0x32), UInt8(0xbb), UInt8(0x04)]))
+            config?.readers[CBUUID(string: "2A37")]?(peripheralUuid, Data([UInt8(0x16), UInt8(0x32), UInt8(0xbb), UInt8(0x04)]), Date())
         }
         func writeValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ data: Data) {}
         func setNotifyValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ notify: Bool) {
@@ -91,7 +91,7 @@ class EventsTests: XCTestCase {
         }
         
         // Normal workflow
-        BPHeartrate.sharedInstance.start(config: config, transientFailedPeripheralUuid: nil)
+        BPHeartrate.sharedInstance.start(config: config, asOf: Date(), transientFailedPeripheralUuid: nil)
         
         // Check values
         XCTAssertEqual(peripheralUuid, EventsTests.expectedPeripheralUuid)
@@ -118,7 +118,7 @@ class EventsTests: XCTestCase {
         
         private var config: BleProducer.Config?
         
-        func start(config: BleProducer.Config, transientFailedPeripheralUuid: UUID?) {
+        func start(config: BleProducer.Config, asOf: Date, transientFailedPeripheralUuid: UUID?) {
             self.config = config
             
             config.rssi?(expectedPeripheralUuid, NSNumber(1.0))
@@ -155,7 +155,7 @@ class EventsTests: XCTestCase {
             status: {print($0)})  // Tested in heartrate-test
         
         // Normal workflow
-        BPPeripheral.sharedInstance.start(config: config, transientFailedPeripheralUuid: nil)
+        BPPeripheral.sharedInstance.start(config: config, asOf: Date(), transientFailedPeripheralUuid: nil)
         
         // Check values
         XCTAssertEqual(rssis, [1.0, 2.0, 3.0])
@@ -164,7 +164,7 @@ class EventsTests: XCTestCase {
     
     func testIntensityProducer() throws {
         let heartrates = [80, 90, 140, 150, 155, 150, 165, 168, 172, 190, 175, 172, 165, 132, 131]
-        let expectedIntensities = [Intensity.Cold, .Cold, .Easy, .Easy, .Marathon, .Easy, .Marathon, .Threshold, .Threshold, .Repetition, .Interval, .Interval, .Threshold, .Easy, .Cold]
+        let expectedIntensities = [Intensity.Cold, .Easy, .Marathon, .Easy, .Marathon, .Threshold, .Repetition, .Interval, .Threshold, .Easy, .Cold]
         
         var intensities = [Intensity]()
         
@@ -291,7 +291,7 @@ class EventsTests: XCTestCase {
         let isActiveProducer = IsActiveProducer()
         isActiveProducer.start {activities.append($0)}
         
-        isActiveProducer.status(.started)
+        isActiveProducer.status(.started(asOf: Date()))
         motions.forEach {isActiveProducer.value($0)}
         isActiveProducer.status(.stopped)
 
@@ -344,7 +344,7 @@ class EventsTests: XCTestCase {
         let isActiveProducer = IsActiveProducer()
         isActiveProducer.start {activities.append($0)}
         
-        isActiveProducer.status(.started)
+        isActiveProducer.status(.started(asOf: Date()))
         motions.forEach {isActiveProducer.value($0)}
         isActiveProducer.status(.stopped)
 

@@ -1,0 +1,44 @@
+{
+  "configurations" : [
+    {
+      "id" : "F07A70FE-6B62-4705-82A3-D092FD914156",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Run!.xcodeproj",
+      "identifier" : "155D26992731A580007125CB",
+      "name" : "Run!"
+    }
+  },
+  "testTargets" : [
+    {
+      "skippedTests" : [
+        "IntegrationTests\/testCollectAclNotAllowed()",
+        "IntegrationTests\/testCollectAclOnlyAllowed()",
+        "IntegrationTests\/testCollectBleNotAllowed()",
+        "IntegrationTests\/testCollectBleOnlyAllowed()",
+        "IntegrationTests\/testCollectGpsNotAllowed()",
+        "IntegrationTests\/testCollectGpsOnlyAllowed()",
+        "IntegrationTests\/testCollectNormalOperation()"
+      ],
+      "target" : {
+        "containerPath" : "container:Run!.xcodeproj",
+        "identifier" : "155D26A92731A595007125CB",
+        "name" : "Run!Tests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Run!.xcodeproj",
+        "identifier" : "155D26B32731A595007125CB",
+        "name" : "Run!UITests"
+      }
+    }
+  ],
+  "version" : 1
+}

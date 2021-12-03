@@ -25,7 +25,7 @@ extension BodySensorLocationProducer {
         producer.readValue(peripheralUuid, characteristicUuid)
     }
     
-    func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?) {
+    func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         guard let data = data, !data.isEmpty else {return}
         log(data.map {String(format: "%02hhX", $0)}.joined(separator: " "))
 
@@ -65,12 +65,13 @@ class HeartrateProducer: BodySensorLocationProducer {
     {
         self.heartrate = heartrate
         self.bodySensorLocation = bodySensorLocation
+        constantHeartrate = nil
         
         return BleProducer.Config(
             primaryUuid: PeripheralHandling.primaryUuid,
             ignoredUuids: PeripheralHandling.ignoredUuids,
             stopScanningAfterFirst: true,
-            status: status,
+            status: {self.status($0, status)},
             discoveredPeripheral: nil,
             failedPeripheral: nil,
             rssi: nil,
@@ -93,8 +94,15 @@ class HeartrateProducer: BodySensorLocationProducer {
         // TODO: Battery Level for currents
     }
     
+    /// Optionally send a constant activity, e.g. in case of an error or missing authoritization
+    func afterStart() {
+        guard let constantHeartrate = constantHeartrate else {return}
+        heartrate?(constantHeartrate)
+    }
+
     private var heartrate: ((Heartrate) -> Void)? = nil
-    internal private(set) var bodySensorLocation: ((UUID, BodySensorLocation) -> Void)? = nil
+    private(set) var bodySensorLocation: ((UUID, BodySensorLocation) -> Void)? = nil
+    private var constantHeartrate: Heartrate? = nil
     
     private func notifyHrMeasures(
         _ producer: BleProducerProtocol,
@@ -120,10 +128,9 @@ class HeartrateProducer: BodySensorLocationProducer {
         producer.writeValue(peripheralUuid, characteristicUuid, Data([UInt8(0x01)]))
     }
     
-    private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?) {
+    private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         guard let bytes = data, !bytes.isEmpty else {return}
-        let timestamp = Date()
-        log(bytes.map {String(format: "%02hhX", $0)}.joined(separator: " "))
+        // log(bytes.map {String(format: "%02hhX", $0)}.joined(separator: " "))
 
         var i: Int = 0
         
@@ -167,5 +174,24 @@ class HeartrateProducer: BodySensorLocationProducer {
             energyExpended: energyExpended,
             rr: rr)
         self.heartrate?(hr)
+    }
+    
+    private func status(
+        _ status: BleProducer.Status,
+        _ completion: @escaping (BleProducer.Status) -> Void)
+    {
+        switch status {
+        case .nonRecoverableError(let asOf, _):
+            constantHeartrate = Heartrate(
+                timestamp: asOf, heartrate: -1,
+                skinIsContacted: nil, energyExpended: nil, rr: nil)
+        case .notAuthorized(let asOf):
+            constantHeartrate = Heartrate(
+                timestamp: asOf, heartrate: -1,
+                skinIsContacted: nil, energyExpended: nil, rr: nil)
+        default:
+            constantHeartrate = nil
+        }
+        completion(status)
     }
 }

@@ -13,25 +13,15 @@ class PathService: ObservableObject {
     static let sharedInstance = PathService()
     
     private init() {
-        path.append(
-            PathElement(
-                range: .distantPast ..< .distantFuture,
-                isActive: IsActiveProducer.IsActive(
-                    timestamp: .distantPast,
-                    isActive: false,
-                    type: .unknown),
-                locations: [CLLocation]()))
-        
         RunService.sharedInstance.subscribe(
             RunService.Config(
                 motion: nil,
                 aclStatus: nil,
-                location: { [self] in path[path.index(before: path.endIndex)].addLocation($0)},
-                gpsStatus: {
-                    if case .started = $0 {
-                        self.path.removeAll(keepingCapacity: true)
-                    }
+                location: { [self] in
+                    let idx = path.insertIndex(for: $0.timestamp) {$0.range.upperBound}
+                    path[idx].addLocation($0)
                 },
+                gpsStatus: gpsStatus,
                 heartrate: nil,
                 bodySensorLocation: nil,
                 bleStatus: nil,
@@ -52,18 +42,29 @@ class PathService: ObservableObject {
         let range: Range<Date>
         let isActive: IsActiveProducer.IsActive?
         private(set) var locations: [CLLocation]
-
-        lazy var avgLocation: CLLocation? = {
-            guard !locations.isEmpty else {return nil}
+        private(set) var avgLocation: CLLocation?
+        
+        init(
+            range: Range<Date>,
+            isActive: IsActiveProducer.IsActive?,
+            locations: [CLLocation])
+        {
+            self.range = range
+            self.isActive = isActive
+            self.locations = locations
             
-            let latitude = locations
-                .map {$0.coordinate.latitude}
-                .reduce(0) {$0 + $1} / Double(locations.count)
-            let longitude = locations
-                .map {$0.coordinate.longitude}
-                .reduce(0) {$0 + $1} / Double(locations.count)
-            return CLLocation(latitude: latitude, longitude: longitude)
-        }()
+            if locations.isEmpty {
+                self.avgLocation = nil
+            } else {
+                let latitude = locations
+                    .map {$0.coordinate.latitude}
+                    .reduce(0) {$0 + $1} / Double(locations.count)
+                let longitude = locations
+                    .map {$0.coordinate.longitude}
+                    .reduce(0) {$0 + $1} / Double(locations.count)
+                self.avgLocation = CLLocation(latitude: latitude, longitude: longitude)
+            }
+        }
         
         mutating func addLocation(_ location: CLLocation) {
             if let avgLocation = avgLocation {
@@ -76,7 +77,7 @@ class PathService: ObservableObject {
                         .coordinate
                         .longitude
                         .avg(location.coordinate.longitude, locations.count))
-            } else {
+            } else if !(isActive?.isActive ?? false) {
                 avgLocation = location
             }
             locations.append(location)
@@ -87,6 +88,70 @@ class PathService: ObservableObject {
     @Published private(set) var path = [PathElement]()
 
     // MARK: - Implementation
+    private struct CodableLocation: Codable {
+        let latitude: CLLocationDegrees
+        let longitude: CLLocationDegrees
+        let altitude: CLLocationDistance
+        let horizontalAccuracy: CLLocationAccuracy
+        let verticalAccuracy: CLLocationAccuracy
+        let course: CLLocationDirection
+        let courseAccuracy: CLLocationDirectionAccuracy
+        let speed: CLLocationSpeed
+        let speedAccuracy: CLLocationSpeedAccuracy
+        let timestamp: Date
+        
+        func toLocation() -> CLLocation {
+            CLLocation(
+                coordinate: CLLocationCoordinate2D(
+                    latitude: latitude,
+                    longitude: longitude),
+                altitude: altitude,
+                horizontalAccuracy: horizontalAccuracy,
+                verticalAccuracy: verticalAccuracy,
+                course: course,
+                courseAccuracy: courseAccuracy,
+                speed: speed,
+                speedAccuracy: speedAccuracy,
+                timestamp: timestamp)
+        }
+        
+        static func from(location: CLLocation) -> CodableLocation {
+            CodableLocation(
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude,
+                altitude: location.altitude,
+                horizontalAccuracy: location.horizontalAccuracy,
+                verticalAccuracy: location.verticalAccuracy,
+                course: location.course,
+                courseAccuracy: location.courseAccuracy,
+                speed: location.speed,
+                speedAccuracy: location.speedAccuracy,
+                timestamp: location.timestamp)
+        }
+    }
+    
+    private struct CodablePathElement: Codable {
+        let range: Range<Date>
+        let isActive: IsActiveProducer.IsActive?
+        let locations: [CodableLocation]
+        
+        func toPathElement() -> PathElement {
+            PathElement(
+                range: range,
+                isActive: isActive,
+                locations: locations.map {$0.toLocation()})
+        }
+        
+        static func from(pathElement: PathElement) -> CodablePathElement {
+            CodablePathElement(
+                range: pathElement.range,
+                isActive: pathElement.isActive,
+                locations: pathElement.locations.map {CodableLocation.from(location: $0)})
+        }
+    }
+
+    private var fileName = ""
+    
     private struct MergeDelegate: RangableMergeDelegate {
         typealias R = PathElement
 
@@ -107,5 +172,34 @@ class PathService: ObservableObject {
         
         func drop(_ rangable: R) {}
         func add(_ rangable: R) {}
+    }
+    
+    private func gpsStatus(_ status: GpsProducer.Status) {
+        let now = Date()
+        
+        switch status {
+        case .started:
+            path.removeAll(keepingCapacity: true)
+            path.append(
+                PathElement(
+                    range: .distantPast ..< .distantFuture,
+                    isActive: IsActiveProducer.IsActive(
+                        timestamp: .distantPast,
+                        isActive: false,
+                        type: .unknown),
+                    locations: [CLLocation]()))
+            fileName = "locations-\(now).json"
+        case .stopped:
+            if let last = path.last, last.range.upperBound == .distantFuture {
+                path[path.lastIndex!] = MergeDelegate()
+                    .reduce(last, to: last.range.clamped(to: .distantPast ..< now))
+            }
+            FileHandling.write(path.map {CodablePathElement.from(pathElement: $0)}, to: fileName)
+        case .resumed:
+            path = (FileHandling.read([CodablePathElement].self, from: "locations-") ?? [])
+                .map {$0.toPathElement()}
+        default:
+            FileHandling.write(path.map {CodablePathElement.from(pathElement: $0)}, to: fileName)
+        }
     }
 }

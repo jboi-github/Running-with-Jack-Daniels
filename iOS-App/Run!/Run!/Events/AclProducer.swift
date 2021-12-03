@@ -13,7 +13,8 @@ protocol AclProducerProtocol {
     
     func start(
         value: @escaping (MotionActivityProtocol) -> Void,
-        status: @escaping (AclProducer.Status) -> Void)
+        status: @escaping (AclProducer.Status) -> Void,
+        asOf: Date)
     func stop()
     func pause()
     func resume()
@@ -65,27 +66,34 @@ class AclProducer: AclProducerProtocol {
     private var prev: CMMotionActivity? = nil
     
     enum Status {
-        case started, stopped, paused, resumed, nonRecoverableError(Error), notAuthorized
+        case started(asOf: Date), stopped, paused, resumed
+        case nonRecoverableError(asOf: Date, error: Error), notAuthorized(asOf: Date)
     }
 
-    func start(value: @escaping (MotionActivityProtocol) -> Void, status: @escaping (Status) -> Void) {
+    func start(
+        value: @escaping (MotionActivityProtocol) -> Void,
+        status: @escaping (Status) -> Void,
+        asOf: Date)
+    {
         self.status = status
         self.value = value
 
         guard CMMotionActivityManager.isActivityAvailable() else {
             _ = check("motion data not available on current device")
-            status(.nonRecoverableError("motion data not available on current device"))
+            status(.nonRecoverableError(
+                asOf: asOf,
+                error: "motion data not available on current device"))
             return
         }
         
         if [.notDetermined, .denied].contains(CMMotionActivityManager.authorizationStatus()) {
             _ = check("access to motion data denied")
-            status(.notAuthorized)
+            status(.notAuthorized(asOf: asOf))
             return
         }
 
         _start()
-        status(.started)
+        status(.started(asOf: asOf))
     }
     
     func stop() {

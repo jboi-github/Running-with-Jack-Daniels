@@ -109,14 +109,16 @@ enum FileHandling {
         }
     }
 
-    static func write<E: Encodable>(_ encodable: E, to: String) {
-        guard let url = url(for: to) else {return}
+    @discardableResult static func write<E: Encodable>(_ encodable: E, to: String) -> URL? {
+        guard let url = url(for: to) else {return nil}
         
         do {
             let data = try (encoder.encode(encodable) as NSData).compressed(using: .zlib)
             data.write(to: url, atomically: true)
+            return url
         } catch {
             _ = check(error)
+            return nil
         }
     }
     

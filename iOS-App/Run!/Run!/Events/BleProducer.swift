@@ -12,7 +12,10 @@ import CoreBluetooth
 protocol BleProducerProtocol {
     static var sharedInstance: BleProducerProtocol {get}
 
-    func start(config: BleProducer.Config, transientFailedPeripheralUuid: UUID?)
+    func start(
+        config: BleProducer.Config,
+        asOf: Date,
+        transientFailedPeripheralUuid: UUID?)
     func stop()
     func pause()
     func resume()
@@ -65,15 +68,20 @@ class BleProducer: BleProducerProtocol {
         let actions: [CBUUID : (BleProducerProtocol, UUID, CBUUID, CBCharacteristicProperties) -> Void]
         
         /// Callback, when data is received for a given characteristic. This can be due to reading, polling or getting notified.
-        let readers: [CBUUID : (UUID, Data?) -> Void]
+        let readers: [CBUUID : (UUID, Data?, Date) -> Void]
     }
     
     enum Status {
-        case started, stopped, paused, resumed, nonRecoverableError(Error), notAuthorized
+        case started(asOf: Date), stopped, paused, resumed
+        case nonRecoverableError(asOf: Date, error: Error), notAuthorized(asOf: Date)
         case error(UUID, Error)
     }
 
-    func start(config: Config, transientFailedPeripheralUuid: UUID? = nil) {
+    func start(
+        config: Config,
+        asOf: Date,
+        transientFailedPeripheralUuid: UUID? = nil)
+    {
         self.config = config
         
         let pu = transientFailedPeripheralUuid == config.primaryUuid ? nil : config.primaryUuid
@@ -104,7 +112,7 @@ class BleProducer: BleProducerProtocol {
         
         _start()
         config.status([.denied, .restricted].contains(CBCentralManager.authorization) ?
-                .notAuthorized : .started)
+                .notAuthorized(asOf: asOf) : .started(asOf: asOf))
     }
     
     func stop() {
@@ -203,7 +211,10 @@ class BleProducer: BleProducerProtocol {
                 .global(qos: .userInteractive)
                 .asyncAfter(deadline: .now() + 10) { [self] in
                     if let config = config {
-                        start(config: config, transientFailedPeripheralUuid: peripheralUuid)
+                        start(
+                            config: config,
+                            asOf: Date(),
+                            transientFailedPeripheralUuid: peripheralUuid)
                     }
                 }
         }
@@ -253,9 +264,9 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         case .resetting:
             log("resetting")
         case .unsupported:
-            status(.nonRecoverableError("unsupported"))
+            status(.nonRecoverableError(asOf: Date(), error: "unsupported"))
         case .unauthorized:
-            status(.notAuthorized)
+            status(.notAuthorized(asOf: Date()))
         case .poweredOff:
             log("powered off")
         case .poweredOn:
@@ -342,7 +353,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     fileprivate init(
         characteristicUuids: [CBUUID : [CBUUID]],
         actions: [CBUUID : (BleProducerProtocol, UUID, CBUUID, CBCharacteristicProperties) -> Void],
-        readers: [CBUUID : (UUID, Data?) -> Void],
+        readers: [CBUUID : (UUID, Data?, Date) -> Void],
         rssi: ((UUID, NSNumber) -> Void)?)
     {
         self.characteristicUuids = characteristicUuids
@@ -353,7 +364,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     
     private let characteristicUuids: [CBUUID: [CBUUID]]
     private let actions: [CBUUID: (BleProducerProtocol, UUID, CBUUID, CBCharacteristicProperties) -> Void]
-    private let readers: [CBUUID: (UUID, Data?) -> Void]
+    private let readers: [CBUUID: (UUID, Data?, Date) -> Void]
     private let rssi: ((UUID, NSNumber) -> Void)?
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -392,7 +403,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         log(peripheral.name ?? "no-name")
         guard check(error) else {return}
 
-        readers[characteristic.uuid]?(peripheral.identifier, characteristic.value)
+        readers[characteristic.uuid]?(peripheral.identifier, characteristic.value, Date())
     }
     
     func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {

@@ -33,10 +33,13 @@ class HrGraphService: ObservableObject {
     }
     
     struct HrTotal {
-        var duration: TimeInterval
-        var sumHeartrate: Double
+        private(set) var duration: TimeInterval
+        private(set) var sumHeartrate: Double
         
-        var avgHeartrate: Int {duration > 0 ? Int(sumHeartrate / duration + 0.5) : -1}
+        var avgHeartrate: Int {
+            guard duration > 0 && sumHeartrate > 0 else {return -1}
+            return Int(sumHeartrate / duration + 0.5)
+        }
         
         fileprivate mutating func add(range: Range<Date>, hr: Int) {
             duration += range.distance

@@ -11,7 +11,10 @@ import CoreLocation
 protocol GpsProducerProtocol {
     static var sharedInstance: GpsProducerProtocol {get}
 
-    func start(value: @escaping (CLLocation) -> Void, status: @escaping (GpsProducer.Status) -> Void)
+    func start(
+        value: @escaping (CLLocation) -> Void,
+        status: @escaping (GpsProducer.Status) -> Void,
+        asOf: Date)
     func stop()
     func pause()
     func resume()
@@ -28,13 +31,18 @@ class GpsProducer: GpsProducerProtocol {
     private var status: ((Status) -> Void)?
     
     enum Status {
-        case started, stopped, paused, resumed, nonRecoverableError(Error), notAuthorized
+        case started(asOf: Date), stopped, paused, resumed
+        case nonRecoverableError(asOf: Date, error: Error), notAuthorized(asOf: Date)
     }
 
-    func start(value: @escaping (CLLocation) -> Void, status: @escaping (Status) -> Void) {
+    func start(
+        value: @escaping (CLLocation) -> Void,
+        status: @escaping (Status) -> Void,
+        asOf: Date)
+    {
         self.status = status
         locationManager = CLLocationManager()
-        locationManagerDelegate = LocationManagerDelegate(value: value, status: status)
+        locationManagerDelegate = LocationManagerDelegate(value: value, status: status, asOf: asOf)
 
         locationManager.delegate = locationManagerDelegate
         locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
@@ -45,7 +53,7 @@ class GpsProducer: GpsProducerProtocol {
 
         _start()
         status([.denied, .restricted].contains(locationManager.authorizationStatus) ?
-                .notAuthorized : .started)
+                .notAuthorized(asOf: asOf) : .started(asOf: asOf))
     }
     
     func stop() {
@@ -78,10 +86,14 @@ private class LocationManagerDelegate: NSObject, CLLocationManagerDelegate {
     private let status: (GpsProducer.Status) -> Void
     private var startedAt: Date
 
-    init(value: @escaping (CLLocation) -> Void, status: @escaping (GpsProducer.Status) -> Void) {
+    init(
+        value: @escaping (CLLocation) -> Void,
+        status: @escaping (GpsProducer.Status) -> Void,
+        asOf: Date)
+    {
         self.value = value
         self.status = status
-        startedAt = Date()
+        startedAt = asOf
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -90,10 +102,10 @@ private class LocationManagerDelegate: NSObject, CLLocationManagerDelegate {
             manager.accuracyAuthorization.rawValue,
             manager.authorizationStatus.rawValue)
         
-        if ![.authorizedWhenInUse, .authorizedAlways].contains(manager.authorizationStatus) {status(.notAuthorized)}
+        if ![.authorizedWhenInUse, .authorizedAlways].contains(manager.authorizationStatus) {status(.notAuthorized(asOf: startedAt))}
     }
     
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {status(.nonRecoverableError(error))}
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {status(.nonRecoverableError(asOf: startedAt, error: error))}
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         log()

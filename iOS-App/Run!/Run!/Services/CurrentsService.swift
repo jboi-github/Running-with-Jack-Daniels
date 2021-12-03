@@ -14,15 +14,24 @@ class CurrentsService: ObservableObject {
         RunService.sharedInstance.subscribe(
             RunService.Config(
                 motion: nil,
-                aclStatus: {self.aclStatus = $0},
+                aclStatus: {
+                    self.aclStatus = $0
+                    if case .started = $0 {self.reset()}
+                },
                 location: nil,
-                gpsStatus: {self.gpsStatus = $0},
+                gpsStatus: {
+                    self.gpsStatus = $0
+                    if case .started = $0 {self.reset()}
+                },
                 heartrate: {self.heartrate = $0},
                 bodySensorLocation: nil,
-                bleStatus: {self.bleStatus = $0},
-                isActive: nil,
+                bleStatus: {
+                    self.bleStatus = $0
+                    if case .started = $0 {self.reset()}
+                },
+                isActive: {self.isActive = $0},
                 speed: {self.speed = $0},
-                intensity: nil))
+                intensity: {self.intensity = $0}))
     }
     
     // MARK: - Interface
@@ -31,4 +40,14 @@ class CurrentsService: ObservableObject {
     @Published private(set) var gpsStatus: GpsProducer.Status = .stopped
     @Published private(set) var speed: SpeedProducer.Speed = .zero
     @Published private(set) var heartrate: HeartrateProducer.Heartrate = .zero
+    @Published private(set) var isActive: IsActiveProducer.IsActive = .zero
+    @Published private(set) var intensity: IntensityProducer.IntensityEvent = .zero
+    
+    // MARK: - Implementation
+    private func reset() {
+        speed = .zero
+        heartrate = .zero
+        isActive = .zero
+        intensity = .zero
+    }
 }

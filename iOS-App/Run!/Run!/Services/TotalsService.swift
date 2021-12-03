@@ -27,7 +27,7 @@ class TotalsService: ObservableObject {
     }
 
     // MARK: - Interface
-    struct ActiveIntensity: Hashable {
+    struct ActiveIntensity: Hashable, Codable {
         let activityType: IsActiveProducer.ActivityType
         let intensity: Intensity
         
@@ -46,14 +46,14 @@ class TotalsService: ObservableObject {
         var distance: CLLocationDistance = 0
     }
     
-    struct Total {
+    struct Total: Codable {
         let activityType: IsActiveProducer.ActivityType
         let intensity: Intensity
 
         let durationSec: TimeInterval
         let distanceM: CLLocationDistance
         let heartrateBpm: Int
-        let paceSecPerMin: TimeInterval
+        let paceSecPerKm: TimeInterval
         let vdot: Double
     }
     
@@ -121,7 +121,7 @@ class TotalsService: ObservableObject {
                 durationSec: aggTotal.value.duration,
                 distanceM: distanceM,
                 heartrateBpm: heartrate,
-                paceSecPerMin: paceSecPerMin,
+                paceSecPerKm: paceSecPerMin,
                 vdot: vdot)
         }
         return totals
@@ -170,15 +170,24 @@ class TotalsService: ObservableObject {
     private var sections = [Section]()
     
     private func aclStatus(_ status: AclProducer.Status) {
-        if case .started = status {sections.removeAll(keepingCapacity: true)}
+        if case .started = status {
+            sections.removeAll(keepingCapacity: true)
+            totals.removeAll(keepingCapacity: true)
+        }
     }
     
     private func gpsStatus(_ status: GpsProducer.Status) {
-        if case .started = status {sections.removeAll(keepingCapacity: true)}
+        if case .started = status {
+            sections.removeAll(keepingCapacity: true)
+            totals.removeAll(keepingCapacity: true)
+        }
     }
     
     private func bleStatus(_ status: BleProducer.Status) {
-        if case .started = status {sections.removeAll(keepingCapacity: true)}
+        if case .started = status {
+            sections.removeAll(keepingCapacity: true)
+            totals.removeAll(keepingCapacity: true)
+        }
     }
     
     private func isActive(_ isActive: IsActiveProducer.IsActive) {

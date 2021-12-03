@@ -44,16 +44,16 @@ class RunService {
     func subscribe(_ config: Config) {configs.insert(config)}
     func unsubscribe(_ config: Config) {configs.remove(config)}
 
-    func start(producer: Producer) {
+    func start(producer: Producer, asOf: Date) {
         self.producer = producer
 
         // Start acl producer, isActiveProducer
         isActiveProducer.start(isActive: isActive)
-        producer.aclProducer.start(value: motion, status: aclStatus)
+        producer.aclProducer.start(value: motion, status: aclStatus, asOf: asOf)
         
         // Start gps producer, speed-producer
         speedProducer.start(speed: speed)
-        producer.gpsProducer.start(value: location, status: gpsStatus)
+        producer.gpsProducer.start(value: location, status: gpsStatus, asOf: asOf)
         
         // Start ble producer, intensity-producer
         intensityProducer.start(intensity: intensity)
@@ -61,7 +61,15 @@ class RunService {
             heartrate: heartrate,
             bodySensorLocation: bodySensorLocation,
             status: bleStatus)
-        producer.bleProducer.start(config: bleConfig, transientFailedPeripheralUuid: nil)
+        producer.bleProducer.start(
+            config: bleConfig,
+            asOf: asOf,
+            transientFailedPeripheralUuid: nil)
+        
+        // run optional after-start sequences
+        isActiveProducer.afterStart()
+        heartrateProducer.afterStart()
+        intensityProducer.afterStart()
     }
 
     func stop() {
@@ -93,46 +101,70 @@ class RunService {
     private let intensityProducer = IntensityProducer()
 
     private func isActive(_ isActive: IsActiveProducer.IsActive) {
-        if configs.isEmpty {log(isActive)}
-        configs.forEach {$0.isActive?(isActive)}
+        if configs.isEmpty {
+            log(isActive)
+        } else {
+            configs.forEach {$0.isActive?(isActive)}
+        }
     }
     
     private func motion(_ motion: MotionActivityProtocol) {
-        if configs.isEmpty {log(motion)}
-        configs.forEach {$0.motion?(motion)}
+        if configs.isEmpty {
+            log(motion)
+        } else {
+            configs.forEach {$0.motion?(motion)}
+        }
         isActiveProducer.value(motion)
     }
     
     private func aclStatus(_ status: AclProducer.Status) {
-        if configs.isEmpty {log(status)}
-        configs.forEach {$0.aclStatus?(status)}
+        if configs.isEmpty {
+            log(status)
+        } else {
+            configs.forEach {$0.aclStatus?(status)}
+        }
         isActiveProducer.status(status)
     }
     
     private func speed(_ speed: SpeedProducer.Speed) {
-        if configs.isEmpty {log(speed)}
-        configs.forEach {$0.speed?(speed)}
+        if configs.isEmpty {
+            log(speed)
+        } else {
+            configs.forEach {$0.speed?(speed)}
+        }
     }
     
     private func location(_ location: CLLocation) {
-        if configs.isEmpty {log(location)}
-        configs.forEach {$0.location?(location)}
+        if configs.isEmpty {
+            log(location)
+        } else {
+            configs.forEach {$0.location?(location)}
+        }
         speedProducer.location(location)
     }
     
     private func gpsStatus(_ status: GpsProducer.Status) {
-        if configs.isEmpty {log(status)}
-        configs.forEach {$0.gpsStatus?(status)}
+        if configs.isEmpty {
+            log(status)
+        } else {
+            configs.forEach {$0.gpsStatus?(status)}
+        }
     }
     
     private func intensity(_ intensity: IntensityProducer.IntensityEvent) {
-        if configs.isEmpty {log(intensity)}
-        configs.forEach {$0.intensity?(intensity)}
+        if configs.isEmpty {
+            log(intensity)
+        } else {
+            configs.forEach {$0.intensity?(intensity)}
+        }
     }
     
     private func heartrate(_ heartrate: HeartrateProducer.Heartrate) {
-        if configs.isEmpty {log(heartrate)}
-        configs.forEach {$0.heartrate?(heartrate)}
+        if configs.isEmpty {
+            log(heartrate)
+        } else {
+            configs.forEach {$0.heartrate?(heartrate)}
+        }
         intensityProducer.heartate(heartrate)
     }
     
@@ -140,12 +172,19 @@ class RunService {
         _ peripheralUuid: UUID,
         _ bodySensorLocation: HeartrateProducer.BodySensorLocation)
     {
-        if configs.isEmpty {log(peripheralUuid, bodySensorLocation)}
-        configs.forEach {$0.bodySensorLocation?(peripheralUuid, bodySensorLocation)}
+        if configs.isEmpty {
+            log(peripheralUuid, bodySensorLocation)
+        } else {
+            configs.forEach {$0.bodySensorLocation?(peripheralUuid, bodySensorLocation)}
+        }
     }
     
     private func bleStatus(_ status: BleProducer.Status) {
-        if configs.isEmpty {log(status)}
-        configs.forEach {$0.bleStatus?(status)}
+        if configs.isEmpty {
+            log(status)
+        } else {
+            configs.forEach {$0.bleStatus?(status)}
+        }
+        intensityProducer.status(status)
     }
 }
