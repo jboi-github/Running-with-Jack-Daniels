@@ -17,7 +17,7 @@ class SpeedProducer {
         
         static let zero = Self(
             timestamp: .distantPast,
-            speedMperSec: 0,
+            speedMperSec: .nan,
             speedDegreesPerSec: MKCoordinateSpan())
     }
     

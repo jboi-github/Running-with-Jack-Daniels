@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreLocation
+import SwiftUI
 
 // MARK: Work with sets of ranges
 public protocol Rangable {
@@ -119,11 +120,11 @@ private extension BinaryInteger {var d: Double {Double(self)}}
 private extension Date {var d: Double {Double(self.timeIntervalSince1970)}}
 
 extension Range where Bound: BinaryFloatingPoint {
-    public func transform<B2: BinaryFloatingPoint>(_ x: Bound, _ to: Range<B2>) -> Double {
+    public func transform<B2: BinaryFloatingPoint>(_ x: Bound, _ to: Range<B2>) -> B2 {
         let p = (x.d - lowerBound.d) / (upperBound.d - lowerBound.d)
         let q = (upperBound.d - x.d) / (upperBound.d - lowerBound.d)
         
-        return p * to.upperBound.d + q * to.lowerBound.d
+        return B2(p * to.upperBound.d + q * to.lowerBound.d)
     }
 
     public func transform<B2: BinaryInteger>(_ x: Bound, to: Range<B2>) -> B2 {

@@ -117,14 +117,18 @@ class LogicTests: XCTestCase {
     }
     
     func testTrain() throws {
-        let hrMax = 176
-        let hr = 155
-        let vdot = train(hrBpm: hr, hrMaxBpm: hrMax, restingBpm: 40,
-                         paceSecPerKm: 3600.0 / 9.2)
-
-        XCTAssertNotNil(vdot, "train")
-        print(Double(hr) / Double(hrMax), vdot!)
-        XCTAssertEqual(vdot!, 32.5, accuracy: 0.5, "train")
+        let limits: [Intensity: Range<Int>] = [.Cold: 0..<100, .Easy: 100..<150, .Threshold: 150..<170]
+        
+        XCTAssertEqual(
+            try XCTUnwrap(train(hrBpm: 169, paceSecPerKm: 5*60+06, limits: limits)),
+            40, accuracy: 0.5)
+        XCTAssertNil(train(hrBpm: 180, paceSecPerKm: 5*60+06, limits: limits))
+        XCTAssertEqual(
+            try XCTUnwrap(train(hrBpm: 165, paceSecPerKm: 7*60, limits: limits)),
+            27, accuracy: 0.5)
+        XCTAssertEqual(
+            try XCTUnwrap(train(hrBpm: 150, paceSecPerKm: 5*60+06, limits: limits)),
+            42, accuracy: 0.5)
     }
     
     func testPlanSeason() throws {

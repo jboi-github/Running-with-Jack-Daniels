@@ -86,7 +86,8 @@ class ProfileService {
         init(config: Config) {self.config = config}
         
         private let config: Config
-
+        var linked: (() -> Void)? = nil
+        
         @Published private(set) var source: Source = .calculated
         @Published private(set) var value: Value?
         @Published private(set) var timestamp: Date = .distantPast
@@ -107,11 +108,12 @@ class ProfileService {
             
             // HealthKit works async
             config.readFromHealth? { timestamp, value in
-                guard self.value == nil || timestamp >= self.timestamp else {return}
+                guard self.value == nil || timestamp > self.timestamp else {return}
                 
                 self.source = .health
                 self.timestamp = timestamp
                 self.value = value
+                self.linked?()
             }
         }
         
@@ -128,6 +130,8 @@ class ProfileService {
             source = .manually
             timestamp = asOf
             value = newValue
+            
+            linked?()
         }
         
         /// Reset value to what was read when screen appeared
@@ -190,6 +194,23 @@ class ProfileService {
     }
     
     func onAppear() {
+        // Values might be dependent on other values. Link them together.
+        birthday.linked = {
+            self.hrMax.onAppear()
+        }
+        gender.linked = {
+            self.hrMax.onAppear()
+        }
+        weight.linked = {
+            self.hrMax.onAppear()
+        }
+        hrMax.linked = {
+            self.hrLimits.onAppear()
+        }
+        hrResting.linked = {
+            self.hrLimits.onAppear()
+        }
+
         birthday.onAppear()
         gender.onAppear()
         weight.onAppear()
@@ -203,13 +224,6 @@ class ProfileService {
         weeklySumTime.onAppear()
         weeklyMaxDays.onAppear()
         weeklyMaxQs.onAppear()
-        hrLimits.onAppear()
-        
-        // Values might be dependent on other values. So try a second time for calculations.
-        vdot.onAppear()
-        hrMax.onAppear()
-        hrResting.onAppear()
-        season.onAppear()
         hrLimits.onAppear()
     }
     
@@ -359,19 +373,13 @@ class ProfileService {
     }
     
     private static func calcHrLimits() -> [Intensity: Range<Int>] {
-        let hrMax = ProfileService.sharedInstance.hrMax.value
-        let hrResting = ProfileService.sharedInstance.hrResting.value
-        
-        return Intensity.allCases.reduce(into: [Intensity: Range<Int>]()) { partialResult, intensity in
-            if let hrMax = hrMax,
-                let hrResting = hrResting,
-                let hrLimit = intensity.getHrLimit(hrMaxBpm: hrMax, restingBpm: hrResting)
-            {
-                partialResult[intensity] = hrLimit
-            } else if let hrMax = hrMax, let hrLimit = intensity.getHrLimit(hrMaxBpm: hrMax) {
-                partialResult[intensity] = hrLimit
-            }
+        guard let hrMax = ProfileService.sharedInstance.hrMax.value else {
+            return [:]
         }
+        guard let hrResting = ProfileService.sharedInstance.hrResting.value else {
+            return Run_.hrLimits(hrMaxBpm: hrMax)
+        }
+        return Run_.hrLimits(hrMaxBpm: hrMax, restingHrBpm: hrResting)
     }
     
     // MARK: Read from HealthKit

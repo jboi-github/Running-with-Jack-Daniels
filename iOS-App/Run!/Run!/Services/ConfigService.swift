@@ -113,7 +113,7 @@ enum FileHandling {
         guard let url = url(for: to) else {return nil}
         
         do {
-            let data = try (encoder.encode(encodable) as NSData).compressed(using: .zlib)
+            let data = try (encoder.encode(encodable) as NSData).compressed(using: .lzfse)
             data.write(to: url, atomically: true)
             return url
         } catch {
@@ -126,7 +126,7 @@ enum FileHandling {
         guard let url = latestUrl(for: prefix) else {return nil}
         
         do {
-            let data = try (Data(contentsOf: url) as NSData).decompressed(using: .zlib)
+            let data = try (Data(contentsOf: url) as NSData).decompressed(using: .lzfse)
             return try decoder.decode(decodable, from: data as Data)
         } catch {
             _ = check(error)

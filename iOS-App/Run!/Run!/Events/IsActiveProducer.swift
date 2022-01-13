@@ -51,6 +51,8 @@ class IsActiveProducer {
             constantActivity = IsActive(timestamp: asOf, isActive: true, type: .unknown)
         case .notAuthorized(let asOf):
             constantActivity = IsActive(timestamp: asOf, isActive: true, type: .unknown)
+        case .started(let asOf):
+            constantActivity = IsActive(timestamp: asOf, isActive: false, type: .unknown)
         default:
             constantActivity = nil
         }

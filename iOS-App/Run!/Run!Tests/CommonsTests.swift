@@ -7,6 +7,7 @@
 
 import XCTest
 @testable import Run_
+import SwiftUI
 
 class CommonsTests: XCTestCase {
 
@@ -192,7 +193,7 @@ class CommonsTests: XCTestCase {
 
     func testTransform() throws {
         XCTAssertEqual((1 ..< 10).transform(3, to: 10 ..< 100), 30)
-        XCTAssertEqual((1.0 ..< 10.0).transform(2.5, to: 10 ..< 100), 25)
+        XCTAssertEqual((1.0 ..< 10.0).transform(2.5, 10 ..< 100), 25)
         XCTAssertEqual((1.0 ..< 10.0).transform(1.25, to: Date(timeIntervalSince1970: 1000) ..< Date(timeIntervalSince1970: 10000)).timeIntervalSince1970, 1250, accuracy: 0.01)
     }
 
@@ -207,5 +208,66 @@ class CommonsTests: XCTestCase {
         XCTAssertEqual(1.0.avg(3.0, 0), 3.0, accuracy: 0.01)
         XCTAssertTrue((1.0.avg(.nan, 0)).isNaN)
         XCTAssertTrue((Double.nan.avg(5, 0)).isNaN)
+    }
+    
+    func testPrettyTicks() throws {
+        XCTAssertEqual(Chart.prettyTicks(for: 0.0 ..< 3.14), [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5])
+        XCTAssertEqual(Chart.prettyTicks(for: 0.0 ..< 3.14, n: 5), [0.0, 1.0, 2.0, 3.0, 4.0])
+        XCTAssertEqual(Chart.prettyTicks(for: -10.0 ..< 3.14, n: 5), [-10.0, -5.0, 0.0, 5.0])
+
+        XCTAssertEqual(Chart.prettyTicks(for: 0 ..< 314), [0, 50, 100, 150, 200, 250, 300, 350])
+        XCTAssertEqual(Chart.prettyTicks(for: 0 ..< 314, n: 7), [0, 100, 200, 300, 400])
+        
+        print(Chart.prettyTicks(
+            for: Date(timeIntervalSince1970: 0) ..< Date(timeIntervalSince1970: 20000)))
+        print(Chart.prettyTicks(
+            for: Date(timeIntervalSince1970: 0) ..< Date(timeIntervalSince1970: 20000), n: 7))
+        
+        print(Chart.prettyTicks(for: -3.14 ..< 3.14, n: 20).map {(-3.5 ..< 3.5).transform($0, 0 ..< 100)})
+    }
+    
+    func testChartDataPointsPrepare() throws {
+        struct DP: ChartDataPoint {
+            let classifier: String
+            let x: Double
+            let y: Double
+            
+            func makeBody(_ canvas: CGRect, _ pos: CGPoint, _ prevPos: CGPoint, _ nearestPos: CGPoint) -> some View {
+                EmptyView()
+            }
+            
+            func distance(to: Self) -> Double {
+                let dx = x - to.x
+                let dy = y - to.y
+                return sqrt(dx*dx + dy*dy)
+            }
+        }
+        
+        let expected = [
+            (-10.0, -20.0, 2.23606797749979),
+            (-10.0, -30.0, 3.1622776601683795),
+            (-9.0, -18.0, 2.23606797749979),
+            (-9.0, -27.0, 3.1622776601683795),
+            (-8.0, -16.0, 2.23606797749979),
+            (-8.0, -24.0, 3.1622776601683795),
+            (-7.0, -14.0, 2.23606797749979),
+            (-7.0, -21.0, 3.1622776601683795),
+            (-6.0, -12.0, 2.0),
+            (-6.0, -18.0, 2.8284271247461903),
+            (-5.0, -10.0, 2.23606797749979), (-5.0, -15.0, 2.23606797749979), (-4.0, -8.0, 1.4142135623730951), (-4.0, -12.0, 2.0), (-3.0, -6.0, 1.0), (-3.0, -9.0, 1.4142135623730951), (-2.0, -4.0, 1.4142135623730951), (-2.0, -6.0, 1.0), (-1.0, -2.0, 1.0), (-1.0, -3.0, 1.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 3.0, 1.0), (1.0, 2.0, 1.0), (2.0, 6.0, 1.0), (2.0, 4.0, 1.4142135623730951), (3.0, 9.0, 1.4142135623730951), (3.0, 6.0, 1.0), (4.0, 12.0, 2.0), (4.0, 8.0, 1.4142135623730951), (5.0, 15.0, 2.23606797749979), (5.0, 10.0, 2.23606797749979), (6.0, 18.0, 2.8284271247461903), (6.0, 12.0, 2.0), (7.0, 21.0, 3.1622776601683795), (7.0, 14.0, 2.23606797749979), (8.0, 24.0, 3.1622776601683795), (8.0, 16.0, 2.23606797749979), (9.0, 27.0, 3.1622776601683795), (9.0, 18.0, 2.23606797749979), (10.0, 30.0, 3.1622776601683795), (10.0, 20.0, 2.23606797749979), (11.0, 33.0, 3.1622776601683795), (11.0, 22.0, 2.23606797749979), (12.0, 36.0, 3.1622776601683795), (12.0, 24.0, 2.23606797749979), (13.0, 39.0, 3.1622776601683795), (13.0, 26.0, 2.23606797749979), (14.0, 42.0, 3.1622776601683795), (14.0, 28.0, 2.23606797749979)]
+        
+        let dps1 = stride(from: -10, to: 15, by: 1)
+            .map {DP(classifier: "Sinus", x: Double($0), y: 2.0 * Double($0))}
+        let dps2 = stride(from: -10, to: 15, by: 1)
+            .map {DP(classifier: "Cosinus", x: Double($0), y: 3.0 * Double($0))}
+        
+        let result = (dps1 + dps2).shuffled().prepared(nx: 10, ny: 5)
+        
+        XCTAssertEqual(result.xPrettyTicks, Chart.prettyTicks(for: -10.0 ..< 15, n: 10))
+        XCTAssertEqual(result.yPrettyTicks, Chart.prettyTicks(for: -30.0 ..< 45.0, n: 5))
+
+        XCTAssertEqual(result.dps.map {Double($0.dataPoint.x)}, expected.map {$0.0})
+        XCTAssertEqual(result.dps.map {Double($0.dataPoint.y)}, expected.map {$0.1})
+        XCTAssertEqual(result.dps.map {$0.dataPoint.distance(to: $0.nearest)}, expected.map {$0.2})
     }
 }

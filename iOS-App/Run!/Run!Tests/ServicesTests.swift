@@ -235,4 +235,69 @@ class ServicesTests: XCTestCase {
         x3.onAppear()
         x3.onDisappear()
     }
+    
+    func testProfileAttribute3() throws {
+        // Attribute 1 is calculated using value of attribute 0. Change in 0 should trigger 1
+        let x0 = ProfileService.Attribute<Int>(
+            config: ProfileService.Attribute<Int>.Config(
+                readFromStore: {nil},
+                readFromHealth: {_ in},
+                calculate: {0},
+                writeToStore: {_,_ in },
+                writeToHealth: {_,_ in }))
+        let x1 = ProfileService.Attribute<Int>(
+            config: ProfileService.Attribute<Int>.Config(
+                readFromStore: {nil},
+                readFromHealth: {_ in},
+                calculate: {(x0.value ?? -1) + 5},
+                writeToStore: {_,_ in },
+                writeToHealth: {_,_ in }))
+
+        x0.onAppear()
+        x1.onAppear()
+        XCTAssertEqual(x0.value, 0)
+        XCTAssertEqual(x1.value, 5)
+
+        x0.linked = {x1.onAppear()}
+        x0.onChange(to: 3)
+        XCTAssertEqual(x0.value, 3)
+        XCTAssertEqual(x1.value, 8)
+
+        x0.onDisappear()
+        x1.onDisappear()
+        
+        // Attribute 1b is calculated using value of attribute 0b.
+        // Change in 1b preceding change in 0b should NOT trigger 1b
+        let x0b = ProfileService.Attribute<Int>(
+            config: ProfileService.Attribute<Int>.Config(
+                readFromStore: {nil},
+                readFromHealth: {_ in},
+                calculate: {0},
+                writeToStore: {_,_ in },
+                writeToHealth: {_,_ in }))
+        let x1b = ProfileService.Attribute<Int>(
+            config: ProfileService.Attribute<Int>.Config(
+                readFromStore: {nil},
+                readFromHealth: {_ in},
+                calculate: {(x0b.value ?? -1) + 5},
+                writeToStore: {_,_ in },
+                writeToHealth: {_,_ in }))
+
+        x0b.onAppear()
+        x1b.onAppear()
+        XCTAssertEqual(x0b.value, 0)
+        XCTAssertEqual(x1b.value, 5)
+
+        x1b.onChange(to: 13)
+        XCTAssertEqual(x0b.value, 0)
+        XCTAssertEqual(x1b.value, 13)
+
+        x0b.onChange(to: 3)
+        XCTAssertEqual(x0b.value, 3)
+        x1b.onAppear()
+        XCTAssertEqual(x1b.value, 13)
+
+        x0b.onDisappear()
+        x1b.onDisappear()
+    }
 }

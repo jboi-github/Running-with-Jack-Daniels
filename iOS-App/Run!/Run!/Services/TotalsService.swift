@@ -79,11 +79,12 @@ class TotalsService: ObservableObject {
             HrGraphService.sharedInstance.hrSecs(upTo: upTo)
         }()
         
-        let hrMax = ProfileService.sharedInstance.hrMax.value ?? -1
-        let hrResting = ProfileService.sharedInstance.hrResting.value ?? -1
+        let hrlimits = ProfileService.sharedInstance.hrLimits.value
 
         var totals = [ActiveIntensity: Total]()
         for aggTotal in aggTotals {
+            guard aggTotal.value.duration > 0 else {continue}
+
             let distanceM: Double = {
                 if case .pause = aggTotal.key.activityType {
                     return 0
@@ -99,17 +100,11 @@ class TotalsService: ObservableObject {
                 guard distanceM > 0 else {return .nan}
                 guard heartrate > 0 else {return .nan}
                 
-                if hrMax > 0 && hrResting > 0 {
+                if let hrLimits = hrlimits {
                     return train(
                         hrBpm: heartrate,
-                        hrMaxBpm: hrMax,
-                        restingBpm: hrResting,
-                        paceSecPerKm: paceSecPerMin) ?? .nan
-                } else if hrMax > 0 {
-                    return train(
-                        hrBpm: heartrate,
-                        hrMaxBpm: hrMax,
-                        paceSecPerKm: paceSecPerMin) ?? .nan
+                        paceSecPerKm: paceSecPerMin,
+                        limits: hrLimits) ?? .nan
                 } else {
                     return .nan
                 }
@@ -168,6 +163,20 @@ class TotalsService: ObservableObject {
     }
     
     private var sections = [Section]()
+    
+    var dumpSections: [(TimeInterval, TimeInterval, TimeInterval?, Intensity?, Bool?, IsActiveProducer.ActivityType?)] {
+        sections.map {
+            (
+                $0.range.lowerBound.timeIntervalSince1970,
+                $0.range.upperBound.timeIntervalSince1970,
+                $0.speed?.speedMperSec,
+                $0.intensity?.intensity,
+                $0.activity?.isActive,
+                $0.activity?.type
+            )
+        }
+        .sorted {$0.0 <= $1.0}
+    }
     
     private func aclStatus(_ status: AclProducer.Status) {
         if case .started = status {

@@ -252,63 +252,16 @@ public func planTraining(vdot: Double) -> [Intensity : (lower: TimeInterval, upp
 /// Estimate vdot for current heartrate and pace.
 /// - Parameters:
 ///   - hrBpm: Current heartrate during training in beats per minute.
-///   - hrMaxBpm: Max heartrate in beats per minute.
 ///   - paceSecPerKm: Current pace in seconds per km.
+///   - limits: heartrate limits in beats per minute for each intensity.
 /// - Returns: vdot, estimated from hr% into vdot% of training intensity and together with pace into vdot. Return nil for any value out of range.
-public func train(hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0, paceSecPerKm: TimeInterval) -> Double? {
-    func hrPercent2vdotPercent(
-        hrPercent: Double,
-        lowerHrPercent: Double,
-        upperHrPercent: Double,
-        lowerVdotPercent: Double,
-        upperVdotPercent: Double) -> Double?
-    {
-        let p = (hrPercent - lowerHrPercent) / (upperHrPercent - lowerHrPercent)
-        guard (0...1).contains(p) else {return nil}
-
-        // Linear interpolation of values
-        return lowerVdotPercent + (upperVdotPercent - lowerVdotPercent) * p
-    }
-    
-    let hrPercent = Double(hrBpm - restingBpm) / Double(hrMaxBpm - restingBpm)
-    
-    if let percent = hrPercent2vdotPercent(
-        hrPercent: hrPercent,
-        lowerHrPercent: Intensity.Easy.getHrPercent()!.lowerBound,
-        upperHrPercent: Intensity.Easy.getHrPercent()!.upperBound,
-        lowerVdotPercent: Intensity.Easy.getVdotPercent().lowerBound,
-        upperVdotPercent: Intensity.Easy.getVdotPercent().upperBound)
-    {
-        return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: percent)
-    }
-    if let percent = hrPercent2vdotPercent(
-        hrPercent: hrPercent,
-        lowerHrPercent: Intensity.Threshold.getHrPercent()!.lowerBound,
-        upperHrPercent: Intensity.Threshold.getHrPercent()!.upperBound,
-        lowerVdotPercent: Intensity.Threshold.getVdotPercent().lowerBound,
-        upperVdotPercent: Intensity.Threshold.getVdotPercent().upperBound)
-    {
-        return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: percent)
-    }
-    if let percent = hrPercent2vdotPercent(
-        hrPercent: hrPercent,
-        lowerHrPercent: Intensity.Marathon.getHrPercent()!.lowerBound,
-        upperHrPercent: Intensity.Marathon.getHrPercent()!.upperBound,
-        lowerVdotPercent: Intensity.Marathon.getVdotPercent().lowerBound,
-        upperVdotPercent: Intensity.Marathon.getVdotPercent().upperBound)
-    {
-        return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: percent)
-    }
-    if let percent = hrPercent2vdotPercent(
-        hrPercent: hrPercent,
-        lowerHrPercent: Intensity.Interval.getHrPercent()!.lowerBound,
-        upperHrPercent: Intensity.Interval.getHrPercent()!.upperBound,
-        lowerVdotPercent: Intensity.Interval.getVdotPercent().lowerBound,
-        upperVdotPercent: Intensity.Interval.getVdotPercent().upperBound)
-    {
-        return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: percent)
-    }
-    return nil
+public func train(hrBpm: Int, paceSecPerKm: TimeInterval, limits: [Intensity: Range<Int>]) -> Double? {
+    let vdotPercent = limits
+        .filter {$0.value.contains(hrBpm)}
+        .map {$0.value.transform(hrBpm, to: $0.key.getVdotPercent())}
+        .max()
+    guard let vdotPercent = vdotPercent else {return nil}
+    return vdot4PacePercent(paceSecPerKm: paceSecPerKm, percent: vdotPercent)
 }
 
 /// Calcuate vdot out of a recently achieved race time.
@@ -347,57 +300,43 @@ public func vdot4TimeOff(
 /// Get intensity for heartrate percent and previous intensity.
 /// - Parameters:
 ///   - hrBpm: Current heartrate during training in beats per minute.
-///   - hrMaxBpm: Max heartrate in beats per minute.
-///   - restingBpm: Resting heartrate if known, Otherwise defaults to 0.
 ///   - prevIntensity: previous intensity. Nil, if no previous intensity exists or was a pause.
+///   - limits: heartrate limits in beats per minute for each intensity.
 /// - Returns:
 ///     - nil, if heartrate is below easy-limits.
 ///     - The corresponding intensity between easy and interval, if uniquely identifiable.
 ///     - repetition, if hr is above interval limit.
 ///     - If hr is in the overlap between marathon and threshold, the intensity which is closer to the previous intensity is returned.
 ///     - If hr is in the gep between threshold and interval, the intensity which is closer to the previous intensity is returned.
-public func intensity4Hr(hrBpm: Int, hrMaxBpm: Int, restingBpm: Int = 0, prevIntensity: Intensity?) -> Intensity {
-    let prevIntensity = prevIntensity ?? .Cold
-    let hrPercent = Double(hrBpm - restingBpm) / Double(hrMaxBpm - restingBpm)
-
-    // Any change happened?
-    if prevIntensity.getHrPercent()?.contains(hrPercent) ?? false {return prevIntensity}
-
-    // Out of previous intensity range
-    let intensities = Intensity
-        .allCases
-        .filter {$0.getHrPercent()?.contains(hrPercent) ?? false}
+public func intensity4Hr(
+    hrBpm: Int,
+    prevIntensity: Intensity?,
+    limits: [Intensity: Range<Int>]) -> Intensity
+{
+    // Case 0: hr is within previous intensity -> keep intensity
+    if let prev = prevIntensity, let limit = limits[prev], limit.contains(hrBpm) {return prev}
+    
+    // Collect all possible intensities
+    let intensities = Set(limits.filter {$0.value.contains(hrBpm) && $0.key != .Long}.map {$0.key})
     
     if intensities.isEmpty {
         return .Repetition
-    } else if intensities.count == 1 {
-        return intensities.first!
-    } else { // Overlapping intensities
-        if intensities.contains(prevIntensity) {
-            return prevIntensity
-        } else if let first = intensities.first, let last = intensities.last {
-            switch (first, last) {
-            case (.Easy, .Long):
-                return .Easy
-                
-            case (.Marathon, .Threshold):
-                return [.Cold, .Easy, .Long, .Marathon].contains(prevIntensity) ?
-                    .Marathon : .Threshold
-                
-            case (.Threshold, .Interval):
-                return [.Cold, .Easy, .Long, .Marathon, .Threshold].contains(prevIntensity) ?
-                    .Threshold : .Interval
-                
-            default:
-                return .Cold
-            }
+    } else if let first = intensities.first, intensities.count == 1 {
+        return first
+    } else {
+        if intensities.contains(.Marathon) {
+            return [.Cold, .Easy, .Marathon].contains(where: {$0 == (prevIntensity ?? .Cold)}) ?
+                .Marathon : .Threshold
+        } else if intensities.contains(.Interval) {
+            return [.Cold, .Easy, .Marathon, .Threshold].contains(where: {$0 == (prevIntensity ?? .Cold)}) ?
+                .Threshold : .Interval
         } else {
-            return .Cold
+            return intensities.first ?? .Cold
         }
     }
 }
 
 /*
- Plan Workout -> (last vdot, last training day (tiem off, weight change), %Easy this week)
+ Plan Workout -> (last vdot, last training day (time off, weight change), %Easy this week)
     - Paces
  */

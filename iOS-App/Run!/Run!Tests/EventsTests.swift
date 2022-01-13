@@ -163,19 +163,34 @@ class EventsTests: XCTestCase {
     }
     
     func testIntensityProducer() throws {
-        let heartrates = [80, 90, 140, 150, 155, 150, 165, 168, 172, 190, 175, 172, 165, 132, 131]
-        let expectedIntensities = [Intensity.Cold, .Easy, .Marathon, .Easy, .Marathon, .Threshold, .Repetition, .Interval, .Threshold, .Easy, .Cold]
+        let heartrates = [80, 90, 140, 150, 155, 150, 165, 168, 172, 190, 200, 175, 172, 165, 132, 131]
+        let expectedIntensities = [
+            Intensity.Cold,
+                .Easy,
+                .Marathon,
+                .Easy,
+                .Marathon,
+                .Threshold,
+                .Repetition,
+                .Interval,
+                .Threshold,
+                .Easy,
+                .Cold
+        ]
+        let expectedTimes = [0, 1840, 3600, 4400, 5200, 6000, 9000, 10760, 12000, 13363, 14000]
         
         var intensities = [Intensity]()
+        var times = [Int]()
         
         ProfileService.sharedInstance.onAppear()
         ProfileService.sharedInstance.hrMax.onChange(to: 181)
         ProfileService.sharedInstance.hrResting.onChange(to: 40)
-        print(hrLimits(hrMaxBpm: ProfileService.sharedInstance.hrMax.value!, restingHrBpm: ProfileService.sharedInstance.hrResting.value!))
+        print(ProfileService.sharedInstance.hrLimits.value ?? [:])
         
         let intensityProducer = IntensityProducer()
         intensityProducer.start {
             intensities.append($0.intensity)
+            times.append(Int($0.timestamp.timeIntervalSince1970))
         }
         
         heartrates.indices.forEach {
@@ -188,6 +203,7 @@ class EventsTests: XCTestCase {
         }
         
         XCTAssertEqual(intensities, expectedIntensities)
+        XCTAssertEqual(times, expectedTimes)
     }
 
     func testSpeedProducer() throws {

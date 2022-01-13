@@ -15,12 +15,18 @@ class IntensityProducer {
         static var zero: IntensityEvent {IntensityEvent(timestamp: .distantPast, intensity: .Cold)}
     }
     
-    private var prev: IntensityEvent? = nil
     private var intensity: ((IntensityEvent) -> Void)?
     private var constantIntensity: IntensityEvent? = nil
     
+    private var prevHeartrate: Int = -1
+    private var prevIntensity = Intensity.Cold
+    private var prevTimestamp = Date.distantPast
+    
     func start(intensity: @escaping (IntensityEvent) -> Void) {
-        prev = nil
+        prevHeartrate = -1
+        prevIntensity = .Cold
+        prevTimestamp = .distantPast
+        
         self.intensity = intensity
         constantIntensity = nil
     }
@@ -33,51 +39,40 @@ class IntensityProducer {
 
     /// To be used by dispatcher to connect to `HeartrateProducer`
     func heartate(_ curr: HeartrateProducer.Heartrate) {
-        func intensity(_ hr: Int, _ prevIntensity: Intensity?)
-        -> (intensity: Intensity, range: Range<Int>?)
-        {
-            let hrMax = ProfileService.sharedInstance.hrMax.value ?? -1
-            let hrResting = ProfileService.sharedInstance.hrResting.value ?? -1
-
-            if hrMax > 0 && hrResting > 0 {
-                let intensity = intensity4Hr(
-                    hrBpm: hr,
-                    hrMaxBpm: hrMax,
-                    restingBpm: hrResting,
-                    prevIntensity: prevIntensity)
-                return (intensity, intensity.getHrLimit(hrMaxBpm: hrMax, restingBpm: hrResting))
-            } else if hrMax > 0 {
-                let intensity = intensity4Hr(
-                    hrBpm: hr,
-                    hrMaxBpm: hrMax,
-                    prevIntensity: prevIntensity)
-                return (intensity, intensity.getHrLimit(hrMaxBpm: hrMax))
-            } else {
-                return (.Cold, nil)
-            }
+        guard let hrLimits = ProfileService.sharedInstance.hrLimits.value else {return}
+        let intensity = intensity4Hr(
+            hrBpm: curr.heartrate,
+            prevIntensity: prevIntensity,
+            limits: hrLimits)
+        defer {
+            self.prevHeartrate = curr.heartrate
+            self.prevIntensity = intensity
+            self.prevTimestamp = curr.timestamp
         }
 
-        let intensity = intensity(curr.heartrate, prev?.intensity)
-
-        guard let prev = prev else {
-            self.prev = IntensityEvent(timestamp: curr.timestamp, intensity: intensity.intensity)
-            self.intensity?(self.prev!)
+        // No change -> no update, except first
+        if prevIntensity == intensity && prevTimestamp > .distantPast {return}
+        
+        // First time change
+        guard let limit = hrLimits[intensity], prevTimestamp > .distantPast else {
+            self.intensity?(IntensityEvent(timestamp: curr.timestamp, intensity: intensity))
             return
         }
         
-        if prev.intensity == intensity.intensity {return} // remove dups
-
-        // Change in intensities happened.
-        guard let hrRange = intensity.range else {
-            self.prev = IntensityEvent(timestamp: curr.timestamp, intensity: intensity.intensity)
-            self.intensity?(self.prev!)
-            return
-        }
-        let prevTs = prev.timestamp > .distantPast ? prev.timestamp : curr.timestamp
-        let t = hrRange.transform(curr.heartrate, to: prevTs ..< curr.timestamp)
-        
-        self.prev = IntensityEvent(timestamp: t, intensity: intensity.intensity)
-        self.intensity?(self.prev!)
+        // When exactly did the change happen? Two limit crossings are possible
+        let crossingAt = prevHeartrate <= curr.heartrate ?
+            (prevHeartrate ..< curr.heartrate)
+                .transform(limit.lowerBound, to: prevTimestamp ..< curr.timestamp)
+        :
+            curr
+                .timestamp
+                .advanced(
+                    by: -(curr.heartrate ..< prevHeartrate)
+                        .transform(
+                            limit.upperBound,
+                            to: 0.0 ..< prevTimestamp.distance(to: curr.timestamp)))
+        let crossingAtNormalized = min(curr.timestamp, max(prevTimestamp, crossingAt))
+        self.intensity?(IntensityEvent(timestamp: crossingAtNormalized, intensity: intensity))
     }
     
     /// To be used by dispatcher to connect to `BleProducer`
@@ -86,6 +81,8 @@ class IntensityProducer {
         case .nonRecoverableError(let asOf, _):
             constantIntensity = IntensityEvent(timestamp: asOf, intensity: .Cold)
         case .notAuthorized(let asOf):
+            constantIntensity = IntensityEvent(timestamp: asOf, intensity: .Cold)
+        case .started(let asOf):
             constantIntensity = IntensityEvent(timestamp: asOf, intensity: .Cold)
         default:
             constantIntensity = nil

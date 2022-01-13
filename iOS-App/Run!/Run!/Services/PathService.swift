@@ -180,14 +180,6 @@ class PathService: ObservableObject {
         switch status {
         case .started:
             path.removeAll(keepingCapacity: true)
-            path.append(
-                PathElement(
-                    range: .distantPast ..< .distantFuture,
-                    isActive: IsActiveProducer.IsActive(
-                        timestamp: .distantPast,
-                        isActive: false,
-                        type: .unknown),
-                    locations: [CLLocation]()))
             fileName = "locations-\(now).json"
         case .stopped:
             if let last = path.last, last.range.upperBound == .distantFuture {
