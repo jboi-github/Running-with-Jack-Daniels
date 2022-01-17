@@ -31,6 +31,7 @@ struct GpsStatusView: View {
     }
 }
 
+#if DEBUG
 struct GpsStatusView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -53,3 +54,4 @@ struct GpsStatusView_Previews: PreviewProvider {
         }
     }
 }
+#endif

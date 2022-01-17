@@ -21,53 +21,21 @@ import SwiftUI
 struct RunMapView: View {
     let path: [PathService.PathElement]
     
-    @State private var isCollapsed: Bool = false
     @State private var isAutoRegion: Bool = true
     
     var body: some View {
-        if isCollapsed {
-            CollapseButtonOverlay(action: {isCollapsed.toggle()}, systemName: "chevron.down")
-        } else {
-            ZStack {
-                MapView(path: path, isAutoRegion: isAutoRegion)
-                VStack {
-                    CollapseButtonOverlay(action: {isCollapsed.toggle()}, systemName: "chevron.up")
+        ZStack {
+            MapView(path: path, isAutoRegion: isAutoRegion)
+            VStack {
+                Spacer()
+                HStack {
                     Spacer()
-                    HStack {
-                        Spacer()
-                        Toggle(isOn: $isAutoRegion, label: {EmptyView()})
-                            .labelsHidden()
-                            .toggleStyle(UserInteractionStyle())
-                        Spacer()
-                    }
+                    Toggle(isOn: $isAutoRegion, label: {EmptyView()})
+                        .labelsHidden()
+                        .toggleStyle(UserInteractionStyle())
+                    Spacer()
                 }
             }
-        }
-    }
-}
-
-private struct CollapseButtonOverlay: View {
-    let action: () -> Void
-    let systemName: String
-    
-    var body: some View {
-        HStack {
-            Spacer()
-            Button {
-                action()
-            } label: {
-                Text(Image(systemName: systemName))
-                    .font(.callout)
-                    .foregroundColor(.accentColor)
-                    .padding(6)
-                    .background(
-                        Color
-                            .primary
-                            .opacity(0.75)
-                            .clipShape(RoundedRectangle(cornerRadius: 6)))
-            }
-            // Buttons in List-Rows are triggered all at once.
-            .buttonStyle(BorderlessButtonStyle())
         }
     }
 }
@@ -92,8 +60,10 @@ private struct UserInteractionStyle: ToggleStyle {
     }
 }
 
+#if DEBUG
 struct RunMapView_Previews: PreviewProvider {
     static var previews: some View {
         RunMapView(path: [PathService.PathElement]())
     }
 }
+#endif

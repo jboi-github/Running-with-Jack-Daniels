@@ -65,7 +65,9 @@ class RunService {
             config: bleConfig,
             asOf: asOf,
             transientFailedPeripheralUuid: nil)
-        
+
+        // TODO: Remember start of workout here
+
         // run optional after-start sequences
         isActiveProducer.afterStart()
         heartrateProducer.afterStart()
@@ -76,18 +78,21 @@ class RunService {
         producer?.aclProducer.stop()
         producer?.bleProducer.stop()
         producer?.gpsProducer.stop()
+        // TODO: End of workout. Add saving to healthkit here
     }
 
     func pause() {
         producer?.aclProducer.pause()
         producer?.bleProducer.pause()
         producer?.gpsProducer.pause()
+        // TODO: add beginning of workout-pause here
     }
 
     func resume() {
         producer?.aclProducer.resume()
         producer?.bleProducer.resume()
         producer?.gpsProducer.resume()
+        // TODO: add ending of workout-pause here
     }
 
     // MARK: Implementation
@@ -101,6 +106,7 @@ class RunService {
     private let intensityProducer = IntensityProducer()
 
     private func isActive(_ isActive: IsActiveProducer.IsActive) {
+        // TODO: Check for activity here to use with healthkit workout
         if configs.isEmpty {
             log(isActive)
         } else {

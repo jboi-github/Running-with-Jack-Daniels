@@ -13,6 +13,37 @@ private let intensityeOrder: [Intensity] = [
     .Cold, .Easy, .Long, .Marathon, .Threshold, .Interval, .Repetition
 ]
 
+extension IsActiveProducer.ActivityType: Identifiable {
+    var id: Self.RawValue {self.rawValue}
+}
+
+extension TotalsService.Total: ChartDataPoint {
+    var classifier: String {intensity.rawValue.capitalized}
+    var x: Double {durationSec}
+    var y: Double {Double(heartrateBpm)}
+    
+    func makeBody(
+        _ canvas: CGRect,
+        _ pos: CGPoint,
+        _ prevPos: CGPoint,
+        _ nearestPos: CGPoint)
+    -> some View
+    {
+        VStack {
+            MotionSymbolsView(
+                activityType: activityType,
+                intensity: intensity)
+
+            VdotText(vdot: vdot)
+        }
+        .font(.caption)
+        .foregroundColor(intensity.textColor)
+        .padding(4)
+        .background(Capsule().foregroundColor(intensity.color))
+        .offset(x: pos.x, y: pos.y)
+    }
+}
+
 /**
  Shows totals by motion type except paused.
  Two ways for visualisation within each motion type are possible:
@@ -27,13 +58,13 @@ struct RunTotalsView: View {
     let totals: [TotalsService.Total]
     
     var body: some View {
-        ForEach(activityTypeOrder.indices) {idx in
-            let totals = totals.filter {$0.activityType == activityTypeOrder[idx]}
+        ForEach(activityTypeOrder) {type in
+            let totals = totals.filter {$0.activityType == type}
             if !totals.isEmpty {
                 if graphical {
-                    RunTotalGraphicalView(motionType: activityTypeOrder[idx], totals: totals)
+                    RunTotalGraphicalView(motionType: type, totals: totals)
                 } else {
-                    RunTotalTableView(motionType: activityTypeOrder[idx], totals: totals)
+                    RunTotalTableView(motionType: type, totals: totals)
                 }
             }
         }
@@ -84,7 +115,7 @@ private struct RunTotalTableView: View {
                         }
                         .font(.body)
                         .lineLimit(1)
-                        .foregroundColor(Color(UIColor.systemGray6))
+                        .foregroundColor(total.intensity.textColor)
                         .padding(4)
                     }
                 }
@@ -96,14 +127,14 @@ private struct RunTotalTableView: View {
 
 private struct RunTotalGraphicalView: View {
     let motionType: IsActiveProducer.ActivityType
-    let totals: [TotalsService.Total]
+    let totals: Array<TotalsService.Total>.Prepared
     
     let totalDuration: TimeInterval
     let totalDistance: CLLocationDistance
 
     init(motionType: IsActiveProducer.ActivityType, totals: [TotalsService.Total]) {
         self.motionType = motionType
-        self.totals = totals
+        self.totals = totals.prepared(nx: 10, ny: 5)
         self.totalDuration = totals.map {$0.durationSec}.reduce(0.0, +)
         self.totalDistance = totals.map {$0.distanceM}.reduce(0.0, +)
     }
@@ -122,30 +153,13 @@ private struct RunTotalGraphicalView: View {
                 Spacer()
             }
             
-            // Canvas for bubbles
-            Color.red
-            .captureSize(in: $size)
-            .frame(height: size.width)
-            .overlay(
-                VStack {
-                    Spacer()
-                    HStack {
-                        Text("Distance").font(.caption).rotated()
-                            .background(Color.blue)
-                        Spacer()
-                    }
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Text("Duration").font(.caption).background(Color.yellow)
-                        Spacer()
-                    }
-                }
-            )
+            // Chart for bubbles
+            RunStandardChart(data: totals, xLabel: "Duration", yLabel: "Heartrate")
         }
     }
 }
 
+#if DEBUG
 struct RunTotalsView_Previews: PreviewProvider {
     static var previews: some View {
         RunTotalsView(graphical: false, totals: [
@@ -169,7 +183,7 @@ struct RunTotalsView_Previews: PreviewProvider {
                 activityType: .running,
                 intensity: .Marathon,
                 durationSec: 400,
-                distanceM: 1400,
+                distanceM: 1300,
                 heartrateBpm: 160,
                 paceSecPerKm: 400 / 1.4,
                 vdot: 34)
@@ -202,3 +216,4 @@ struct RunTotalsView_Previews: PreviewProvider {
         ])
     }
 }
+#endif

@@ -25,6 +25,7 @@ struct VdotText: View {
     var body: some View {Text(text)}
 }
 
+#if DEBUG
 struct VdotText_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -38,3 +39,4 @@ struct VdotText_Previews: PreviewProvider {
         }
     }
 }
+#endif

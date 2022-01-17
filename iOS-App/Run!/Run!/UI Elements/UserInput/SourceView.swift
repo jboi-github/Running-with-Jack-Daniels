@@ -30,6 +30,7 @@ struct SourceView<V>: View {
     }
 }
 
+#if DEBUG
 struct SourceView_Previews: PreviewProvider {
     static var previews: some View {
         HStack {
@@ -40,3 +41,4 @@ struct SourceView_Previews: PreviewProvider {
         }
     }
 }
+#endif

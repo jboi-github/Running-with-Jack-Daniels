@@ -26,6 +26,7 @@ struct PaceText: View {
     var body: some View {Text(text)}
 }
 
+#if DEBUG
 struct PaceText_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -48,3 +49,4 @@ struct PaceText_Previews: PreviewProvider {
         }
     }
 }
+#endif

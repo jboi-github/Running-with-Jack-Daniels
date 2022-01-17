@@ -156,12 +156,43 @@ struct GalleryView: View {
                                 .frame(width: sz.width, height: 1)
                                 .foregroundColor(Color(UIColor.systemGray4))
                         })
-                        .frame(width: 300, height: 300)
                         .background(Color(UIColor.systemGray6))
+                        .frame(width: 300, height: 300)
+                    
+                    RunStandardChart(data: preparedData, xLabel: "Duration", yLabel: "Distance")
+                        .frame(width: 300, height: 300)
                 }
                 
                 Section {
                     RunTotalsView(graphical: true, totals: [
+                        TotalsService.Total(
+                            activityType: .pause,
+                            intensity: .Cold,
+                            durationSec: 100,
+                            distanceM: 0,
+                            heartrateBpm: 100,
+                            paceSecPerKm: .nan,
+                            vdot: .nan),
+                        TotalsService.Total(
+                            activityType: .running,
+                            intensity: .Easy,
+                            durationSec: 500,
+                            distanceM: 1400,
+                            heartrateBpm: 150,
+                            paceSecPerKm: 500 / 1.4,
+                            vdot: 24),
+                        TotalsService.Total(
+                            activityType: .running,
+                            intensity: .Marathon,
+                            durationSec: 3500,
+                            distanceM: 1300,
+                            heartrateBpm: 160,
+                            paceSecPerKm: 1400 / 1.4,
+                            vdot: 34)
+                    ])
+                        .frame(width: 300, height: 400)
+                    
+                    RunTotalsView(graphical: false, totals: [
                         TotalsService.Total(
                             activityType: .pause,
                             intensity: .Cold,
@@ -432,14 +463,38 @@ struct GalleryView: View {
                     .padding()
                     .border(Color.gray)
                     HStack {
-                        Text(Image(systemName: "stop.fill")).foregroundColor(Intensity.Cold.color)
-                        Text(Image(systemName: "stop.fill")).foregroundColor(Intensity.Easy.color)
-                        Text(Image(systemName: "stop.fill")).foregroundColor(Intensity.Long.color)
-                        Text(Image(systemName: "stop.fill")).foregroundColor(Intensity.Marathon.color)
-                        Text(Image(systemName: "stop.fill")).foregroundColor(Intensity.Threshold.color)
-                        Text(Image(systemName: "stop.fill")).foregroundColor(Intensity.Interval.color)
-                        Text(Image(systemName: "stop.fill")).foregroundColor(Intensity.Repetition.color)
-                        Text(Image(systemName: "stop.fill")).foregroundColor(Intensity.Race.color)
+                        Text("I")
+                            .font(.largeTitle)
+                            .foregroundColor(Intensity.Cold.textColor)
+                            .background(Intensity.Cold.color)
+                        Text("E")
+                            .font(.largeTitle)
+                            .background(Intensity.Easy.color)
+                            .foregroundColor(Intensity.Easy.textColor)
+                        Text("L")
+                            .font(.largeTitle)
+                            .background(Intensity.Long.color)
+                            .foregroundColor(Intensity.Long.textColor)
+                        Text("M")
+                            .font(.largeTitle)
+                            .background(Intensity.Marathon.color)
+                            .foregroundColor(Intensity.Marathon.textColor)
+                        Text("T")
+                            .font(.largeTitle)
+                            .background(Intensity.Threshold.color)
+                            .foregroundColor(Intensity.Threshold.textColor)
+                        Text("I")
+                            .font(.largeTitle)
+                            .background(Intensity.Interval.color)
+                            .foregroundColor(Intensity.Interval.textColor)
+                        Text("R")
+                            .font(.largeTitle)
+                            .background(Intensity.Repetition.color)
+                            .foregroundColor(Intensity.Repetition.textColor)
+                        Text("C")
+                            .font(.largeTitle)
+                            .background(Intensity.Race.color)
+                            .foregroundColor(Intensity.Race.textColor)
                     }
                     .padding()
                     .border(Color.gray)
@@ -533,8 +588,10 @@ struct GalleryView: View {
     }
 }
 
+#if DEBUG
 struct GalleryView_Previews: PreviewProvider {
     static var previews: some View {
         GalleryView()
     }
 }
+#endif

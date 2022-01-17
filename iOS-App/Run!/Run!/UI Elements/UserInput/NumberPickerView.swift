@@ -80,6 +80,7 @@ struct NumberPickerView<Value: Equatable>: View {
     }
 }
 
+#if DEBUG
 struct NumberPickerView_Previews: PreviewProvider {
     static var previews: some View {
         NumberPickerView(
@@ -98,3 +99,4 @@ struct NumberPickerView_Previews: PreviewProvider {
                     writeToHealth: nil)))
     }
 }
+#endif

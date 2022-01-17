@@ -53,6 +53,7 @@ extension IsActiveProducer.ActivityType {
     }
 }
 
+#if DEBUG
 struct MotionSymbolsView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -71,3 +72,4 @@ struct MotionSymbolsView_Previews: PreviewProvider {
         }
     }
 }
+#endif

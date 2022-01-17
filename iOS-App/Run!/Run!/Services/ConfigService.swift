@@ -277,4 +277,12 @@ enum HealthKitHandling {
             healthstore.save(sample) {if check($1) {log(value, $0)}}
         }
     }
+    
+    static func authorizedShareWorkout(
+        totals: [TotalsService.Total],
+        path: [PathService.PathElement],
+        hrGraph: [HrGraphService.Heartrate])
+    {
+        
+    }
 }

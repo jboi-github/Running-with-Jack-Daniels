@@ -159,8 +159,8 @@ extension Array where Element: ChartDataPoint {
     /// As this function does a significant amount of number crunching, it should run when necessary.
     func prepared(nx: Int, ny: Int) -> Prepared {
         // Get ranges
-        let xRange = (self.min {$0.x < $1.x}!.x) ..< (self.max {$0.x < $1.x}!.x)
-        let yRange = (self.min {$0.y < $1.y}!.y) ..< (self.max {$0.y < $1.y}!.y)
+        let xRange = range((self.min {$0.x < $1.x}!.x), (self.max {$0.x < $1.x}!.x))
+        let yRange = range((self.min {$0.y < $1.y}!.y), (self.max {$0.y < $1.y}!.y))
         
         // Get sorted elements
         let sorted = self.sorted {$0.x == $1.x ? ($0.y > $1.y) : ($0.x < $1.x)}
@@ -198,6 +198,18 @@ extension Array where Element: ChartDataPoint {
             Chart.prettyTicks(for: yRange, n: ny),
             dataPoints
         )
+    }
+    
+    private func range(
+        _ lower: Double,
+        _ upper: Double,
+        spanPad: Double = 0.1,
+        minPad: Double = 1)
+    -> Range<Double>
+    {
+        var pad = (upper - lower) * spanPad
+        if pad < minPad {pad = minPad}
+        return (lower - pad) ..< (upper + pad)
     }
 }
 

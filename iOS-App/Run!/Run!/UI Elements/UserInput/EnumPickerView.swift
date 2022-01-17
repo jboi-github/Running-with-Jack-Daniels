@@ -56,6 +56,7 @@ where E:CaseIterable, E:Identifiable, E:Nicable,
     }
 }
 
+#if DEBUG
 struct EnumPickerView_Previews: PreviewProvider {
     enum X: String, Nicable, CaseIterable, Identifiable {
         case A, bdfdf, Cdf, Ddsd
@@ -76,3 +77,4 @@ struct EnumPickerView_Previews: PreviewProvider {
                     writeToHealth: nil)))
     }
 }
+#endif

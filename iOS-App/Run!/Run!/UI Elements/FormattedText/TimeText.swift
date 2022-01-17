@@ -41,6 +41,7 @@ struct TimeText: View {
     var body: some View {Text(text)}
 }
 
+#if DEBUG
 struct TimeText_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -69,3 +70,4 @@ struct TimeText_Previews: PreviewProvider {
         }
     }
 }
+#endif

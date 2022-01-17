@@ -143,9 +143,10 @@ extension MKCoordinateRegion {
     }
 }
 
+#if DEBUG
 struct MapView_Previews: PreviewProvider {
     static var previews: some View {
         MapView(path: [], isAutoRegion: true)
     }
 }
-
+#endif

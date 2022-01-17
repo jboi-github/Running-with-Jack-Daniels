@@ -14,8 +14,10 @@ struct RunView: View {
     }
 }
 
+#if DEBUG
 struct RunView_Previews: PreviewProvider {
     static var previews: some View {
         RunView()
     }
 }
+#endif

@@ -13,8 +13,10 @@ struct HrGraphView: View {
     }
 }
 
+#if DEBUG
 struct HrGraphView_Previews: PreviewProvider {
     static var previews: some View {
         HrGraphView()
     }
 }
+#endif

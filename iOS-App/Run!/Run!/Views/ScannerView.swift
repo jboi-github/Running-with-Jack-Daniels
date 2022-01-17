@@ -13,8 +13,10 @@ struct ScannerView: View {
     }
 }
 
+#if DEBUG
 struct ScannerView_Previews: PreviewProvider {
     static var previews: some View {
         ScannerView()
     }
 }
+#endif

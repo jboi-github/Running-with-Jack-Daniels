@@ -73,6 +73,7 @@
 		15CBED97277F584F00C6CA44 /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CBED96277F584F00C6CA44 /* ChartView.swift */; };
 		15CBED992780AF9500C6CA44 /* ChartAxisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CBED982780AF9500C6CA44 /* ChartAxisView.swift */; };
 		15CBED9B2780C11B00C6CA44 /* ChartCommons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CBED9A2780C11B00C6CA44 /* ChartCommons.swift */; };
+		15DD4D162792058600562874 /* RunStandardChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15DD4D152792058600562874 /* RunStandardChart.swift */; };
 		15F82CA527329E1B00AA5E70 /* HeartrateProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F82CA427329E1B00AA5E70 /* HeartrateProducer.swift */; };
 		15F82CAB2732EE8300AA5E70 /* PeripheralProducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F82CAA2732EE8300AA5E70 /* PeripheralProducer.swift */; };
 		15F82CAD2732F30700AA5E70 /* ConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F82CAC2732F30700AA5E70 /* ConfigService.swift */; };
@@ -172,6 +173,7 @@
 		15CBED96277F584F00C6CA44 /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
 		15CBED982780AF9500C6CA44 /* ChartAxisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartAxisView.swift; sourceTree = "<group>"; };
 		15CBED9A2780C11B00C6CA44 /* ChartCommons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartCommons.swift; sourceTree = "<group>"; };
+		15DD4D152792058600562874 /* RunStandardChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunStandardChart.swift; sourceTree = "<group>"; };
 		15F82CA427329E1B00AA5E70 /* HeartrateProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartrateProducer.swift; sourceTree = "<group>"; };
 		15F82CAA2732EE8300AA5E70 /* PeripheralProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralProducer.swift; sourceTree = "<group>"; };
 		15F82CAC2732F30700AA5E70 /* ConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigService.swift; sourceTree = "<group>"; };
@@ -423,6 +425,7 @@
 				15CBED96277F584F00C6CA44 /* ChartView.swift */,
 				15CBED982780AF9500C6CA44 /* ChartAxisView.swift */,
 				15CBED9A2780C11B00C6CA44 /* ChartCommons.swift */,
+				15DD4D152792058600562874 /* RunStandardChart.swift */,
 			);
 			path = Charts;
 			sourceTree = "<group>";
@@ -598,6 +601,7 @@
 				15B358C92748FE21001702D6 /* SourceView.swift in Sources */,
 				15F82CB1273B0CDD00AA5E70 /* RunService.swift in Sources */,
 				15CBED9B2780C11B00C6CA44 /* ChartCommons.swift in Sources */,
+				15DD4D162792058600562874 /* RunStandardChart.swift in Sources */,
 				155D27182731AD66007125CB /* SpeedProducer.swift in Sources */,
 				155D26DA2731A7C0007125CB /* RunTotalsView.swift in Sources */,
 				155D271A2731AD7A007125CB /* IntensityProducer.swift in Sources */,

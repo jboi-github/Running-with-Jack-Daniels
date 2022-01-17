@@ -27,6 +27,7 @@ struct ChartAxisView<Line: View, Label: View>: View {
     }
 }
 
+#if DEBUG
 struct ChartAxisView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -44,3 +45,4 @@ struct ChartAxisView_Previews: PreviewProvider {
         }
     }
 }
+#endif

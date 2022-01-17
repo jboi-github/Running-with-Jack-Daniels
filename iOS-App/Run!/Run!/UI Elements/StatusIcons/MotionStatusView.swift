@@ -36,6 +36,7 @@ struct MotionStatusView: View {
     }
 }
 
+#if DEBUG
 struct MotionStatusView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -58,3 +59,4 @@ struct MotionStatusView_Previews: PreviewProvider {
         }
     }
 }
+#endif

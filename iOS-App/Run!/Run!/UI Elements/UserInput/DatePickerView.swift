@@ -53,6 +53,7 @@ struct DatePickerView: View {
     }
 }
 
+#if DEBUG
 struct DatePickerView_Previews: PreviewProvider {
     static var previews: some View {
         DatePickerView(
@@ -66,3 +67,4 @@ struct DatePickerView_Previews: PreviewProvider {
                     writeToHealth: nil)))
     }
 }
+#endif

@@ -91,6 +91,7 @@ private struct GaugeNeedle: Shape {
     }
 }
 
+#if DEBUG
 struct HrLimitsView_Previews: PreviewProvider {
     static var previews: some View {
         HrLimitsView(
@@ -105,3 +106,4 @@ struct HrLimitsView_Previews: PreviewProvider {
                 .Interval: 165..<220])
     }
 }
+#endif

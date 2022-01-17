@@ -33,6 +33,7 @@ struct BleHrStatusView: View {
     }
 }
 
+#if DEBUG
 struct BleHrStatusView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -57,3 +58,4 @@ struct BleHrStatusView_Previews: PreviewProvider {
         }
     }
 }
+#endif

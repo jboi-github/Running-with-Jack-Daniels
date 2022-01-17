@@ -30,6 +30,7 @@ struct ResetButton<Value>: View {
     }
 }
 
+#if DEBUG
 struct ResetButton_Previews: PreviewProvider {
     static var previews: some View {
         ResetButton<Date>(attribute: ProfileService.Attribute<Date>(
@@ -41,3 +42,4 @@ struct ResetButton_Previews: PreviewProvider {
                 writeToHealth: nil)))
     }
 }
+#endif

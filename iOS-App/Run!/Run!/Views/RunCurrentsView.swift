@@ -40,6 +40,7 @@ struct RunCurrentsView: View {
     }
 }
 
+#if DEBUG
 struct RunCurrentsView_Previews: PreviewProvider {
     static var previews: some View {
         RunCurrentsView(
@@ -59,3 +60,4 @@ struct RunCurrentsView_Previews: PreviewProvider {
             activityType: .running)
     }
 }
+#endif

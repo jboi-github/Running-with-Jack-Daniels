@@ -135,6 +135,7 @@ private struct YTicks<YTick: View>: View {
     }
 }
 
+#if DEBUG
 struct ChartView_Previews: PreviewProvider {
     struct DP: ChartDataPoint {
         let classifier: String
@@ -203,3 +204,4 @@ struct ChartView_Previews: PreviewProvider {
             .background(Color(UIColor.systemGray6))
     }
 }
+#endif

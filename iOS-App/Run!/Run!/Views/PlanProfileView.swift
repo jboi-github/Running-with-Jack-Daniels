@@ -13,8 +13,10 @@ struct PlanProfileView: View {
     }
 }
 
+#if DEBUG
 struct PlanProfileView_Previews: PreviewProvider {
     static var previews: some View {
         PlanProfileView()
     }
 }
+#endif

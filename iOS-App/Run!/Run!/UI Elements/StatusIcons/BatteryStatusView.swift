@@ -29,8 +29,10 @@ struct BatteryStatusView: View {
     }
 }
 
+#if DEBUG
 struct BatteryStatusView_Previews: PreviewProvider {
     static var previews: some View {
         BatteryStatusView(status: 50)
     }
 }
+#endif

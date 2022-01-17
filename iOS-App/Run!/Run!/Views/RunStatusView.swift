@@ -34,6 +34,7 @@ struct RunStatusView: View {
     }
 }
 
+#if DEBUG
 struct RunStatusView_Previews: PreviewProvider {
     static var previews: some View {
         RunStatusView(
@@ -45,3 +46,4 @@ struct RunStatusView_Previews: PreviewProvider {
             hrGraph: [])
     }
 }
+#endif

@@ -13,8 +13,10 @@ struct PlanSeasonView: View {
     }
 }
 
+#if DEBUG
 struct PlanSeasonView_Previews: PreviewProvider {
     static var previews: some View {
         PlanSeasonView()
     }
 }
+#endif

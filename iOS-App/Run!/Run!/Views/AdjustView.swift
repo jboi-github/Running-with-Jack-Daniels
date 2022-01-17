@@ -13,8 +13,10 @@ struct AdjustView: View {
     }
 }
 
+#if DEBUG
 struct AdjustView_Previews: PreviewProvider {
     static var previews: some View {
         AdjustView()
     }
 }
+#endif

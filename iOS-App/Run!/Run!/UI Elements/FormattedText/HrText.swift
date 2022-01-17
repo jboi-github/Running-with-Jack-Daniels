@@ -23,6 +23,7 @@ struct HrText: View {
     var body: some View {Text(text)}
 }
 
+#if DEBUG
 struct HrText_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
@@ -34,3 +35,4 @@ struct HrText_Previews: PreviewProvider {
         }
     }
 }
+#endif
