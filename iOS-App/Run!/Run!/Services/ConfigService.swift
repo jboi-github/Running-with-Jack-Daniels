@@ -7,6 +7,7 @@
 
 import Foundation
 import HealthKit
+import CoreLocation
 
 enum PeripheralHandling {
     static var primaryUuid: UUID? {
@@ -279,10 +280,111 @@ enum HealthKitHandling {
     }
     
     static func authorizedShareWorkout(
-        totals: [TotalsService.Total],
+        mainType: IsActiveProducer.ActivityType,
+        start: Date, end: Date,
+        userPauses: [Range<Date>],
+        motionPauses: [Range<Date>],
+        distance: CLLocationDistance,
         path: [PathService.PathElement],
         hrGraph: [HrGraphService.Heartrate])
     {
-        
+        guard let hrType = HKObjectType.quantityType(forIdentifier: .heartRate) else {return}
+
+        authorized { success, healthstore in
+            guard success, let healthstore = healthstore else {return}
+            
+            // Get activity type
+            var activityType: HKWorkoutActivityType {
+                switch mainType {
+                case .walking:
+                    return .walking
+                case .running:
+                    return .running
+                case .cycling:
+                    return .cycling
+                default:
+                    return .other
+                }
+            }
+            
+            // Get events
+            var events: [HKWorkoutEvent] {
+                userPauses.map {
+                    HKWorkoutEvent(
+                        type: .pause,
+                        dateInterval: DateInterval(start: $0.lowerBound, duration: 0),
+                        metadata: nil)
+                } +
+                userPauses.map {
+                    HKWorkoutEvent(
+                        type: .resume,
+                        dateInterval: DateInterval(start: $0.upperBound, duration: 0),
+                        metadata: nil)
+                } +
+                motionPauses.map {
+                    HKWorkoutEvent(
+                        type: .motionPaused,
+                        dateInterval: DateInterval(start: $0.lowerBound, duration: 0),
+                        metadata: nil)
+                } +
+                motionPauses.map {
+                    HKWorkoutEvent(
+                        type: .motionResumed,
+                        dateInterval: DateInterval(start: $0.upperBound, duration: 0),
+                        metadata: nil)
+                }
+            }
+            
+            // Get heartrate samples
+            var hrSamples: [HKQuantitySample] {
+                hrGraph.compactMap { heartrate in
+                    guard let hr = heartrate.heartrate else {return nil}
+                    
+                    return HKQuantitySample(
+                        type: hrType,
+                        quantity: HKQuantity(unit: HKUnit(from: "count/min"), doubleValue: Double(hr)),
+                        start: heartrate.range.lowerBound,
+                        end: heartrate.range.upperBound)
+                }
+            }
+            
+            // Get locations
+            var route: [CLLocation] {
+                path.flatMap { item -> [CLLocation] in
+                    if let isActive = item.isActive?.isActive, isActive {
+                        return item.locations
+                    } else if let avgLocation = item.avgLocation {
+                        return [avgLocation]
+                    } else {
+                        return []
+                    }
+                }
+            }
+            
+            // Save Workout
+            let workout = HKWorkout(
+                activityType: activityType,
+                start: start, end: end,
+                workoutEvents: events,
+                totalEnergyBurned: nil,
+                totalDistance: HKQuantity(unit: HKUnit.meter(), doubleValue: distance),
+                device: nil,
+                metadata: nil)
+            
+            healthstore.save(workout) {guard $0, check($1) else {return}}
+            
+            // Save Route
+            let routeBuilder = HKWorkoutRouteBuilder(healthStore: healthstore, device: nil)
+            routeBuilder.insertRouteData(route) { success, error in
+                guard success, check(error) else {return}
+                
+                routeBuilder.finishRoute(with: workout, metadata: nil) { route, error in
+                    guard route != nil, check(error) else {return}
+                }
+            }
+            
+            // Save heartrates
+            healthstore.add(hrSamples, to: workout) {guard $0, check($1) else {return}}
+        }
     }
 }
