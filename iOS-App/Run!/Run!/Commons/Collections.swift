@@ -64,3 +64,8 @@ extension HashedIdentifiable {
     static func == (lhs: Self, rhs: Self) -> Bool {lhs.id == rhs.id}
     func hash(into hasher: inout Hasher) {hasher.combine(id)}
 }
+
+// MARK: to array
+extension Sequence {
+    func array() -> [Element] {Array(self)}
+}

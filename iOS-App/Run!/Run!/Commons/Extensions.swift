@@ -167,3 +167,14 @@ extension Double {
         return self * cnt + with * (1 - cnt)
     }
 }
+
+extension String: Identifiable {
+    public var id: Self {self}
+}
+
+extension CGSize {
+    static func *= (lhs: inout Self, rhs: CGFloat) {
+        lhs.width *= rhs
+        lhs.height *= rhs
+    }
+}

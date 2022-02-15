@@ -14,24 +14,46 @@ class CurrentsService: ObservableObject {
         RunService.sharedInstance.subscribe(
             RunService.Config(
                 motion: nil,
-                aclStatus: {
-                    self.aclStatus = $0
-                    if case .started = $0 {self.reset()}
+                aclStatus: { status in
+                    DispatchQueue.main.async {
+                        self.aclStatus = status
+                        if case .started = status {self.reset()}
+                    }
                 },
                 location: nil,
-                gpsStatus: {
-                    self.gpsStatus = $0
-                    if case .started = $0 {self.reset()}
+                gpsStatus: { status in
+                    DispatchQueue.main.async {
+                        self.gpsStatus = status
+                        if case .started = status {self.reset()}
+                    }
                 },
-                heartrate: {self.heartrate = $0},
+                heartrate: { heartrate in
+                    DispatchQueue.main.async {
+                        self.heartrate = heartrate
+                    }
+                },
                 bodySensorLocation: nil,
-                bleStatus: {
-                    self.bleStatus = $0
-                    if case .started = $0 {self.reset()}
+                bleStatus: { status in
+                    DispatchQueue.main.async {
+                        self.bleStatus = status
+                        if case .started = status {self.reset()}
+                    }
                 },
-                isActive: {self.isActive = $0},
-                speed: {self.speed = $0},
-                intensity: {self.intensity = $0}))
+                isActive: { isActive in
+                    DispatchQueue.main.async {
+                        self.isActive = isActive
+                    }
+                },
+                speed: { speed in
+                    DispatchQueue.main.async {
+                        self.speed = speed
+                    }
+                },
+                intensity: { intensity in
+                    DispatchQueue.main.async {
+                        self.intensity = intensity
+                    }
+                }))
     }
     
     // MARK: - Interface

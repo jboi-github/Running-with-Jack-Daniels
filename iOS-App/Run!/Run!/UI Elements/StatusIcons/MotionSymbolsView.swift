@@ -12,10 +12,10 @@ struct MotionSymbolsView: View {
     let intensity: Intensity
 
     var body: some View {
-        Text(Image(systemName: getSystemName()))
+        Text(Image(systemName: motionSymbolName))
     }
     
-    private func getSystemName() -> String {
+    private var motionSymbolName: String {
         switch activityType {
         case .pause:
             switch intensity {

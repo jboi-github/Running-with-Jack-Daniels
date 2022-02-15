@@ -9,6 +9,7 @@ import Foundation
 import CoreBluetooth
 import CoreLocation
 import CoreMotion
+import SwiftUI
 
 /// One Service for all serives and data to be delivered within the RunView
 class RunService {
@@ -45,6 +46,9 @@ class RunService {
     func unsubscribe(_ config: Config) {configs.remove(config)}
 
     func start(producer: Producer, asOf: Date) {
+        guard scenePhase == .stopped else {return}
+        scenePhase = .started
+        
         self.producer = producer
 
         // Start acl producer, isActiveProducer
@@ -66,7 +70,8 @@ class RunService {
             asOf: asOf,
             transientFailedPeripheralUuid: nil)
 
-        // TODO: Remember start of workout here
+        // Remember start of workout
+        HealthKitService.sharedInstance.start(asOf: asOf)
 
         // run optional after-start sequences
         isActiveProducer.afterStart()
@@ -74,28 +79,49 @@ class RunService {
         intensityProducer.afterStart()
     }
 
-    func stop() {
+    func stop(asOf: Date) {
+        guard scenePhase == .started else {return}
+        scenePhase = .stopped
+        
         producer?.aclProducer.stop()
         producer?.bleProducer.stop()
         producer?.gpsProducer.stop()
-        // TODO: End of workout. Add saving to healthkit here
+        
+        // End of workout. Save to healthkit
+        HealthKitService.sharedInstance.stop(asOf: asOf)
     }
 
-    func pause() {
+    func pause(asOf: Date) {
+        guard scenePhase == .started else {return}
+        scenePhase = .paused
+        
         producer?.aclProducer.pause()
         producer?.bleProducer.pause()
         producer?.gpsProducer.pause()
-        // TODO: add beginning of workout-pause here
+
+        // Beginning of workout-pause
+        HealthKitService.sharedInstance.pause(asOf: asOf)
     }
 
-    func resume() {
+    func resume(asOf: Date) {
+        guard scenePhase == .paused else {return}
+        scenePhase = .started
+        
         producer?.aclProducer.resume()
         producer?.bleProducer.resume()
         producer?.gpsProducer.resume()
-        // TODO: add ending of workout-pause here
+        
+        // Ending of workout-pause
+        HealthKitService.sharedInstance.resume(asOf: asOf)
     }
 
     // MARK: Implementation
+    
+    private enum ScenePhase {
+        case stopped, started, paused
+    }
+    
+    private var scenePhase: ScenePhase = .stopped
     
     private var configs = Set<Config>()
     private var producer: Producer?
@@ -106,7 +132,13 @@ class RunService {
     private let intensityProducer = IntensityProducer()
 
     private func isActive(_ isActive: IsActiveProducer.IsActive) {
-        // TODO: Check for activity here to use with healthkit workout
+        // Change of activity
+        if isActive.isActive {
+            HealthKitService.sharedInstance.motionResume(asOf: isActive.timestamp)
+        } else {
+            HealthKitService.sharedInstance.motionPause(asOf: isActive.timestamp)
+        }
+
         if configs.isEmpty {
             log(isActive)
         } else {

@@ -282,11 +282,13 @@ enum HealthKitHandling {
     static func authorizedShareWorkout(
         mainType: IsActiveProducer.ActivityType,
         start: Date, end: Date,
-        userPauses: [Range<Date>],
-        motionPauses: [Range<Date>],
+        userPauses: [Date],
+        userResumes: [Date],
+        motionPauses: [Date],
+        motionResumes: [Date],
         distance: CLLocationDistance,
-        path: [PathService.PathElement],
-        hrGraph: [HrGraphService.Heartrate])
+        route: [CLLocation],
+        heartrates: [(time: Range<Date>, heartrate: Int)])
     {
         guard let hrType = HKObjectType.quantityType(forIdentifier: .heartRate) else {return}
 
@@ -334,30 +336,17 @@ enum HealthKitHandling {
                         metadata: nil)
                 }
             }
-            
+
             // Get heartrate samples
             var hrSamples: [HKQuantitySample] {
-                hrGraph.compactMap { heartrate in
-                    guard let hr = heartrate.heartrate else {return nil}
-                    
+                heartrates.compactMap { hr in
                     return HKQuantitySample(
                         type: hrType,
-                        quantity: HKQuantity(unit: HKUnit(from: "count/min"), doubleValue: Double(hr)),
-                        start: heartrate.range.lowerBound,
-                        end: heartrate.range.upperBound)
-                }
-            }
-            
-            // Get locations
-            var route: [CLLocation] {
-                path.flatMap { item -> [CLLocation] in
-                    if let isActive = item.isActive?.isActive, isActive {
-                        return item.locations
-                    } else if let avgLocation = item.avgLocation {
-                        return [avgLocation]
-                    } else {
-                        return []
-                    }
+                        quantity: HKQuantity(
+                            unit: HKUnit(from: "count/min"),
+                            doubleValue: Double(hr.heartrate)),
+                        start: hr.time.lowerBound,
+                        end: hr.time.upperBound)
                 }
             }
             

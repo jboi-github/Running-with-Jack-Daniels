@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		15106FBF279816C8009B9886 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15106FBE279816C8009B9886 /* HealthKitService.swift */; };
+		15106FC1279DBC11009B9886 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15106FC0279DBC11009B9886 /* LockScreenView.swift */; };
 		155D269E2731A580007125CB /* Run_App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155D269D2731A580007125CB /* Run_App.swift */; };
 		155D26A22731A595007125CB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 155D26A12731A595007125CB /* Assets.xcassets */; };
 		155D26A52731A595007125CB /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 155D26A42731A595007125CB /* Preview Assets.xcassets */; };
@@ -69,6 +71,10 @@
 		15B358CD27496852001702D6 /* EnumPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358CC27496852001702D6 /* EnumPickerView.swift */; };
 		15B358D2274A67E8001702D6 /* NavigationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358D1274A67E8001702D6 /* NavigationView.swift */; };
 		15B358D4274AA40B001702D6 /* IntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358D3274AA40B001702D6 /* IntegrationTests.swift */; };
+		15C7F48627A08B1E00B09AB0 /* PrimaryIgnoredToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C7F48527A08B1E00B09AB0 /* PrimaryIgnoredToggle.swift */; };
+		15C7F48827A09FFB00B09AB0 /* PeripheralStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C7F48727A09FFB00B09AB0 /* PeripheralStatusView.swift */; };
+		15C7F48A27A0A68C00B09AB0 /* PeripheralRssiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C7F48927A0A68C00B09AB0 /* PeripheralRssiView.swift */; };
+		15C7F48C27A324A700B09AB0 /* BodysensorLocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C7F48B27A324A700B09AB0 /* BodysensorLocationView.swift */; };
 		15CBED94277CBBE100C6CA44 /* ObservableTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CBED922778D7DE00C6CA44 /* ObservableTestView.swift */; };
 		15CBED97277F584F00C6CA44 /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CBED96277F584F00C6CA44 /* ChartView.swift */; };
 		15CBED992780AF9500C6CA44 /* ChartAxisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CBED982780AF9500C6CA44 /* ChartAxisView.swift */; };
@@ -100,6 +106,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		15106FBE279816C8009B9886 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		15106FC0279DBC11009B9886 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenView.swift; sourceTree = "<group>"; };
 		153D0B7727581EA3008AA479 /* Run!.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Run!.xctestplan"; path = "Run!.xcodeproj/Run!.xctestplan"; sourceTree = "<group>"; };
 		155D269A2731A580007125CB /* Run!.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Run!.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		155D269D2731A580007125CB /* Run_App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Run_App.swift; sourceTree = "<group>"; };
@@ -169,6 +177,10 @@
 		15B358D1274A67E8001702D6 /* NavigationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationView.swift; sourceTree = "<group>"; };
 		15B358D3274AA40B001702D6 /* IntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
 		15B358D727511D6B001702D6 /* TestPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestPlan.xctestplan; sourceTree = "<group>"; };
+		15C7F48527A08B1E00B09AB0 /* PrimaryIgnoredToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryIgnoredToggle.swift; sourceTree = "<group>"; };
+		15C7F48727A09FFB00B09AB0 /* PeripheralStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralStatusView.swift; sourceTree = "<group>"; };
+		15C7F48927A0A68C00B09AB0 /* PeripheralRssiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralRssiView.swift; sourceTree = "<group>"; };
+		15C7F48B27A324A700B09AB0 /* BodysensorLocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodysensorLocationView.swift; sourceTree = "<group>"; };
 		15CBED922778D7DE00C6CA44 /* ObservableTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservableTestView.swift; sourceTree = "<group>"; };
 		15CBED96277F584F00C6CA44 /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
 		15CBED982780AF9500C6CA44 /* ChartAxisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartAxisView.swift; sourceTree = "<group>"; };
@@ -208,6 +220,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		15106FC2279F1F20009B9886 /* RunViews */ = {
+			isa = PBXGroup;
+			children = (
+				155D26CF2731A763007125CB /* RunView.swift */,
+				1565EF3B2773C7F9008C0730 /* RunStatusView.swift */,
+				155D26D72731A7B1007125CB /* RunCurrentsView.swift */,
+				155D26D92731A7C0007125CB /* RunTotalsView.swift */,
+				155D26D52731A79C007125CB /* RunMapView.swift */,
+			);
+			path = RunViews;
+			sourceTree = "<group>";
+		};
 		155D26912731A580007125CB = {
 			isa = PBXGroup;
 			children = (
@@ -325,6 +349,7 @@
 				155D26FF2731AB33007125CB /* TotalsService.swift */,
 				15F82CB0273B0CDD00AA5E70 /* RunService.swift */,
 				155D26FD2731AB20007125CB /* ScannerService.swift */,
+				15106FBE279816C8009B9886 /* HealthKitService.swift */,
 				155D270B2731AC70007125CB /* ProfileService.swift */,
 				15F82CAC2732F30700AA5E70 /* ConfigService.swift */,
 			);
@@ -352,11 +377,7 @@
 				155D26DB2731A7D1007125CB /* PlanProfileView.swift */,
 				155D26DD2731A7EC007125CB /* PlanSeasonView.swift */,
 				155D26DF2731A80D007125CB /* PlanWorkoutView.swift */,
-				155D26CF2731A763007125CB /* RunView.swift */,
-				1565EF3B2773C7F9008C0730 /* RunStatusView.swift */,
-				155D26D72731A7B1007125CB /* RunCurrentsView.swift */,
-				155D26D92731A7C0007125CB /* RunTotalsView.swift */,
-				155D26D52731A79C007125CB /* RunMapView.swift */,
+				15106FC2279F1F20009B9886 /* RunViews */,
 				155D26D32731A785007125CB /* AdjustView.swift */,
 				155D27072731ABE9007125CB /* ScannerView.swift */,
 				155D26CD2731A753007125CB /* GalleryView.swift */,
@@ -403,6 +424,9 @@
 				155D271B2731ADE8007125CB /* MotionSymbolsView.swift */,
 				155D27092731AC23007125CB /* BatteryStatusView.swift */,
 				155D26F52731A9F9007125CB /* IntensityColors.swift */,
+				15C7F48727A09FFB00B09AB0 /* PeripheralStatusView.swift */,
+				15C7F48927A0A68C00B09AB0 /* PeripheralRssiView.swift */,
+				15C7F48B27A324A700B09AB0 /* BodysensorLocationView.swift */,
 			);
 			path = StatusIcons;
 			sourceTree = "<group>";
@@ -415,6 +439,8 @@
 				15B358CC27496852001702D6 /* EnumPickerView.swift */,
 				15B358C82748FE21001702D6 /* SourceView.swift */,
 				15B358CA274944A1001702D6 /* ResetButton.swift */,
+				15106FC0279DBC11009B9886 /* LockScreenView.swift */,
+				15C7F48527A08B1E00B09AB0 /* PrimaryIgnoredToggle.swift */,
 			);
 			path = UserInput;
 			sourceTree = "<group>";
@@ -569,6 +595,7 @@
 				155D271C2731ADE8007125CB /* MotionSymbolsView.swift in Sources */,
 				155D270C2731AC70007125CB /* ProfileService.swift in Sources */,
 				15F82CA527329E1B00AA5E70 /* HeartrateProducer.swift in Sources */,
+				15C7F48C27A324A700B09AB0 /* BodysensorLocationView.swift in Sources */,
 				155D27242731AFC8007125CB /* Views.swift in Sources */,
 				155D26CE2731A753007125CB /* GalleryView.swift in Sources */,
 				155D27142731AD1F007125CB /* GpsProducer.swift in Sources */,
@@ -589,8 +616,10 @@
 				155D26F02731A94B007125CB /* BleHrStatusView.swift in Sources */,
 				155D26D62731A79C007125CB /* RunMapView.swift in Sources */,
 				15CBED992780AF9500C6CA44 /* ChartAxisView.swift in Sources */,
+				15106FC1279DBC11009B9886 /* LockScreenView.swift in Sources */,
 				155D26F62731A9F9007125CB /* IntensityColors.swift in Sources */,
 				15CBED97277F584F00C6CA44 /* ChartView.swift in Sources */,
+				15106FBF279816C8009B9886 /* HealthKitService.swift in Sources */,
 				155D27002731AB34007125CB /* TotalsService.swift in Sources */,
 				155D270E2731ACBF007125CB /* RunningFormulas.swift in Sources */,
 				155D27082731ABE9007125CB /* ScannerView.swift in Sources */,
@@ -599,11 +628,13 @@
 				155D27062731AB7C007125CB /* HrGraphService.swift in Sources */,
 				155D27122731AD0E007125CB /* BleProducer.swift in Sources */,
 				15B358C92748FE21001702D6 /* SourceView.swift in Sources */,
+				15C7F48A27A0A68C00B09AB0 /* PeripheralRssiView.swift in Sources */,
 				15F82CB1273B0CDD00AA5E70 /* RunService.swift in Sources */,
 				15CBED9B2780C11B00C6CA44 /* ChartCommons.swift in Sources */,
 				15DD4D162792058600562874 /* RunStandardChart.swift in Sources */,
 				155D27182731AD66007125CB /* SpeedProducer.swift in Sources */,
 				155D26DA2731A7C0007125CB /* RunTotalsView.swift in Sources */,
+				15C7F48627A08B1E00B09AB0 /* PrimaryIgnoredToggle.swift in Sources */,
 				155D271A2731AD7A007125CB /* IntensityProducer.swift in Sources */,
 				155D26E22731A8B1007125CB /* PaceText.swift in Sources */,
 				1565EF3C2773C7F9008C0730 /* RunStatusView.swift in Sources */,
@@ -611,6 +642,7 @@
 				155D26D82731A7B1007125CB /* RunCurrentsView.swift in Sources */,
 				155D26E82731A8ED007125CB /* DistanceText.swift in Sources */,
 				15F82CAF27383D6200AA5E70 /* IsActiveProducer.swift in Sources */,
+				15C7F48827A09FFB00B09AB0 /* PeripheralStatusView.swift in Sources */,
 				155D26D22731A770007125CB /* PlanView.swift in Sources */,
 				15B358D2274A67E8001702D6 /* NavigationView.swift in Sources */,
 				155D26EE2731A937007125CB /* GpsStatusView.swift in Sources */,
@@ -714,7 +746,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -769,7 +801,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -792,11 +824,15 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Run--Info.plist";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Scan for and connect to heartrate monitor.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Die muss ich lesen um zu verstehen";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Es ist einfachbesser so. Vielen Dank für die Aufmerksamkeit";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "GPS is required to measure speed and distance - and also to show you your path on a map";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Detect the kind of training like walking, runnning or cycling. Also detect pauses. ";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
@@ -826,11 +862,15 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Run--Info.plist";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Scan for and connect to heartrate monitor.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Die muss ich lesen um zu verstehen";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Es ist einfachbesser so. Vielen Dank für die Aufmerksamkeit";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "GPS is required to measure speed and distance - and also to show you your path on a map";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Detect the kind of training like walking, runnning or cycling. Also detect pauses. ";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;

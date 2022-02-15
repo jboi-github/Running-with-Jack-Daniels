@@ -28,30 +28,70 @@ class ScannerService: ObservableObject {
     @Published private(set) var peripherals = [UUID: Peripheral]()
     @Published private(set) var status = BleProducer.Status.stopped
     
-    func start(producer: BleProducerProtocol) {
-        peripherals.removeAll()
-        PeripheralHandling.ignoredUuids.forEach {peripherals[$0] = Peripheral(id: $0)}
+    func start(producer: BleProducerProtocol, asOf: Date) {
+        self.producer = producer
         
+        peripherals.removeAll()
+        if let primaryUuid = PeripheralHandling.primaryUuid {
+            peripherals[primaryUuid] = Peripheral(id: primaryUuid)
+        }
+        PeripheralHandling.ignoredUuids.forEach {peripherals[$0] = Peripheral(id: $0)}
+
         let config = PeripheralProducer().config(
             discoveredPeripheral: discoveredPeripheral,
             failedPeripheral: failedPeripheral,
             rssi: rssi,
             bodySensorLocation: bodySensorLocation,
             status: status)
-        producer.start(config: config, asOf: Date(), transientFailedPeripheralUuid: nil)
+        producer.start(config: config, asOf: asOf, transientFailedPeripheralUuid: nil)
     }
     
-    func stop(producer: BleProducerProtocol) {
-        producer.stop()
+    func stop() {
+        producer?.stop()
     }
-    func pause(producer: BleProducerProtocol) {
-        producer.pause()
+    func pause() {
+        producer?.pause()
     }
-    func resume(producer: BleProducerProtocol) {
-        producer.resume()
+    func resume() {
+        producer?.resume()
+    }
+    
+    static func sort(peripherals: [UUID: Peripheral]) -> [Peripheral] {
+        var result = [Peripheral]()
+        
+        // Primary first
+        if let primaryUuid = PeripheralHandling.primaryUuid, let primary = peripherals[primaryUuid] {
+            result.append(primary)
+        }
+
+        // Descending by RSSI. RSSI = nil at end
+        result.append(
+            contentsOf: peripherals
+                .values
+                .filter {
+                    if let primaryUuid = PeripheralHandling.primaryUuid {
+                        return $0.id != primaryUuid
+                    }
+                    return true
+                }
+                .sorted {
+                    if $0.rssi.isFinite && $1.rssi.isFinite {
+                        return $0.rssi >= $1.rssi
+                    } else if $0.rssi.isFinite {
+                        return true
+                    } else if $1.rssi.isFinite {
+                        return false
+                    } else {
+                        return true
+                    }
+                })
+
+        return result
     }
 
     // MARK: - Implementation
+    
+    private var producer: BleProducerProtocol?
 
     // MARK: Connect to PeripheralProducer
     private func discoveredPeripheral(_ peripheral: CBPeripheral) {

@@ -263,8 +263,8 @@ class CommonsTests: XCTestCase {
         
         let result = (dps1 + dps2).shuffled().prepared(nx: 10, ny: 5)
         
-        XCTAssertEqual(result.xPrettyTicks, Chart.prettyTicks(for: -10.0 ..< 15, n: 10))
-        XCTAssertEqual(result.yPrettyTicks, Chart.prettyTicks(for: -30.0 ..< 45.0, n: 5))
+        XCTAssertEqual(result.xPrettyTicks, [-15.0, -10.0, -5.0, 0.0, 5.0, 10.0, 15.0, 20.0])
+        XCTAssertEqual(result.yPrettyTicks, [-40.0, -20.0, 0.0, 20.0, 40.0, 60.0])
 
         XCTAssertEqual(result.dps.map {Double($0.dataPoint.x)}, expected.map {$0.0})
         XCTAssertEqual(result.dps.map {Double($0.dataPoint.y)}, expected.map {$0.1})

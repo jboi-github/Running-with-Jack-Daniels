@@ -119,7 +119,7 @@ struct GalleryView: View {
             writeToStore: {log($0, $1)},
             writeToHealth: nil))
 
-    @State private var darkScheme: Bool = false
+    @State private var darkScheme: Bool = true
     @State private var hr: Double = 100
     
     var body: some View {
@@ -246,7 +246,23 @@ struct GalleryView: View {
                         distance: 10400,
                         pace: 550,
                         vdot: 23.4,
-                        activityType: .running)
+                        activityType: .running,
+                        status: .started(asOf: Date()),
+                        peripheralName: "Hello World",
+                        batteryStatus: 50)
+                    
+                    RunCurrentsView(
+                        hr: 100,
+                        intensity: .Easy,
+                        intensities: nil,
+                        duration: 3600+550,
+                        distance: 10400,
+                        pace: 550,
+                        vdot: 23.4,
+                        activityType: .cycling,
+                        status: .started(asOf: Date()),
+                        peripheralName: UUID().uuidString,
+                        batteryStatus: 50)
                 }
                 Section {
                     VStack {
@@ -260,7 +276,9 @@ struct GalleryView: View {
                 .frame(height: 200)
 
                 Section {
-                    RunMapView(path: [])
+                    RunMapView(path: [], status: .notAuthorized(asOf: Date()))
+                        .background(Color.primary.colorInvert())
+                    RunMapView(path: [], status: .started(asOf: Date()))
                         .background(Color.primary.colorInvert())
                 }
                 .frame(height: 400)
@@ -585,6 +603,7 @@ struct GalleryView: View {
             .animation(.default)
             .colorScheme(darkScheme ? .dark : .light)
         }
+        .navigationBarTitle("", displayMode: .inline)
     }
 }
 

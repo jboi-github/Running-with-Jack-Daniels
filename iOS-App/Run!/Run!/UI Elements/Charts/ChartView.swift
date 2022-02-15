@@ -23,11 +23,18 @@ struct ChartView<DataPoint: ChartDataPoint, Line: View, Label: View, XTick: View
         self.xTick = xTick
         self.yTick = yTick
         
-        self.dataRect = CGRect(
-            x: preparedData.xPrettyTicks.first!, y: preparedData.yPrettyTicks.first!,
-            width: preparedData.xPrettyTicks.last! - preparedData.xPrettyTicks.first!,
-            height:  preparedData.yPrettyTicks.last! - preparedData.yPrettyTicks.first!)
-
+        if let xFirst = preparedData.xPrettyTicks.first,
+           let xLast = preparedData.xPrettyTicks.last,
+           let yFirst = preparedData.yPrettyTicks.first,
+           let yLast = preparedData.yPrettyTicks.last
+        {
+            self.dataRect = CGRect(
+                x: xFirst, y: yFirst,
+                width: xLast - xFirst,
+                height: yLast - yFirst)
+        } else {
+            self.dataRect = .zero
+        }
     }
     
     let preparedData: Array<DataPoint>.Prepared
@@ -67,7 +74,7 @@ struct ChartView<DataPoint: ChartDataPoint, Line: View, Label: View, XTick: View
                                 dataRect: dataRect,
                                 canvasRect: canvasRect,
                                 xTick: xTick)
-                            
+
                             YTicks(
                                 prettyTicks: preparedData.yPrettyTicks,
                                 dataRect: dataRect,

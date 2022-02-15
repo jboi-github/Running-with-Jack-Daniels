@@ -24,9 +24,9 @@ struct RunStatusView: View {
             MotionStatusView(status: aclStatus, intensity: intensity)
             BleHrStatusView(status: bleStatus, graphHasLength: !hrGraph.isEmpty)
             GpsStatusView(status: gpsStatus, pathHasLength: !gpsPath.isEmpty)
-            BatteryStatusView(status: 50)
         }
         .font(.caption)
+        .scaleEffect(0.75)
         .onTapGesture {
             guard let url = URL(string: UIApplication.openSettingsURLString) else {return}
             UIApplication.shared.open(url)

@@ -68,6 +68,8 @@ struct RunStandardChart_Previews: PreviewProvider {
     private static let preparedData = stride(from: -10, to: 15, by: 1)
         .map {DP(classifier: "Sinus", x: $0, y: $0 * sin($0 * .pi / 8))}
         .prepared(nx: 10, ny: 5)
+    
+    private static let preparedEmpty = [DP]().prepared(nx: 10, ny: 5)
 
     static var previews: some View {
         RunStandardChart(data: preparedData, xLabel: "Duration", yLabel: "Distance")

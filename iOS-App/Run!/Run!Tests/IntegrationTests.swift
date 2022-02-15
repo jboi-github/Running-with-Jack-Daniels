@@ -19,9 +19,6 @@ import CoreLocation
 // DONE: In Acl-only data, missing about 100 seconds of initial .unknown in totals
 // DONE: Keep hr limits dynamic
 // DONE: Some vdots are nan even with all other values given
-// TODO: (Next week) Add performance tests
-// TODO: (Next week) Create UI Tests from Gallery. Try TDD approach.
-// TODO: (Next week) Add more UI-Elements and views
 
 class IntegrationTests: XCTestCase {
 
@@ -249,7 +246,7 @@ class IntegrationTests: XCTestCase {
         }
         
         // The end
-        RunService.sharedInstance.stop()
+        RunService.sharedInstance.stop(asOf: .distantFuture)
         try work(Date.distantFuture.timeIntervalSince1970)
     }
     
@@ -312,13 +309,13 @@ class IntegrationTests: XCTestCase {
         XCTAssertEqual(x1.map {$0.value.duration}.sorted(), x2.map {$0.value.duration}.sorted())
         
         // Does read/write work?
-        RunService.sharedInstance.pause() // save
+        RunService.sharedInstance.pause(asOf: .distantFuture) // save
         
         let x3 = HrGraphService.sharedInstance.graph
         (BP.sharedInstance as! BP).inject(heartrate: 0x30, at: Date(timeIntervalSince1970: 2000))
         XCTAssertNotEqual(x3.count, HrGraphService.sharedInstance.graph.count) // changed
         
-        RunService.sharedInstance.resume() // restore
+        RunService.sharedInstance.resume(asOf: .distantFuture) // restore
         XCTAssertEqual(
             HrGraphService.sharedInstance.graph.compactMap {$0.heartrate},
             [48, 64, 64, 160, 240, 240])
@@ -444,7 +441,7 @@ class IntegrationTests: XCTestCase {
         XCTAssertEqual(p1.avgLocation?.coordinate.longitude, 2.5)
         
         // Does read/write work?
-        RunService.sharedInstance.pause()
+        RunService.sharedInstance.pause(asOf: .distantFuture)
         let x3 = PathService.sharedInstance.path
         (GP.sharedInstance as! GP).inject(CLLocation(
             coordinate: CLLocationCoordinate2D(
@@ -465,7 +462,7 @@ class IntegrationTests: XCTestCase {
         XCTAssertNotEqual(
             x3.map {$0.locations.count},
             PathService.sharedInstance.path.map {$0.locations.count})
-        RunService.sharedInstance.resume()
+        RunService.sharedInstance.resume(asOf: .distantFuture)
         XCTAssertEqual(
             PathService.sharedInstance.path.compactMap {$0.isActive?.isActive},
             [false, true, false, true, false])

@@ -42,7 +42,8 @@ private extension MKMapView {
                 guard let isActive = $0.isActive else {return}
                 
                 if isActive.isActive {
-                    let path = $0.locations.map {$0.coordinate}
+                    let path = $0.locations.map({$0.coordinate})
+                    guard !path.isEmpty else {return}
                     
                     // Each path as a colored line
                     addOverlay(
@@ -56,9 +57,15 @@ private extension MKMapView {
                         ColoredCircleOverlay(
                             center: avgLocation.coordinate,
                             radius: max(avgLocation.horizontalAccuracy, 3),
-                            color: isActive.type.uiColor))
+                            color: isActive.type.uiColor.withAlphaComponent(1.0 / avgLocation.horizontalAccuracy)))
                 }
             }
+
+        if isAutoRegion && !overlays.isEmpty {
+            let boundingMapRect = overlays.reduce(MKMapRect.null) {$0.union($1.boundingMapRect)}
+            let region = MKCoordinateRegion(boundingMapRect).expanded(by: 1.1, minMeter: 500)
+            setRegion(regionThatFits(region), animated: true)
+        }
 
         // Current position
         if let last = path.last, let location = last.locations.last {
@@ -67,12 +74,6 @@ private extension MKMapView {
                     center: location.coordinate,
                     radius: max(location.horizontalAccuracy, 6),
                     color:  last.isActive?.type.uiColor ?? .systemBlue))
-        }
-
-        if isAutoRegion && !overlays.isEmpty {
-            let boundingMapRect = overlays.reduce(MKMapRect.null) {$0.union($1.boundingMapRect)}
-            let region = MKCoordinateRegion(boundingMapRect).expanded(by: 1.1, minMeter: 500)
-            setRegion(regionThatFits(region), animated: true)
         }
     }
 }
@@ -132,7 +133,7 @@ extension MKCoordinateRegion {
         let spanMinMeter = MKCoordinateRegion(
             center: center,
             latitudinalMeters: minMeter,
-            longitudinalMeters: minMeter)
+            longitudinalMeters: -minMeter)
             .span
         
         let span = MKCoordinateSpan(

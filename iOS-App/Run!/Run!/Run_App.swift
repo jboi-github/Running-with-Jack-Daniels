@@ -12,6 +12,9 @@ struct Run_App: App {
     var body: some Scene {
         WindowGroup {
             NavigationView()
+                .onAppear {ProfileService.sharedInstance.onAppear()}
+                .colorScheme(.dark)
+                .animation(.default)
         }
     }
 }

@@ -37,10 +37,15 @@ public func hrMaxBpm(birthday: Date, gender: Gender, weightKg: Double) -> Int? {
 }
 
 public func hrLimits(hrMaxBpm: Int, restingHrBpm: Int = 0) -> [Intensity : Range<Int>] {
-    Intensity
+    var result = Intensity
         .allCases
         .compactMap {($0, $0.getHrLimit(hrMaxBpm: hrMaxBpm, restingBpm: restingHrBpm))}
         .reduce(into: [:]) {$0[$1.0] = $1.1}
+    
+    if let cold = result[.Cold] {
+        result[.Cold] = 0 ..< cold.upperBound
+    }
+    return result
 }
 
 public enum Intensity: String, CaseIterable, Identifiable, Codable, Comparable {

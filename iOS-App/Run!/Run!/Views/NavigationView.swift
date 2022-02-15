@@ -8,10 +8,56 @@
 import SwiftUI
 
 struct NavigationView: View {
+    @State private var runViewActive: Bool = false
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
-        #if DEBUG
-        GalleryView()
-        #endif
+        LockScreenView(withLocker: runViewActive) { isLocked in
+            SwiftUI.NavigationView {
+                List {
+                    Section {
+                        NavigationLink(destination: PlanView()) {
+                            Label("Plan", systemImage: "calendar")
+                                .font(.headline)
+                                .padding()
+                        }
+                        NavigationLink(destination: RunView(isLocked: isLocked), isActive: $runViewActive) {
+                            Label("Run", systemImage: "hare")
+                                .font(.headline)
+                                .padding()
+                        }
+                        NavigationLink(destination: AdjustView()) {
+                            Label("Improve", systemImage: "speedometer")
+                                .font(.headline)
+                                .padding()
+                        }
+                    }
+                    Section {
+                        NavigationLink(destination: ScannerView()) {
+                            Label("Bluetooth Scanner", systemImage: "antenna.radiowaves.left.and.right")
+                                .font(.footnote)
+                                .padding(.horizontal)
+                        }
+                    }
+                    #if DEBUG
+                    Section {
+                        NavigationLink(destination: GalleryView()) {
+                            Label("Gallery", systemImage: "photo.on.rectangle.angled")
+                                .font(.footnote)
+                        }
+                    }
+                    #endif
+                }
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text("Run!")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.accentColor)
+                    }
+                }
+            }
+        }
     }
 }
 

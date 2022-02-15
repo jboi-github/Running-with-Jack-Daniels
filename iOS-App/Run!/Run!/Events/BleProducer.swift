@@ -23,6 +23,8 @@ protocol BleProducerProtocol {
     func readValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID)
     func writeValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ data: Data)
     func setNotifyValue(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ notify: Bool)
+    
+    var peripherals: [UUID: CBPeripheral] {get}
 }
 
 // MARK: - Producer
@@ -75,6 +77,17 @@ class BleProducer: BleProducerProtocol {
         case started(asOf: Date), stopped, paused, resumed
         case nonRecoverableError(asOf: Date, error: Error), notAuthorized(asOf: Date)
         case error(UUID, Error)
+        
+        var isRunning: Bool {
+            switch self {
+            case .started(asOf: _):
+                return true
+            case .resumed:
+                return true
+            default:
+                return false
+            }
+        }
     }
 
     func start(
@@ -117,6 +130,7 @@ class BleProducer: BleProducerProtocol {
     
     func stop() {
         _stop()
+        rssiTimer?.invalidate()
         config?.status(.stopped)
     }
     
@@ -174,7 +188,7 @@ class BleProducer: BleProducerProtocol {
     private var rssiTimer: Timer?
     
     private var centralManager: CBCentralManager?
-    private var peripherals = [UUID: CBPeripheral]()
+    private(set) var peripherals = [UUID: CBPeripheral]()
     
     private func _start() {
         centralManager = CBCentralManager(

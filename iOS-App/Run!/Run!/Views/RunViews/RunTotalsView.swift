@@ -58,16 +58,16 @@ struct RunTotalsView: View {
     let totals: [TotalsService.Total]
     
     var body: some View {
-        ForEach(activityTypeOrder) {type in
-            let totals = totals.filter {$0.activityType == type}
-            if !totals.isEmpty {
-                if graphical {
-                    RunTotalGraphicalView(motionType: type, totals: totals)
-                } else {
+        graphical ?
+            RunTotalGraphicalView(totals: totals).anyview
+            :
+            ForEach(activityTypeOrder) {type in
+                let totals = totals.filter {$0.activityType == type}
+                if !totals.isEmpty {
                     RunTotalTableView(motionType: type, totals: totals)
                 }
             }
-        }
+            .anyview
     }
 }
 
@@ -126,33 +126,16 @@ private struct RunTotalTableView: View {
 }
 
 private struct RunTotalGraphicalView: View {
-    let motionType: IsActiveProducer.ActivityType
     let totals: Array<TotalsService.Total>.Prepared
-    
-    let totalDuration: TimeInterval
-    let totalDistance: CLLocationDistance
 
-    init(motionType: IsActiveProducer.ActivityType, totals: [TotalsService.Total]) {
-        self.motionType = motionType
+    init(totals: [TotalsService.Total]) {
         self.totals = totals.prepared(nx: 10, ny: 5)
-        self.totalDuration = totals.map {$0.durationSec}.reduce(0.0, +)
-        self.totalDistance = totals.map {$0.distanceM}.reduce(0.0, +)
     }
     
     @State private var size: CGSize = .zero
     
     var body: some View {
         ZStack {
-            // Motion Type in upper trailing corner
-            VStack {
-                HStack {
-                    Spacer()
-                    MotionSymbolsView(activityType: motionType, intensity: .Cold)
-                        .font(.caption)
-                }
-                Spacer()
-            }
-            
             // Chart for bubbles
             RunStandardChart(data: totals, xLabel: "Duration", yLabel: "Heartrate")
         }
@@ -162,6 +145,7 @@ private struct RunTotalGraphicalView: View {
 #if DEBUG
 struct RunTotalsView_Previews: PreviewProvider {
     static var previews: some View {
+        RunTotalsView(graphical: true, totals: [])
         RunTotalsView(graphical: false, totals: [
             TotalsService.Total(
                 activityType: .pause,

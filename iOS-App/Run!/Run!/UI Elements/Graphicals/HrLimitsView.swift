@@ -16,13 +16,15 @@ struct HrLimitsView: View {
     let intensity: Intensity
     let intensities: [Intensity: Range<Int>]
     let min: Int
+    let easyLower: Int
     let max: Int
     
     init(hr: Int, intensity: Intensity, intensities: [Intensity: Range<Int>]) {
         self.hr = hr
         self.intensity = intensity
         self.intensities = intensities
-        min = intensities.values.map {$0.lowerBound}.min() ?? 0
+        min = intensities[.Cold]?.lowerBound ?? 0
+        easyLower = intensities[.Easy]?.lowerBound ?? 65
         max = intensities.values.map {$0.upperBound}.max() ?? 100
     }
     
@@ -61,6 +63,7 @@ struct HrLimitsView: View {
             HrText(heartrate: hr)
                 .animation(nil)
                 .font(.largeTitle)
+                .lineLimit(1)
                 .foregroundColor(intensity.color)
                 .padding()
                 .background(
@@ -72,7 +75,11 @@ struct HrLimitsView: View {
     }
     
     private func norm(_ value: Int) -> CGFloat {
-        (min ..< max).transform(value, to: 0.0 ..< 0.75)
+        if value < easyLower {
+            return (min ..< easyLower).transform(value, to: 0.0 ..< 0.25)
+        } else {
+            return (easyLower ..< max).transform(value, to: 0.25 ..< 0.75)
+        }
     }
 }
 

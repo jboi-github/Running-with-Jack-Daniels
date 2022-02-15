@@ -158,6 +158,8 @@ extension Array where Element: ChartDataPoint {
     /// Data points are returned as sorted array by x (ascending) and y (descending)
     /// As this function does a significant amount of number crunching, it should run when necessary.
     func prepared(nx: Int, ny: Int) -> Prepared {
+        if self.isEmpty {return ([], [], [])}
+        
         // Get ranges
         let xRange = range((self.min {$0.x < $1.x}!.x), (self.max {$0.x < $1.x}!.x))
         let yRange = range((self.min {$0.y < $1.y}!.y), (self.max {$0.y < $1.y}!.y))

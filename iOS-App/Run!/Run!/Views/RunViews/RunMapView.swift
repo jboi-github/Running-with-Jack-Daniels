@@ -20,6 +20,7 @@ import SwiftUI
  */
 struct RunMapView: View {
     let path: [PathService.PathElement]
+    let status: GpsProducer.Status
     
     @State private var isAutoRegion: Bool = true
     
@@ -34,6 +35,20 @@ struct RunMapView: View {
                         .labelsHidden()
                         .toggleStyle(UserInteractionStyle())
                     Spacer()
+                }
+            }
+            if case .notAuthorized(asOf: _) = status {
+                Button {
+                    guard let url = URL(string: UIApplication.openSettingsURLString) else {return}
+                    UIApplication.shared.open(url)
+                } label: {
+                    Text("Klick to provide GPS allowance")
+                        .font(.callout)
+                        .foregroundColor(.accentColor)
+                        .padding()
+                        .background(Color.primary.opacity(0.75))
+                        .clipShape(Capsule())
+                        .padding()
                 }
             }
         }
@@ -63,7 +78,12 @@ private struct UserInteractionStyle: ToggleStyle {
 #if DEBUG
 struct RunMapView_Previews: PreviewProvider {
     static var previews: some View {
-        RunMapView(path: [PathService.PathElement]())
+        List {
+            RunMapView(path: [PathService.PathElement](), status: .notAuthorized(asOf: Date()))
+                .frame(height: 400)
+            RunMapView(path: [PathService.PathElement](), status: .started(asOf: Date()))
+                .frame(height: 400)
+        }
     }
 }
 #endif

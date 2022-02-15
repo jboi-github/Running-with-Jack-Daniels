@@ -39,6 +39,7 @@ class HeartrateProducer: BodySensorLocationProducer {
     struct Heartrate {
         let timestamp: Date
         let heartrate: Int
+        let peripheralUuid: UUID
         
         // Optional values, if supported by the device and contained in this notification
         let skinIsContacted: Bool?
@@ -48,6 +49,7 @@ class HeartrateProducer: BodySensorLocationProducer {
         static let zero = Self(
             timestamp: .distantPast,
             heartrate: -1,
+            peripheralUuid: UUID(),
             skinIsContacted: nil,
             energyExpended: nil,
             rr: nil)
@@ -170,6 +172,7 @@ class HeartrateProducer: BodySensorLocationProducer {
         let hr = Heartrate(
             timestamp: timestamp,
             heartrate: heartrate,
+            peripheralUuid: peripheralUuid,
             skinIsContacted: skinIsContacted,
             energyExpended: energyExpended,
             rr: rr)
@@ -183,11 +186,11 @@ class HeartrateProducer: BodySensorLocationProducer {
         switch status {
         case .nonRecoverableError(let asOf, _):
             constantHeartrate = Heartrate(
-                timestamp: asOf, heartrate: -1,
+                timestamp: asOf, heartrate: -1, peripheralUuid: UUID(),
                 skinIsContacted: nil, energyExpended: nil, rr: nil)
         case .notAuthorized(let asOf):
             constantHeartrate = Heartrate(
-                timestamp: asOf, heartrate: -1,
+                timestamp: asOf, heartrate: -1, peripheralUuid: UUID(),
                 skinIsContacted: nil, energyExpended: nil, rr: nil)
         default:
             constantHeartrate = nil
