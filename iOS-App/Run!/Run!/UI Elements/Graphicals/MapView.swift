@@ -49,9 +49,9 @@ private extension MKMapView {
                     addOverlay(
                         ColoredPolylineOverlay(
                             coordinates: path,
-                            color: isActive.type.uiColor.withAlphaComponent(0.25),
-                            lineWidth: 3))
-                    addOverlay(ColoredPolylineOverlay(coordinates: path, color: .systemRed, lineWidth: 3))
+                            color: isActive.type.uiColor,
+                            lineWidth: 6))
+                    // addOverlay(ColoredPolylineOverlay(coordinates: path, color: .systemRed, lineWidth: 3))
                 } else if let avgLocation = $0.avgLocation {
                     addOverlay(
                         ColoredCircleOverlay(
@@ -73,7 +73,8 @@ private extension MKMapView {
                 ColoredCircleOverlay(
                     center: location.coordinate,
                     radius: max(location.horizontalAccuracy, 6),
-                    color:  last.isActive?.type.uiColor ?? .systemBlue))
+                    color:  (last.isActive?.type.uiColor ?? .systemBlue)
+                        .withAlphaComponent(1.0 / location.horizontalAccuracy)))
         }
     }
 }

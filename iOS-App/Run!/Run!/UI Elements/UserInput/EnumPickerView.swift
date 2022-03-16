@@ -13,7 +13,7 @@ protocol Nicable {
 }
 
 struct EnumPickerView<E: RawRepresentable>: View
-where E:CaseIterable, E:Identifiable, E:Nicable,
+where E: CaseIterable, E: Identifiable, E: Nicable,
       E: Hashable, E.AllCases: RandomAccessCollection
 {
     let title: String
@@ -49,6 +49,7 @@ where E:CaseIterable, E:Identifiable, E:Nicable,
                 Spacer()
             }
         )
+        .animation(.default, value: attribute.source)
         .onAppear {attribute.onAppear()}
         .onDisappear {attribute.onDisappear()}
         .onChange(of: selection) {if attribute.value != $0 {attribute.onChange(to: $0)}}

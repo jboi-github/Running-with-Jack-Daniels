@@ -48,7 +48,7 @@ extension IsActiveProducer.ActivityType {
         case .cycling:
             return .systemYellow
         case .unknown:
-            return .systemGray6
+            return .label
         }
     }
 }

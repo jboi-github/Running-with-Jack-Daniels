@@ -27,6 +27,7 @@ class EventsTests: XCTestCase {
     private class BPHeartrate: BleProducerProtocol {
         static var sharedInstance: BleProducerProtocol = BPHeartrate()
         
+        var peripherals = [UUID : CBPeripheral]()
         private var config: BleProducer.Config?
         
         func start(config: BleProducer.Config, asOf: Date, transientFailedPeripheralUuid: UUID?) {
@@ -116,6 +117,7 @@ class EventsTests: XCTestCase {
     private class BPPeripheral: BleProducerProtocol {
         static var sharedInstance: BleProducerProtocol = BPPeripheral()
         
+        var peripherals = [UUID : CBPeripheral]()
         private var config: BleProducer.Config?
         
         func start(config: BleProducer.Config, asOf: Date, transientFailedPeripheralUuid: UUID?) {
@@ -151,6 +153,7 @@ class EventsTests: XCTestCase {
                 rssiUuids.append($0)
                 rssis.append($1.doubleValue)
             },
+            heartrate: {print($0, $1)},
             bodySensorLocation: {print($0, $1)}, // Tested in heartrate-test
             status: {print($0)})  // Tested in heartrate-test
         
@@ -197,6 +200,7 @@ class EventsTests: XCTestCase {
             intensityProducer.heartate(HeartrateProducer.Heartrate(
                 timestamp: Date(timeIntervalSince1970: Double(1000 * $0)),
                 heartrate: heartrates[$0],
+                peripheralUuid: UUID(),
                 skinIsContacted: nil,
                 energyExpended: nil,
                 rr: nil))

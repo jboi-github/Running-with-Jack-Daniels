@@ -11,8 +11,12 @@ struct PeripheralRssiView: View {
     let rssi: Double
     
     var body: some View {
-        Text(Image(systemName: rssi.isFinite ? "wifi" : "wifi.slash"))
-            .foregroundColor(color())
+        HStack {
+            Text(Image(systemName: rssi.isFinite ?
+                       "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash"))
+                .foregroundColor(color())
+            Text("\(rssi, specifier: "%.0f")").font(.caption)
+        }
     }
     
     private func color() -> Color {

@@ -20,7 +20,9 @@ struct HrText: View {
         }
     }
     
-    var body: some View {Text(text)}
+    var body: some View {
+        Text(text).lineLimit(1)
+    }
 }
 
 #if DEBUG

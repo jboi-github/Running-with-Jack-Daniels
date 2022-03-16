@@ -246,7 +246,7 @@ struct GalleryView: View {
                         distance: 10400,
                         pace: 550,
                         vdot: 23.4,
-                        activityType: .running,
+                        activityType: .running, isActive: true,
                         status: .started(asOf: Date()),
                         peripheralName: "Hello World",
                         batteryStatus: 50)
@@ -259,7 +259,7 @@ struct GalleryView: View {
                         distance: 10400,
                         pace: 550,
                         vdot: 23.4,
-                        activityType: .cycling,
+                        activityType: .cycling, isActive: false,
                         status: .started(asOf: Date()),
                         peripheralName: UUID().uuidString,
                         batteryStatus: 50)
@@ -600,7 +600,6 @@ struct GalleryView: View {
             }
             .listStyle(PlainListStyle())
             .font(.caption)
-            .animation(.default)
             .colorScheme(darkScheme ? .dark : .light)
         }
         .navigationBarTitle("", displayMode: .inline)

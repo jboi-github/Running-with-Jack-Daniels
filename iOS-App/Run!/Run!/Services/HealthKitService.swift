@@ -8,7 +8,7 @@
 import Foundation
 import CoreLocation
 
-/// Collect events and provide data for HealthKit Wotkouts
+/// Collect events and provide data for HealthKit Workouts
 class HealthKitService {
     static let sharedInstance = HealthKitService()
 
@@ -27,6 +27,7 @@ class HealthKitService {
         _ route: [CLLocation],
         _ heartrates: [(time: Range<Date>, heartrate: Int)]) -> Void)? = nil)
     {
+        let asOf = min(asOf, start.advanced(by: 345600 - 1)) // Max timeinterval as of iOS 15.2
         let totals = getTotals(asOf: asOf)
         let mainType = getTotalActivity(totals: totals)
         let distance = getTotalDistance(totals: totals)

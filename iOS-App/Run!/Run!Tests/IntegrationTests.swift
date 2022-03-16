@@ -127,6 +127,7 @@ class IntegrationTests: XCTestCase {
         static let sharedInstance: BleProducerProtocol = BP()
         static var working: Bool = true
 
+        var peripherals = [UUID : CBPeripheral]()
         private var config: BleProducer.Config?
         private let uuid = UUID()
         

@@ -23,6 +23,7 @@ struct PrimaryIgnoredToggle: View {
             }
             .pickerStyle(SegmentedPickerStyle())
         }
+        .animation(.default, value: selection)
     }
 }
 

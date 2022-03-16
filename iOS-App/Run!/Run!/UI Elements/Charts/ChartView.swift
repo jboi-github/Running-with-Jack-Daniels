@@ -52,7 +52,7 @@ struct ChartView<DataPoint: ChartDataPoint, Line: View, Label: View, XTick: View
             x: (chartSize.width - yAxisSize.width) / -2,
             y: 0,
             width: chartSize.width - yAxisSize.width,
-            height:  chartSize.height - xAxisSize.height)
+            height: chartSize.height - xAxisSize.height)
     }
     private let dataRect: CGRect
     
@@ -99,6 +99,7 @@ struct ChartView<DataPoint: ChartDataPoint, Line: View, Label: View, XTick: View
             }
             .captureSize(in: $chartSize)
         }
+        .animation(.default, value: dataRect)
     }
 }
 

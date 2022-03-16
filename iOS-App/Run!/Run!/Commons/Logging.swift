@@ -42,7 +42,7 @@ public func log(
     - error: the optional error to check
  - Returns: true, if check was succesful, false if error occured
  */
-public func check(
+@discardableResult public func check(
     _ error: Error?,
     function: String = #function, file: String = #file, line: Int = #line, col: Int = #column) -> Bool {
     

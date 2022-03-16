@@ -9,7 +9,6 @@ import SwiftUI
 
 struct NavigationView: View {
     @State private var runViewActive: Bool = false
-    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         LockScreenView(withLocker: runViewActive) { isLocked in
@@ -27,7 +26,7 @@ struct NavigationView: View {
                                 .padding()
                         }
                         NavigationLink(destination: AdjustView()) {
-                            Label("Improve", systemImage: "speedometer")
+                            Label("Improve", systemImage: "chart.line.uptrend.xyaxis")
                                 .font(.headline)
                                 .padding()
                         }
@@ -44,6 +43,7 @@ struct NavigationView: View {
                         NavigationLink(destination: GalleryView()) {
                             Label("Gallery", systemImage: "photo.on.rectangle.angled")
                                 .font(.footnote)
+                                .padding(.horizontal)
                         }
                     }
                     #endif

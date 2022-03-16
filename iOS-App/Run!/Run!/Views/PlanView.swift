@@ -8,8 +8,46 @@
 import SwiftUI
 
 struct PlanView: View {
+    @State private var selectedTab = "Profile"
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        TabView(selection: $selectedTab) {
+            PlanProfileView()
+                .tabItem {
+                    Label("Profile", systemImage: "person.fill")
+                }
+                .tag("Profile")
+
+            PlanSeasonView()
+                .tabItem {
+                    Label("Season", systemImage: "calendar")
+                }
+                .tag("Season")
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Plan")
+        .animation(.default, value: selectedTab)
+        .onAppear {
+            log("appeared")
+            ProfileService.sharedInstance.onAppear()
+        }
+        .onDisappear {
+            log("disappeared")
+            ProfileService.sharedInstance.onDisappear()
+        }
+        .onChange(of: scenePhase) {
+            switch $0 {
+            case .active:
+                log("resume")
+                ProfileService.sharedInstance.onAppear()
+            case .inactive:
+                log("pause")
+                ProfileService.sharedInstance.onDisappear()
+            default:
+                log("no action necessary")
+            }
+        }
     }
 }
 

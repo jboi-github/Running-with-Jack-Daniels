@@ -102,36 +102,8 @@ class HeartrateProducer: BodySensorLocationProducer {
         heartrate?(constantHeartrate)
     }
 
-    private var heartrate: ((Heartrate) -> Void)? = nil
-    private(set) var bodySensorLocation: ((UUID, BodySensorLocation) -> Void)? = nil
-    private var constantHeartrate: Heartrate? = nil
-    
-    private func notifyHrMeasures(
-        _ producer: BleProducerProtocol,
-        _ peripheralUuid: UUID,
-        _ characteristicUuid: CBUUID,
-        _ properties: CBCharacteristicProperties) -> Void
-    {
-        log(peripheralUuid, characteristicUuid, properties)
-        guard properties.contains(.notify) else {return}
-        
-        producer.setNotifyValue(peripheralUuid, characteristicUuid, true)
-    }
-    
-    private func writeHrControlPoint(
-        _ producer: BleProducerProtocol,
-        _ peripheralUuid: UUID,
-        _ characteristicUuid: CBUUID,
-        _ properties: CBCharacteristicProperties) -> Void
-    {
-        log(peripheralUuid, characteristicUuid, properties)
-        guard properties.contains(.write) else {return}
-        
-        producer.writeValue(peripheralUuid, characteristicUuid, Data([UInt8(0x01)]))
-    }
-    
-    private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
-        guard let bytes = data, !bytes.isEmpty else {return}
+    static func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) -> Heartrate? {
+        guard let bytes = data, !bytes.isEmpty else {return nil}
         // log(bytes.map {String(format: "%02hhX", $0)}.joined(separator: " "))
 
         var i: Int = 0
@@ -176,7 +148,41 @@ class HeartrateProducer: BodySensorLocationProducer {
             skinIsContacted: skinIsContacted,
             energyExpended: energyExpended,
             rr: rr)
-        self.heartrate?(hr)
+        return hr
+    }
+
+    private var heartrate: ((Heartrate) -> Void)? = nil
+    private(set) var bodySensorLocation: ((UUID, BodySensorLocation) -> Void)? = nil
+    private var constantHeartrate: Heartrate? = nil
+    
+    private func notifyHrMeasures(
+        _ producer: BleProducerProtocol,
+        _ peripheralUuid: UUID,
+        _ characteristicUuid: CBUUID,
+        _ properties: CBCharacteristicProperties) -> Void
+    {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.notify) else {return}
+        
+        producer.setNotifyValue(peripheralUuid, characteristicUuid, true)
+    }
+    
+    private func writeHrControlPoint(
+        _ producer: BleProducerProtocol,
+        _ peripheralUuid: UUID,
+        _ characteristicUuid: CBUUID,
+        _ properties: CBCharacteristicProperties) -> Void
+    {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.write) else {return}
+        
+        producer.writeValue(peripheralUuid, characteristicUuid, Data([UInt8(0x01)]))
+    }
+    
+    private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
+        if let hr = HeartrateProducer.parseHrMeasure(peripheralUuid, data, timestamp) {
+            self.heartrate?(hr)
+        }
     }
     
     private func status(

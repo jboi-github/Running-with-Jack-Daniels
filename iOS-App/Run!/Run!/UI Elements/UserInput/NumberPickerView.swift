@@ -69,6 +69,7 @@ struct NumberPickerView<Value: Equatable>: View {
                 Spacer()
             }
         )
+        .animation(.default, value: attribute.source)
         .onAppear {attribute.onAppear()}
         .onDisappear {attribute.onDisappear()}
         .onChange(of: selection) {

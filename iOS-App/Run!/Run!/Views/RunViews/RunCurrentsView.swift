@@ -17,6 +17,7 @@ struct RunCurrentsView: View {
     let pace: TimeInterval
     let vdot: Double
     let activityType: IsActiveProducer.ActivityType
+    let isActive: Bool
     let status: BleProducer.Status
     let peripheralName: String
     let batteryStatus: Int
@@ -46,6 +47,7 @@ struct RunCurrentsView: View {
                 HStack(alignment: .lastTextBaseline, spacing: 0) {
                     MotionSymbolsView(activityType: activityType, intensity: intensity)
                         .font(.subheadline)
+                        .foregroundColor(Color(uiColor: isActive ? .systemRed : .systemBlue))
                     TimeText(time: duration)
                     Spacer()
                     DistanceText(distance: distance)
@@ -54,7 +56,7 @@ struct RunCurrentsView: View {
                 HStack(alignment: .lastTextBaseline, spacing: 0) {
                     PaceText(paceSecPerKm: pace, short: false)
                     Spacer()
-                    HStack(spacing: 0) {
+                    HStack {
                         Text("\(peripheralName)")
                             .lineLimit(1)
                         BatteryStatusView(status: 50)
@@ -86,7 +88,7 @@ struct RunCurrentsView_Previews: PreviewProvider {
             distance: 10400,
             pace: 550,
             vdot: 23.4,
-            activityType: .running,
+            activityType: .running, isActive: true,
             status: .started(asOf: Date()),
             peripheralName: "HR-Name",
             batteryStatus: 50)
@@ -99,7 +101,7 @@ struct RunCurrentsView_Previews: PreviewProvider {
             distance: 10400,
             pace: 550,
             vdot: 23.4,
-            activityType: .running,
+            activityType: .running, isActive: false,
             status: .started(asOf: Date()),
             peripheralName: "HR-Name",
             batteryStatus: 50)

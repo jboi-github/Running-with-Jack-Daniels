@@ -46,6 +46,7 @@ struct DatePickerView: View {
                     }
                 )
         }
+        .animation(.default, value: attribute.source)
         .onAppear {attribute.onAppear()}
         .onDisappear {attribute.onDisappear()}
         .onChange(of: selection) {if attribute.value != $0 {attribute.onChange(to: $0)}}

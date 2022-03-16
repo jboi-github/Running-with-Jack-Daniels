@@ -14,9 +14,11 @@ class PeripheralProducer: BodySensorLocationProducer {
         discoveredPeripheral: @escaping (CBPeripheral) -> Void,
         failedPeripheral: @escaping (UUID, Error?) -> Void,
         rssi: @escaping (UUID, NSNumber) -> Void,
+        heartrate: @escaping (UUID, HeartrateProducer.Heartrate) -> Void,
         bodySensorLocation: @escaping (UUID, HeartrateProducer.BodySensorLocation) -> Void,
         status: @escaping (BleProducer.Status) -> Void) -> BleProducer.Config
     {
+        self.heartrate = heartrate
         self.bodySensorLocation = bodySensorLocation
 
         return BleProducer.Config(
@@ -34,15 +36,34 @@ class PeripheralProducer: BodySensorLocationProducer {
                 ]
             ],
             actions: [
+                CBUUID(string: "2A37"): notifyHrMeasures,
                 CBUUID(string: "2A38"): readBodySensorLocation
             ],
             readers: [
+                CBUUID(string: "2A37"): parseHrMeasure,
                 CBUUID(string: "2A38"): parseBodySensorLocation
             ])
         // TODO: Battery Level
     }
     
-    internal private(set) var bodySensorLocation: ((
-        UUID,
-        HeartrateProducer.BodySensorLocation) -> Void)? = nil
+    internal private(set) var bodySensorLocation: ((UUID, HeartrateProducer.BodySensorLocation) -> Void)? = nil
+    private var heartrate: ((UUID, HeartrateProducer.Heartrate) -> Void)? = nil
+
+    private func notifyHrMeasures(
+        _ producer: BleProducerProtocol,
+        _ peripheralUuid: UUID,
+        _ characteristicUuid: CBUUID,
+        _ properties: CBCharacteristicProperties) -> Void
+    {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.notify) else {return}
+        
+        producer.setNotifyValue(peripheralUuid, characteristicUuid, true)
+    }
+    
+    private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
+        if let hr = HeartrateProducer.parseHrMeasure(peripheralUuid, data, timestamp) {
+            self.heartrate?(peripheralUuid, hr)
+        }
+    }
 }

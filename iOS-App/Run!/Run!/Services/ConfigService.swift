@@ -54,29 +54,34 @@ enum FileHandling {
             nan: "nan")
         return decoder
     }
-
-    private static var directory: URL? {
-        do {
-            let url = try FileManager
-                .default
-                .url(
-                    for: .documentDirectory,
-                       in: .userDomainMask,
-                       appropriateFor: nil,
-                       create: true)
-                .appendingPathComponent("Run", isDirectory: true)
-            try FileManager
-                .default
-                .createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
-            return url
-        } catch {
-            _ = check(error)
-            return nil
+    
+    static func initDirectory() {
+        DispatchQueue.global().async {
+            do {
+                let url = FileManager
+                    .default
+                    .url(forUbiquityContainerIdentifier: nil)?
+                    .appendingPathComponent("Run", isDirectory: true)
+                if let url = url {
+                    try FileManager
+                        .default
+                        .createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
+                    directory = url
+                }
+            } catch {
+                _ = check(error)
+                directory = nil
+            }
         }
     }
 
+    private static var directory: URL? = nil
+
     private static func url(for fileName: String) -> URL? {
-        guard let directory = directory else {return nil}
+        guard let directory = directory else {
+            _ = check("iCloud directory not set up. File \(fileName) not saved")
+            return nil
+        }
         do {
             try FileManager
                 .default
@@ -311,30 +316,31 @@ enum HealthKitHandling {
             
             // Get events
             var events: [HKWorkoutEvent] {
-                userPauses.map {
+                let p = userPauses.map {
                     HKWorkoutEvent(
                         type: .pause,
-                        dateInterval: DateInterval(start: $0.lowerBound, duration: 0),
-                        metadata: nil)
-                } +
-                userPauses.map {
-                    HKWorkoutEvent(
-                        type: .resume,
-                        dateInterval: DateInterval(start: $0.upperBound, duration: 0),
-                        metadata: nil)
-                } +
-                motionPauses.map {
-                    HKWorkoutEvent(
-                        type: .motionPaused,
-                        dateInterval: DateInterval(start: $0.lowerBound, duration: 0),
-                        metadata: nil)
-                } +
-                motionPauses.map {
-                    HKWorkoutEvent(
-                        type: .motionResumed,
-                        dateInterval: DateInterval(start: $0.upperBound, duration: 0),
+                        dateInterval: DateInterval(start: $0, duration: 0),
                         metadata: nil)
                 }
+                let r = userPauses.map {
+                    HKWorkoutEvent(
+                        type: .resume,
+                        dateInterval: DateInterval(start: $0, duration: 0),
+                        metadata: nil)
+                }
+                let mp = motionPauses.map {
+                    HKWorkoutEvent(
+                        type: .motionPaused,
+                        dateInterval: DateInterval(start: $0, duration: 0),
+                        metadata: nil)
+                }
+                let mr = motionPauses.map {
+                    HKWorkoutEvent(
+                        type: .motionResumed,
+                        dateInterval: DateInterval(start: $0, duration: 0),
+                        metadata: nil)
+                }
+                return p + r + mp + mr
             }
 
             // Get heartrate samples

@@ -26,7 +26,9 @@ struct SourceView<V>: View {
     }
     
     var body: some View {
-        Text(Image(systemName: systemName)).foregroundColor(color)
+        Text(Image(systemName: systemName))
+            .foregroundColor(color)
+            .animation(.default, value: systemName)
     }
 }
 

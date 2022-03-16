@@ -51,14 +51,15 @@ struct BodysensorLocationView: View {
 
     var body: some View {
         VStack {
-            if let imageName = imageName {
-                Image(imageName)
-            } else {
-                Image(systemName: "figure.walk")
+            ZStack {
+                Image(systemName: "figure.walk").resizable()
+                if let imageName = imageName {Image(imageName).resizable()}
             }
+            .scaledToFit()
             Text("\(locationName)")
                 .lineLimit(1)
                 .font(.caption)
+                .minimumScaleFactor(0.01)
         }
     }
 }

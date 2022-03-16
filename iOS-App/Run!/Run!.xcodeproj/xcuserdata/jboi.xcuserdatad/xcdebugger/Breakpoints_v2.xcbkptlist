@@ -3,4 +3,54 @@
    uuid = "447012D4-F7B6-4C0E-A305-2CE1861EE94B"
    type = "1"
    version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "210E5B72-ADC0-4DC0-8998-466CF4699BDC"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Run!Tests/ServicesTests.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "56"
+            endingLineNumber = "56"
+            landmarkName = "testFileHandling()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "210E5B72-ADC0-4DC0-8998-466CF4699BDC - 3be8d5007f794694"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "Run_Tests.ServicesTests.testFileHandling() throws -&gt; ()"
+                  moduleName = "Run!Tests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jboi/Documents/GitHub.nosync/Running-with-Jack-Daniels/iOS-App/Run!/Run!Tests/ServicesTests.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "56"
+                  endingLineNumber = "56"
+                  offsetFromSymbolStart = "1832">
+               </Location>
+               <Location
+                  uuid = "210E5B72-ADC0-4DC0-8998-466CF4699BDC - 3be8d5007f794694"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "Run_Tests.ServicesTests.testFileHandling() throws -&gt; ()"
+                  moduleName = "Run!Tests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jboi/Documents/GitHub.nosync/Running-with-Jack-Daniels/iOS-App/Run!/Run!Tests/ServicesTests.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "56"
+                  endingLineNumber = "56"
+                  offsetFromSymbolStart = "817">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
 </Bucket>

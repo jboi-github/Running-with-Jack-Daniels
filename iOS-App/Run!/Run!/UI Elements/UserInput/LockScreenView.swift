@@ -25,6 +25,7 @@ struct LockScreenView<Content: View>: View {
                     .captureSize(in: $size)
                     .onChange(of: isLocked) {
                         dragged = $0 ? 0 : (size.width * (dragged < 0 ? -1 : 1))
+                        UIApplication.shared.isIdleTimerDisabled = $0
                     }
                 if withLocker {
                     VStack {

@@ -45,7 +45,7 @@ class LogicTests: XCTestCase {
         print(limits)
         
         let expected = [
-            Intensity.Cold: 42 ..< 130,
+            Intensity.Cold: 0 ..< 130,
             Intensity.Easy: 130 ..< 151,
             Intensity.Long: 130 ..< 151,
             Intensity.Marathon: 151 ..< 164,

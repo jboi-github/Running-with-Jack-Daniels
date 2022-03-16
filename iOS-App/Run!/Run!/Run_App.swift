@@ -12,9 +12,12 @@ struct Run_App: App {
     var body: some Scene {
         WindowGroup {
             NavigationView()
-                .onAppear {ProfileService.sharedInstance.onAppear()}
+                .onAppear {
+                    FileHandling.initDirectory()
+                    ProfileService.sharedInstance.setupNotification()
+                    ProfileService.sharedInstance.onAppear()
+                }
                 .colorScheme(.dark)
-                .animation(.default)
         }
     }
 }

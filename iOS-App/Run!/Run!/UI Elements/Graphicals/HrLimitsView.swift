@@ -12,20 +12,30 @@ private let intensityUpper = [true, true, false, true, false, true]
 private let lineWidth: CGFloat = 10
 
 struct HrLimitsView: View {
-    let hr: Int
+    let hr: Int?
     let intensity: Intensity
     let intensities: [Intensity: Range<Int>]
     let min: Int
     let easyLower: Int
     let max: Int
     
-    init(hr: Int, intensity: Intensity, intensities: [Intensity: Range<Int>]) {
+    @State private var angle: Angle = .zero
+    
+    init(hr: Int?, intensity: Intensity, intensities: [Intensity: Range<Int>]) {
         self.hr = hr
         self.intensity = intensity
         self.intensities = intensities
         min = intensities[.Cold]?.lowerBound ?? 0
         easyLower = intensities[.Easy]?.lowerBound ?? 65
         max = intensities.values.map {$0.upperBound}.max() ?? 100
+        
+        func norm(_ value: Int) -> CGFloat {
+            if value < easyLower {
+                return (min ..< easyLower).transform(value, to: 0.0 ..< 0.25)
+            } else {
+                return (easyLower ..< max).transform(value, to: 0.25 ..< 0.75)
+            }
+        }
     }
     
     var body: some View {
@@ -54,24 +64,32 @@ struct HrLimitsView: View {
                 }
                 
                 // Needle
-                GaugeNeedle()
-                    .rotation(Angle(degrees: norm(Swift.max(min - 5, Swift.min(max + 5, hr))) * 360))
+                if hr != nil {
+                    GaugeNeedle()
+                        .rotation(angle)
+                }
             }
             .rotationEffect(Angle(degrees: 135))
 
             // Value
-            HrText(heartrate: hr)
-                .animation(nil)
-                .font(.largeTitle)
-                .lineLimit(1)
-                .foregroundColor(intensity.color)
-                .padding()
-                .background(
-                    Capsule()
-                        .foregroundColor(Color(UIColor.systemBackground))
-                        .blur(radius: 8))
+            if let hr = hr {
+                HrText(heartrate: hr)
+                    .font(.largeTitle)
+                    .lineLimit(1)
+                    .foregroundColor(intensity.color)
+                    .padding()
+                    .background(
+                        Capsule()
+                            .foregroundColor(Color(UIColor.systemBackground))
+                            .blur(radius: 8))
+            }
         }
         .padding()
+        .onChange(of: hr ?? -1) { hr in
+            withAnimation {
+                angle = Angle(degrees: norm(Swift.max(min - 5, Swift.min(max + 5, hr))) * 360)
+            }
+        }
     }
     
     private func norm(_ value: Int) -> CGFloat {

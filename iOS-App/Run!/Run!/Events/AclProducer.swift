@@ -61,7 +61,7 @@ class AclProducer: AclProducerProtocol {
     private init() {}
 
     private var motionActivityManager: CMMotionActivityManager?
-    private var value: ((CMMotionActivity) -> Void)?
+    private var value: ((MotionActivityProtocol) -> Void)?
     private var status: ((Status) -> Void)?
     private var prev: CMMotionActivity? = nil
     
@@ -119,6 +119,8 @@ class AclProducer: AclProducerProtocol {
     private func _stop() {
         motionActivityManager?.stopActivityUpdates()
         motionActivityManager = nil
+        
+        value?(MotionActivityStop())
     }
 
     private func update(_ activity: CMMotionActivity?) {
@@ -129,5 +131,15 @@ class AclProducer: AclProducerProtocol {
         log()
         value?(activity)
         prev = activity
+    }
+    
+    private struct MotionActivityStop: MotionActivityProtocol {
+        static let canUse = true
+        let startDate = Date()
+        let stationary = true
+        let walking = false
+        let running = false
+        let cycling = false
+        let confidence = CMMotionActivityConfidence.high
     }
 }

@@ -21,6 +21,7 @@ class ScannerService: ObservableObject {
 
         var peripheral: CBPeripheral? = nil
         var rssi: Double = .nan
+        var heartrate: HeartrateProducer.Heartrate? = nil
         var bodySensorLocation: HeartrateProducer.BodySensorLocation = .Other
         var error: Error? = nil
     }
@@ -41,6 +42,7 @@ class ScannerService: ObservableObject {
             discoveredPeripheral: discoveredPeripheral,
             failedPeripheral: failedPeripheral,
             rssi: rssi,
+            heartrate: heartrate,
             bodySensorLocation: bodySensorLocation,
             status: status)
         producer.start(config: config, asOf: asOf, transientFailedPeripheralUuid: nil)
@@ -120,6 +122,12 @@ class ScannerService: ObservableObject {
     {
         DispatchQueue.main.async {
             self.peripherals[peripheralUuid]?.bodySensorLocation = bodySensorLocation
+        }
+    }
+    
+    private func heartrate(_ peripheralUuid: UUID, _ hr: HeartrateProducer.Heartrate) {
+        DispatchQueue.main.async {
+            self.peripherals[peripheralUuid]?.heartrate = hr
         }
     }
     

@@ -61,10 +61,12 @@ struct RunTotalsView: View {
         graphical ?
             RunTotalGraphicalView(totals: totals).anyview
             :
-            ForEach(activityTypeOrder) {type in
-                let totals = totals.filter {$0.activityType == type}
-                if !totals.isEmpty {
-                    RunTotalTableView(motionType: type, totals: totals)
+            List {
+                ForEach(activityTypeOrder) {type in
+                    let totals = totals.filter {$0.activityType == type}
+                    if !totals.isEmpty {
+                        RunTotalTableView(motionType: type, totals: totals)
+                    }
                 }
             }
             .anyview
@@ -115,13 +117,13 @@ private struct RunTotalTableView: View {
                         }
                         .font(.body)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                         .foregroundColor(total.intensity.textColor)
                         .padding(4)
                     }
                 }
             }
         }
-        .minimumScaleFactor(0.5)
     }
 }
 
@@ -135,10 +137,8 @@ private struct RunTotalGraphicalView: View {
     @State private var size: CGSize = .zero
     
     var body: some View {
-        ZStack {
-            // Chart for bubbles
-            RunStandardChart(data: totals, xLabel: "Duration", yLabel: "Heartrate")
-        }
+        // Chart for bubbles
+        RunStandardChart(data: totals, xLabel: "Duration", yLabel: "Heartrate")
     }
 }
 
