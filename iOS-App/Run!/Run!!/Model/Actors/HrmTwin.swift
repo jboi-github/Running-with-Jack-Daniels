@@ -9,24 +9,34 @@ import Foundation
 import CoreBluetooth
 
 enum HrmStatus {
-    case stopped
+    case stopped(since: Date)
     case started(since: Date)
     case notAllowed(since: Date)
     case notAvailable(since: Date)
 }
 
+enum BodySensorLocation: UInt8 {
+    case Other, Chest, Wrist, Finger, Hand, EarLobe, Foot
+}
+
 /// Heartrate Monitor (HRM) based on BLE
-class HrmTwin: ObservableObject {
+class HrmTwin {
+    // MARK: Initialization
+    init(queue: DispatchQueue, heartrates: Heartrates) {
+        self.queue = queue
+        self.heartrates = heartrates
+    }
+    
     // MARK: Public interface
-    @Published private(set) var lastReceived: Date = .distantPast
+    private(set) var bodySensorLocation: BodySensorLocation = .Other
     
     func start(asOf: Date) {
         if case .started = status {return}
         
         bleTwin.start(
             config: BleTwin.Config(
-                primaryUuid: nil, // TODO: Read from user defaults
-                ignoredUuids: [UUID](), // TODO: Read from user defaults
+                primaryUuid: Store.read(for: primaryKey)?.1,
+                ignoredUuids: Store.read(for: ignoredKey)?.1 ?? [UUID](),
                 stopScanningAfterFirst: true,
                 restoreId: HrmTwin.bleRestoreId,
                 status: status,
@@ -51,17 +61,20 @@ class HrmTwin: ObservableObject {
                 ]),
             asOf: asOf, transientFailedPeripheralUuid: nil)
         // TODO: Read Battery Level every 5 minutes and after going to foreground
+        
+        status = .started(since: asOf)
     }
 
     static let bleRestoreId = "com.apps4live.run.hrm"
 
     func stop(asOf: Date) {
         if case .stopped = status {return}
-        bleTwin.stop()
+        bleTwin.stop(asOf: asOf)
+        status = .stopped(since: asOf)
     }
 
     // MARK: Status handling
-    private(set) var status: HrmStatus = .stopped {
+    private(set) var status: HrmStatus = .stopped(since: .distantPast) {
         willSet {
             log(status, newValue)
         }
@@ -69,11 +82,13 @@ class HrmTwin: ObservableObject {
     
     // MARK: Implementation
     private var bleTwin = BleTwin()
+    private unowned let queue: DispatchQueue
+    private unowned let heartrates: Heartrates
     
     private func status(_ bleStatus: BleStatus) {
         switch bleStatus {
-        case .stopped:
-            status = .stopped
+        case .stopped(since: let since):
+            status = .stopped(since: since)
         case .started(since: let since):
             status = .started(since: since)
         case .notAllowed(since: let since):
@@ -118,14 +133,21 @@ class HrmTwin: ObservableObject {
     
     private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        DispatchQueue.main.async {
-            self.lastReceived = timestamp
+        
+        queue.async {
+            if let heartrate = Heartrate(timestamp, data) {
+                self.heartrates.appendOriginal(heartrate: heartrate)
+            }
         }
-        // TODO: Parse and inform collection
     }
     
     private func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        // TODO: Parse and inform collection
+        guard let data = data, !data.isEmpty else {return}
+
+        bodySensorLocation = BodySensorLocation(rawValue: [UInt8](data)[0]) ?? .Other
     }
 }
+
+private let primaryKey = "com.apps4live.Run!!.PrimaryUUID"
+private let ignoredKey = "com.apps4live.Run!!.IgnoredUUIDs"

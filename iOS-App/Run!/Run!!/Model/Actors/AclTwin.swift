@@ -7,24 +7,53 @@
 
 import Foundation
 import CoreMotion
-import UIKit
 
 enum AclStatus {
-    case stopped
+    case stopped(since: Date)
     case started(since: Date)
     case paused(since: Date)
     case notAllowed(since: Date)
     case notAvailable(since: Date)
+    
+    var since: Date {
+        switch self {
+        case .stopped(let since):
+            return since
+        case .started(let since):
+            return since
+        case .paused(let since):
+            return since
+        case .notAllowed(let since):
+            return since
+        case .notAvailable(let since):
+            return since
+        }
+    }
+    
+    func truncation(asOf: Date, _ tolerance: TimeInterval = -600) -> Date {
+        switch self {
+        case .paused(let since):
+            return since.advanced(by: tolerance)
+        default:
+            return asOf.advanced(by: tolerance)
+        }
+    }
 }
 
 class AclTwin {
+    // MARK: initialization
+    init(queue: DispatchQueue, motions: Motions) {
+        self.queue = queue
+        self.motions = motions
+    }
+    
     // MARK: Public interface
     func start(asOf: Date) {
         if case .started = status {return}
         
         // If coming from a pause, this is a resume -> do a query first
-        if case .paused(let since) = status {
-            _start(asOf: asOf, paused: since)
+        if isPaused {
+            _start(asOf: asOf, paused: status.since)
         } else {
             _start(asOf: asOf)
         }
@@ -33,8 +62,7 @@ class AclTwin {
     func stop(asOf: Date) {
         if case .stopped = status {return}
         _stop(asOf: asOf)
-        AppTwin.shared.workout.stop(asOf: asOf)
-        status = .stopped
+        status = .stopped(since: asOf)
     }
 
     func pause(asOf: Date) {
@@ -54,7 +82,7 @@ class AclTwin {
         return false
     }
     
-    private(set) var status: AclStatus = .stopped {
+    private(set) var status: AclStatus = .stopped(since: .distantPast) {
         willSet {
             log(status, newValue)
             if case .paused(let since) = newValue {
@@ -67,50 +95,29 @@ class AclTwin {
     
     // MARK: Acl Implementation
     private var motionActivityManager: CMMotionActivityManager?
+    private unowned let queue: DispatchQueue
+    private unowned let motions: Motions
 
     private func _start(asOf: Date, paused since: Date? = nil) {
         guard CMMotionActivityManager.isActivityAvailable() else {
             check("motion data not available on current device")
             status = .notAvailable(since: asOf)
-            AppTwin.shared.workout.start(asOf: asOf)
+            queue.async {self.motions.appendOriginal(motion: Motion(asOf: asOf, motion: .invalid))}
             return
         }
         
         if [.denied, .restricted].contains(CMMotionActivityManager.authorizationStatus()) {
             check("access to motion data denied")
             status = .notAllowed(since: asOf)
-            AppTwin.shared.workout.start(asOf: asOf)
+            queue.async {self.motions.appendOriginal(motion: Motion(asOf: asOf, motion: .invalid))}
             return
         }
 
         motionActivityManager = CMMotionActivityManager()
         if let since = since {
-            motionActivityManager?.queryActivityStarting(from: since, to: asOf, to: .current ?? .main) {
-                check($1)
-                guard let activities = $0 else {return}
-                log(activities)
-                
-                activities.forEach {
-                    if $0.isActive {
-                        AppTwin.shared.workout.start(asOf: $0.startDate)
-                    } else {
-                        AppTwin.shared.workout.pause(asOf: $0.startDate)
-                    }
-                    // TODO: Create IsActive and MotionType and inform corresponding collections
-                }
-            }
-        }
-        motionActivityManager?.startActivityUpdates(to: .current ?? .main) {
-            guard let activity = $0 else {return}
-            if activity.confidence == .low {return} // TODO: Needs a more intelligent filter
-            log(activity)
-            
-            if activity.isActive {
-                AppTwin.shared.workout.start(asOf: activity.startDate)
-            } else {
-                AppTwin.shared.workout.pause(asOf: activity.startDate)
-            }
-            // TODO: Create IsActive and MotionType and inform corresponding collections
+            queryActivityStarting(from: since, to: asOf, completion: startActivityUpdates) // Ensure to process query results first
+        } else {
+            startActivityUpdates()
         }
         status = .started(since: asOf)
     }
@@ -119,12 +126,32 @@ class AclTwin {
         motionActivityManager?.stopActivityUpdates()
         motionActivityManager = nil
     }
+    
+    private func queryActivityStarting(from: Date, to: Date, completion: (() -> Void)? = nil) {
+        motionActivityManager?.queryActivityStarting(from: from, to: to, to: .current ?? .main) {
+            check($1)
+            guard let activities = $0 else {return}
+            log(activities)
+            
+            self.queue.async {
+                activities.forEach {
+                    self.motions.appendOriginal(motion: Motion($0))
+                }
+            }
+            completion?()
+        }
+    }
+    
+    private func startActivityUpdates() {
+        motionActivityManager?.startActivityUpdates(to: .current ?? .main) {
+            guard let activity = $0 else {return}
+            if activity.confidence == .low {return} // TODO: Needs a more intelligent filter
+            log(activity)
+            
+            self.queue.async {self.motions.appendOriginal(motion: Motion(activity))}
+            
+        }
+    }
 }
 
 private let key = "com.apps4live.Run!!.AclPaused"
-
-extension CMMotionActivity {
-    var isActive: Bool {
-        !stationary && (walking || running || cycling)
-    }
-}

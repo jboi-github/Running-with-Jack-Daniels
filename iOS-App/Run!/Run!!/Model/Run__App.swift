@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import BackgroundTasks
+import UserNotifications
 
 @main
 struct Run__App: App {
@@ -51,25 +51,78 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
-class AppTwin: ObservableObject {
+class AppTwin {
     static let shared = AppTwin()
-    private init() {}
+    private init() {
+        workout = Workout(
+            isActiveGetter: {AppTwin.shared.isActives.isActives[$0]},
+            distanceGetter: {AppTwin.shared.distances.distances[$0]},
+            bodySensorLocationGetter: {AppTwin.shared.hrmTwin.bodySensorLocation})
+        totals = Totals(
+            motionGetter: {AppTwin.shared.motions.motions[$0]},
+            isActiveGetter: {AppTwin.shared.isActives.isActives[$0]},
+            heartrateGetter: {AppTwin.shared.heartrates.heartrates[$0]},
+            intensityGetter: {AppTwin.shared.intensities.intensities[$0]},
+            distanceGetter: {AppTwin.shared.distances.distances[$0]},
+            workout: workout)
+
+        isActives = IsActives(workout: workout)
+        distances = Distances(workout: workout, totals: totals)
+        intensities = Intensities()
+        
+        motions = Motions(isActives: isActives, workout: workout, totals: totals)
+        heartrates = Heartrates(intensities: intensities, workout: workout, totals: totals)
+        locations = Locations(distances: distances, workout: workout, totals: totals)
+        
+        queue = DispatchQueue(label: "run-processing", qos: .userInitiated)
+        
+        aclTwin = AclTwin(queue: queue, motions: motions)
+        hrmTwin = HrmTwin(queue: queue, heartrates: heartrates)
+        gpsTwin = GpsTwin(queue: queue, locations: locations)
+        
+        timer = RunTimer(
+            isInBackground: {
+                switch AppTwin.shared.runAppStatus {
+                case .background:
+                    return true
+                default:
+                    return false
+                }
+            },
+            queue: queue,
+            aclTwin: aclTwin,
+            motions: motions,
+            heartrates: heartrates,
+            locations: locations,
+            isActives: isActives,
+            intensities: intensities,
+            distances: distances)
+        
+        currents = Currents(
+            aclTwin: aclTwin,
+            hrmTwin: hrmTwin,
+            gpsTwin: gpsTwin,
+            motions: motions,
+            heartrates: heartrates,
+            locations: locations,
+            isActives: isActives,
+            distances: distances,
+            intensities: intensities,
+            workout: workout)
+    }
     
     func launchedByBle(_ at: Date, restoreIds: [String]) {
         runAppStatus = .background(since: at)
         if restoreIds.contains(HrmTwin.bleRestoreId) {hrmTwin.start(asOf: at)}
-        // TODO: After ble data is processed, save if in background
     }
     
     func launchedByGps(_ at: Date) {
         runAppStatus = .background(since: at)
         gpsTwin.start(asOf: at)
-        // TODO: After gps data is processed, save if in background
     }
     
     func launchedByUser(_ at: Date) {
         runAppStatus = .background(since: at)
-        // TODO: save when changing into background
     }
     
     func scenePhaseChanged(at: Date, prev: ScenePhase, curr: ScenePhase, _ isRunViewActive: Bool) {
@@ -97,37 +150,118 @@ class AppTwin: ObservableObject {
         didSet {
             log(oldValue, runAppStatus)
             switch (oldValue, runAppStatus) {
+            case (.terminated, .background(_)):
+                Files.initDirectory()
+                Profile.setup()
+                
+                // Restore collections
+                load()
             case (.background(_), .activeRunView(let since)):
+                workout.await(asOf: since)
                 aclTwin.start(asOf: since)
                 hrmTwin.start(asOf: since)
                 gpsTwin.start(asOf: since)
+                timer.start()
             case (.inactiveRunView(_), .activeRunView(let since)):
+                workout.await(asOf: since)
                 aclTwin.start(asOf: since)
                 hrmTwin.start(asOf: since)
                 gpsTwin.start(asOf: since)
+                timer.start()
             case (.activeRunView(_), .inactiveRunView(let since)):
+                timer.stop()
                 aclTwin.stop(asOf: since)
                 hrmTwin.stop(asOf: since)
                 gpsTwin.stop(asOf: since)
             case (.activeRunView(_), .background(let since)):
-                if workout.status == .stopped {
+                timer.stop()
+                if case .stopped = workout.status {
                     aclTwin.stop(asOf: since)
                     hrmTwin.stop(asOf: since)
                     gpsTwin.stop(asOf: since)
                 } else {
-                    // TODO: Send user notification to allow return
+                    userReturn()
                     aclTwin.pause(asOf: since)
                 }
+                // Save collections
+                save()
+            case (.inactiveRunView(_), .background(_)):
+                // Save collections
+                save()
             case (_, _):
                 break
             }
         }
     }
 
-    let aclTwin = AclTwin()
-    let hrmTwin = HrmTwin()
-    let gpsTwin = GpsTwin()
-    let workout = Workout()
+    let queue: DispatchQueue
+    
+    let isActives: IsActives
+    let distances: Distances
+    let intensities: Intensities
+    
+    let motions: Motions
+    let heartrates: Heartrates
+    let locations: Locations
+    
+    let aclTwin: AclTwin
+    let hrmTwin: HrmTwin
+    let gpsTwin: GpsTwin
+    
+    let timer: RunTimer
+    let workout: Workout
+    let totals: Totals
+    let currents: Currents
+    
+    private func load() {
+        queue.async { [self] in
+            workout.load()
+            totals.load()
+
+            isActives.load()
+            distances.load()
+            intensities.load()
+            
+            motions.load()
+            heartrates.load()
+            locations.load()
+        }
+    }
+    
+    private func save() {
+        queue.async { [self] in
+            motions.save()
+            heartrates.save()
+            locations.save()
+            
+            isActives.save()
+            distances.save()
+            intensities.save()
+            
+            workout.save()
+            totals.save()
+        }
+    }
+    
+    private func userReturn() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
+            guard check(error), success else {return}
+            
+            let content = UNMutableNotificationContent()
+            content.title = "RUN!!"
+            content.subtitle = "return to RUN!!"
+            content.sound = UNNotificationSound.default
+
+            // show this notification five seconds from now
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
+
+            // choose a random identifier
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+
+            // add our notification request
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
 }
 
 enum RunAppStatus  {
@@ -136,10 +270,3 @@ enum RunAppStatus  {
     case activeRunView(since: Date)
     case inactiveRunView(since: Date)
 }
-
-/*
- <key>NSBluetoothAlwaysUsageDescription</key>
- <string>Needed to track heartrate during workout. Continues to track while workout is ongoing or Run!! is in foreground.</string>
- <key>NSMotionUsageDescription</key>
- <string>Needed to detect workouts and pauses. If disabled, Run!! is just a complicated stop-watch.</string>
- */

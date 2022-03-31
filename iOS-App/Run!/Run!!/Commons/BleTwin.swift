@@ -9,7 +9,7 @@ import Foundation
 import CoreBluetooth
 
 enum BleStatus {
-    case stopped
+    case stopped(since: Date)
     case started(since: Date)
     case notAllowed(since: Date)
     case notAvailable(since: Date)
@@ -35,15 +35,15 @@ class BleTwin {
         let status: (BleStatus) -> Void
 
         /// Callback, whenever a peripheral was discovered or recognized.
-        let discoveredPeripheral: ((CBPeripheral) -> Void)?
+        let discoveredPeripheral: ((Date, CBPeripheral) -> Void)?
         
         /// Callback, whenever a peripheral was disconnected
-        let failedPeripheral: ((UUID, Error?) -> Void)?
+        let failedPeripheral: ((Date, UUID, Error?) -> Void)?
         
         /// Callback, whenever a new RSSI is detected for a device.
         /// If not `nil`, a timer runs every 5seconds to re-read RSSI.
         /// If `nil` bo timer is started.
-        let rssi: ((UUID, NSNumber) -> Void)?
+        let rssi: ((Date, UUID, NSNumber) -> Void)?
         
         /// Services and corresponding characteristics to be detected.
         let servicesCharacteristicsMap: [CBUUID : [CBUUID]]
@@ -102,8 +102,8 @@ class BleTwin {
         config.status(status)
     }
     
-    func stop() {
-        if case .started = status {return}
+    func stop(asOf: Date) {
+        if case .stopped = status {return}
 
         if let centralManager = centralManager {
             if centralManager.isScanning {centralManager.stopScan()}
@@ -115,7 +115,7 @@ class BleTwin {
         peripherals.removeAll()
         rssiTimer?.invalidate()
 
-        status = .stopped
+        status = .stopped(since: asOf)
         config?.status(status)
     }
     
@@ -157,7 +157,7 @@ class BleTwin {
 
     // MARK: Implementation
     private var config: Config?
-    private var status = BleStatus.stopped
+    private var status = BleStatus.stopped(since: .distantPast)
     private var centralManagerDelegate: CBCentralManagerDelegate?
     private var peripheralDelegate: CBPeripheralDelegate?
     private var rssiTimer: Timer?
@@ -165,22 +165,22 @@ class BleTwin {
     private var centralManager: CBCentralManager?
     private var peripherals = [UUID: CBPeripheral]()
 
-    private func discoveredPeripheral(_ peripheral: CBPeripheral) {
+    private func discoveredPeripheral(_ asOf: Date, _ peripheral: CBPeripheral) {
         peripheral.delegate = peripheralDelegate
         peripherals[peripheral.identifier] = peripheral
-        config?.discoveredPeripheral?(peripheral)
+        config?.discoveredPeripheral?(asOf, peripheral)
         
         if config?.rssi != nil {peripheral.readRSSI()}
     }
 
-    private func failedPeripheral(_ peripheralUuid: UUID, _ error: Error?) {
+    private func failedPeripheral(_ asOf: Date, _ peripheralUuid: UUID, _ error: Error?) {
         peripherals.removeValue(forKey: peripheralUuid)
-        config?.failedPeripheral?(peripheralUuid, error)
+        config?.failedPeripheral?(asOf, peripheralUuid, error)
         
         // If no more peripherals are discovered and central manager is not currently scanning, restart it.
         if peripherals.isEmpty && centralManager?.isScanning ?? false {
             // Ignore the failed peripheral in this scan.
-            stop()
+            stop(asOf: asOf)
             DispatchQueue
                 .global(qos: .userInteractive)
                 .asyncAfter(deadline: .now() + 10) { [self] in
@@ -200,9 +200,9 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     fileprivate init(
         status: @escaping (BleStatus) -> Void,
         stopScanningAfterFirst: Bool,
-        discoveredPeripheral: @escaping (CBPeripheral) -> Void,
-        failedPeripheral: @escaping (UUID, Error?) -> Void,
-        rssi: ((UUID, NSNumber) -> Void)?,
+        discoveredPeripheral: @escaping (Date, CBPeripheral) -> Void,
+        failedPeripheral: @escaping (Date, UUID, Error?) -> Void,
+        rssi: ((Date, UUID, NSNumber) -> Void)?,
         primaryUuid: UUID?, ignoredUuids: [UUID], serviceUuids: [CBUUID])
     {
         self.status = status
@@ -220,9 +220,9 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     private let stopScanningAfterFirst: Bool
 
     ///  Events along peripherals
-    private let discoveredPeripheral: (CBPeripheral) -> Void
-    private let failedPeripheral: (UUID, Error?) -> Void
-    private let rssi: ((UUID, NSNumber) -> Void)?
+    private let discoveredPeripheral: (Date, CBPeripheral) -> Void
+    private let failedPeripheral: (Date, UUID, Error?) -> Void
+    private let rssi: ((Date, UUID, NSNumber) -> Void)?
     
     /// Uuid's to look for or ignore
     private let primaryUuid: UUID?
@@ -233,7 +233,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         log()
         guard let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] else {return}
         
-        peripherals.forEach {discoveredPeripheral($0)}
+        peripherals.forEach {discoveredPeripheral(.now, $0)}
         
         // TODO: Rescan for services and characteristics?
         // TODO: Need to reconnect?
@@ -266,8 +266,9 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         rssi RSSI: NSNumber)
     {
         log(peripheral.name ?? "no-name", RSSI, advertisementData.map {"\($0.key): \($0.value)"})
-        discoveredPeripheral(peripheral)
-        rssi?(peripheral.identifier, RSSI)
+        let now = Date.now
+        discoveredPeripheral(now, peripheral)
+        rssi?(now, peripheral.identifier, RSSI)
         
         guard !ignoredUuids.contains(peripheral.identifier) else {return}
         
@@ -286,7 +287,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         error: Error?)
     {
         log(peripheral.name ?? "no-name")
-        if !check(error) {failedPeripheral(peripheral.identifier, error)}
+        if !check(error) {failedPeripheral(.now, peripheral.identifier, error)}
     }
     
     func centralManager(
@@ -295,12 +296,12 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         error: Error?)
     {
         log(peripheral.name ?? "no-name")
-        if !check(error) {failedPeripheral(peripheral.identifier, error)}
+        if !check(error) {failedPeripheral(.now, peripheral.identifier, error)}
     }
     
     private func discover(_ central: CBCentralManager) {
         func connect(_ peripheral: CBPeripheral) {
-            discoveredPeripheral(peripheral)
+            discoveredPeripheral(.now, peripheral)
             
             central.connect(peripheral)
             if stopScanningAfterFirst {central.stopScan()}
@@ -336,7 +337,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         characteristicUuids: [CBUUID : [CBUUID]],
         actions: [CBUUID : (UUID, CBUUID, CBCharacteristicProperties) -> Void],
         readers: [CBUUID : (UUID, Data?, Date) -> Void],
-        rssi: ((UUID, NSNumber) -> Void)?)
+        rssi: ((Date, UUID, NSNumber) -> Void)?)
     {
         self.characteristicUuids = characteristicUuids
         self.actions = actions
@@ -347,7 +348,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     private let characteristicUuids: [CBUUID: [CBUUID]]
     private let actions: [CBUUID: (UUID, CBUUID, CBCharacteristicProperties) -> Void]
     private let readers: [CBUUID: (UUID, Data?, Date) -> Void]
-    private let rssi: ((UUID, NSNumber) -> Void)?
+    private let rssi: ((Date, UUID, NSNumber) -> Void)?
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         log(peripheral.name ?? "no-name")
@@ -388,7 +389,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         log(peripheral.name ?? "no-name")
         guard check(error) else {return}
 
-        rssi?(peripheral.identifier, RSSI)
+        rssi?(.now, peripheral.identifier, RSSI)
     }
     
     func peripheral(

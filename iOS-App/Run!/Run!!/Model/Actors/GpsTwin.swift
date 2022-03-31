@@ -9,13 +9,19 @@ import Foundation
 import CoreLocation
 
 enum GpsStatus {
-    case stopped
+    case stopped(since: Date)
     case started(since: Date)
     case notAllowed(since: Date)
     case notAvailable(since: Date)
 }
 
 class GpsTwin {
+    // MARK: Initialization
+    init(queue: DispatchQueue, locations: Locations) {
+        self.queue = queue
+        self.locations = locations
+    }
+    
     // MARK: Public interface
     func start(asOf: Date) {
         if case .started = status {return}
@@ -26,11 +32,11 @@ class GpsTwin {
     func stop(asOf: Date) {
         if case .stopped = status {return}
 
-        status = .stopped
+        status = .stopped(since: asOf)
     }
 
     // MARK: Status handling
-    private(set) var status: GpsStatus = .stopped {
+    private(set) var status: GpsStatus = .stopped(since: .distantPast) {
         willSet {
             log(status, newValue)
             switch newValue {
@@ -48,7 +54,7 @@ class GpsTwin {
                 locationManagerDelegate = nil
                 
                 // Retry after some time
-                DispatchQueue.global().asyncAfter(deadline: .now() + 30) {
+                queue.asyncAfter(deadline: .now() + 30) {
                     if case .notAvailable = self.status {
                         self._start(asOf: .now)
                     }
@@ -60,11 +66,15 @@ class GpsTwin {
     // MARK: Gps Implementation
     private var locationManager: CLLocationManager!
     private var locationManagerDelegate: CLLocationManagerDelegate?
+    private unowned let queue: DispatchQueue
+    private unowned let locations: Locations
     
     private func _start(asOf: Date) {
         locationManager = CLLocationManager()
         locationManagerDelegate = LocationManagerDelegate(
-            value: {log($0)}, // TODO: Parse and inform collection
+            value: { value in
+                self.queue.async {self.locations.appendOriginal(location: Location(value))}
+            },
             status: {self.status = $0},
             asOf: asOf)
 
