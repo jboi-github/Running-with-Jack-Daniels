@@ -70,9 +70,9 @@ class IsActives {
         isDirty = false
     }
     
-    func load() {
+    func load(asOf: Date) {
         guard let isActives = Files.read(Array<IsActive>.self, from: "isActives.json") else {return}
-        self.isActives = isActives
+        self.isActives = isActives.filter {$0.date.distance(to: asOf) <= signalTimeout}
         isDirty = false
     }
 

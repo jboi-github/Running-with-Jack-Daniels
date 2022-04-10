@@ -45,11 +45,13 @@ class GpsTwin {
                 locationManager = nil
                 locationManagerDelegate = nil
             case .started:
+                log("starting updates")
                 locationManager.startUpdatingLocation()
             case .notAllowed:
                 locationManager = nil
                 locationManagerDelegate = nil
             case .notAvailable:
+                locationManager?.stopUpdatingLocation()
                 locationManager = nil
                 locationManagerDelegate = nil
                 

@@ -91,10 +91,10 @@ class Distances {
         isDirty = false
     }
     
-    func load() {
+    func load(asOf: Date) {
         guard let distances = Files.read(Array<Distance>.self, from: "distances.json") else {return}
         
-        self.distances = distances
+        self.distances = distances.filter {$0.date.distance(to: asOf) <= signalTimeout}
         isDirty = false
     }
 

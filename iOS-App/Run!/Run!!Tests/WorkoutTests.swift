@@ -248,7 +248,7 @@ class WorkoutTests: XCTestCase {
             bodySensorLocationGetter: {.Other})
         workout.stop(asOf: Date(seconds: 60))
 
-        workout2.load()
+        workout2.load(asOf: Date(seconds: 0))
         XCTAssertEqual(workout.status, WorkoutStatus.stopped(since: Date(seconds: 60)))
         XCTAssertEqual(workout2.status, WorkoutStatus.started(since: Date(seconds: 0)))
         XCTAssertEqual(workout.distance, workout2.distance)

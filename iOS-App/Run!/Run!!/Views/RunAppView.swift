@@ -13,7 +13,7 @@ struct RunAppView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            RunView()
+            RunView(selection: $selection)
                 .tabItem {
                     Label {
                         Text("Run!").font(.footnote)
@@ -59,6 +59,8 @@ struct RunAppView: View {
                 }
                 .tag(4)
         }
+        .colorScheme(.dark)
+        .animation(.default, value: selection)
         .onAppear {isRunViewActive = selection == 0}
         .onChange(of: selection) {isRunViewActive = $0 == 0}
     }

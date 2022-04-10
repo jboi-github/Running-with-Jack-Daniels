@@ -13,6 +13,15 @@ enum BleStatus {
     case started(since: Date)
     case notAllowed(since: Date)
     case notAvailable(since: Date)
+    
+    var isStarted: Bool {
+        switch self {
+        case .started:
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 class BleTwin {
@@ -45,8 +54,8 @@ class BleTwin {
         /// If `nil` bo timer is started.
         let rssi: ((Date, UUID, NSNumber) -> Void)?
         
-        /// Services and corresponding characteristics to be detected.
-        let servicesCharacteristicsMap: [CBUUID : [CBUUID]]
+        /// Services and corresponding characteristics to be detected. Indicate, if service is mandatory or optional.
+        let servicesCharacteristicsMap: [CBUUID : (mandatory: Bool, characteristics: [CBUUID])]
         
         /// Action to be taken, when one characterstic is detected.
         /// The actual characteristic is given as parameter. It contains initial data, properties and a link to the corresponding service.
@@ -72,7 +81,8 @@ class BleTwin {
             rssi: config.rssi,
             primaryUuid: pu,
             ignoredUuids: iu,
-            serviceUuids: config.servicesCharacteristicsMap.keys.map {$0})
+            serviceUuids: config.servicesCharacteristicsMap.keys.map {$0},
+            mandatoryServiceUuids: config.servicesCharacteristicsMap.filter {$0.value.mandatory}.keys.map {$0})
         
         peripheralDelegate = PeripheralDelegate(
             characteristicUuids: config.servicesCharacteristicsMap,
@@ -81,10 +91,11 @@ class BleTwin {
             rssi: config.rssi)
         
         if config.rssi != nil {
-            rssiTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) {
-                log($0.fireDate)
+            rssiTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) {_ in
                 self.peripherals.values.forEach {$0.readRSSI()}
             }
+        } else {
+            rssiTimer?.invalidate()
         }
 
         if let restoreId = config.restoreId {
@@ -161,7 +172,7 @@ class BleTwin {
     private var centralManagerDelegate: CBCentralManagerDelegate?
     private var peripheralDelegate: CBPeripheralDelegate?
     private var rssiTimer: Timer?
-    
+
     private var centralManager: CBCentralManager?
     private var peripherals = [UUID: CBPeripheral]()
 
@@ -203,7 +214,8 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         discoveredPeripheral: @escaping (Date, CBPeripheral) -> Void,
         failedPeripheral: @escaping (Date, UUID, Error?) -> Void,
         rssi: ((Date, UUID, NSNumber) -> Void)?,
-        primaryUuid: UUID?, ignoredUuids: [UUID], serviceUuids: [CBUUID])
+        primaryUuid: UUID?, ignoredUuids: [UUID],
+        serviceUuids: [CBUUID], mandatoryServiceUuids: [CBUUID])
     {
         self.status = status
         self.stopScanningAfterFirst = stopScanningAfterFirst
@@ -213,6 +225,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         self.primaryUuid = primaryUuid
         self.ignoredUuids = ignoredUuids
         self.serviceUuids = serviceUuids
+        self.mandatoryServiceUuids = mandatoryServiceUuids
     }
     
     /// Overall status of the BLE
@@ -228,15 +241,12 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     private let primaryUuid: UUID?
     private let ignoredUuids: [UUID]
     private let serviceUuids: [CBUUID]
+    private let mandatoryServiceUuids: [CBUUID]
 
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String : Any]) {
         log()
         guard let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] else {return}
-        
         peripherals.forEach {discoveredPeripheral(.now, $0)}
-        
-        // TODO: Rescan for services and characteristics?
-        // TODO: Need to reconnect?
     }
     
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
@@ -318,23 +328,24 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
         
         // Try to connect to any device already connected with the appropriate service
         if let peripheral = central
-            .retrieveConnectedPeripherals(withServices: serviceUuids)
+            .retrieveConnectedPeripherals(withServices: mandatoryServiceUuids)
             .first
         {
             log("re-connect using already connected peripheral with expected service")
             connect(peripheral)
-            if stopScanningAfterFirst {return}        }
+            if stopScanningAfterFirst {return}
+        }
 
         // Scan for new devices.
         log("Initiate scanning...")
-        central.scanForPeripherals(withServices: serviceUuids)
+        central.scanForPeripherals(withServices: mandatoryServiceUuids)
     }
 }
 
 // MARK: - Peripheral Delegate
 private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     fileprivate init(
-        characteristicUuids: [CBUUID : [CBUUID]],
+        characteristicUuids: [CBUUID : (Bool, [CBUUID])],
         actions: [CBUUID : (UUID, CBUUID, CBCharacteristicProperties) -> Void],
         readers: [CBUUID : (UUID, Data?, Date) -> Void],
         rssi: ((Date, UUID, NSNumber) -> Void)?)
@@ -345,7 +356,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         self.rssi = rssi
     }
     
-    private let characteristicUuids: [CBUUID: [CBUUID]]
+    private let characteristicUuids: [CBUUID : (mandatory: Bool, characteristics: [CBUUID])]
     private let actions: [CBUUID: (UUID, CBUUID, CBCharacteristicProperties) -> Void]
     private let readers: [CBUUID: (UUID, Data?, Date) -> Void]
     private let rssi: ((Date, UUID, NSNumber) -> Void)?
@@ -355,7 +366,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         guard check(error) else {return}
         
         peripheral.services?.forEach {
-            if let characteristicUuids = characteristicUuids[$0.uuid] {
+            if let characteristicUuids = characteristicUuids[$0.uuid]?.characteristics {
                 peripheral.discoverCharacteristics(characteristicUuids, for: $0)
             }
         }
@@ -399,5 +410,51 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
     {
         log(peripheral.name ?? "no-name")
         guard check(error) else {return}
+    }
+}
+
+extension Store {
+    private static var primaryKey: String {"com.apps4live.Run!!.PrimaryUUID"}
+    private static var ignoredKey: String {"com.apps4live.Run!!.IgnoredUUIDs"}
+
+    static var primaryPeripheral: UUID? {
+        get {Store.read(for: primaryKey)?.value}
+        set (newValue) {Store.write(newValue, at: .now, for: primaryKey)}
+    }
+    
+    static var ignoredPeripherals: [UUID] {
+        get {Store.read(for: ignoredKey)?.value ?? []}
+        set (newValue) {Store.write(newValue, at: .now, for: ignoredKey)}
+    }
+}
+
+extension BleTwin {
+    func read(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ properties: CBCharacteristicProperties) {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.read) else {return}
+        
+        readValue(peripheralUuid, characteristicUuid)
+    }
+    
+    /// Read every 5 minutes
+    func poll(seconds: TimeInterval, _ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ properties: CBCharacteristicProperties) {
+        read(peripheralUuid, characteristicUuid, properties)
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + seconds) {
+            self.poll(seconds: seconds, peripheralUuid, characteristicUuid, properties)
+        }
+    }
+    
+    func startNotifying(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ properties: CBCharacteristicProperties) {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.notify) else {return}
+        
+        setNotifyValue(peripheralUuid, characteristicUuid, true)
+    }
+    
+    func write(data: Data, _ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ properties: CBCharacteristicProperties) {
+        log(peripheralUuid, characteristicUuid, properties)
+        guard properties.contains(.write) else {return}
+        
+        writeValue(peripheralUuid, characteristicUuid, data)
     }
 }

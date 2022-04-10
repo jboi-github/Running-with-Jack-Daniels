@@ -13,16 +13,18 @@ struct Heartrate: Codable, Identifiable, Dated {
     let timestamp: Date
     let heartrate: Int
     let isOriginal: Bool
+    let peripheralName: String?
     
     // Optional values, if supported by the device and contained in this notification
     let skinIsContacted: Bool?
     let energyExpended: Int?
     let rr: [TimeInterval]?
     
-    init(asOf: Date, heartrate: Int) {
+    init(asOf: Date, peripheralName: String?, heartrate: Int) {
         self.timestamp = asOf
         self.heartrate = heartrate
         isOriginal = false
+        self.peripheralName = peripheralName
         skinIsContacted = nil
         energyExpended = nil
         rr = nil
@@ -30,12 +32,13 @@ struct Heartrate: Codable, Identifiable, Dated {
     }
     
     /// Parse CoreBluetooth characteristic
-    init?(_ asOf: Date, _ data: Data?) {
+    init?(_ asOf: Date, _ peripheralName: String?, _ data: Data?) {
         guard let data = data, !data.isEmpty else {return nil}
 
         timestamp = asOf
         (heartrate, skinIsContacted, energyExpended, rr) = Heartrate.parse(data)
         isOriginal = true
+        self.peripheralName = peripheralName
         id = UUID()
     }
     
@@ -70,6 +73,7 @@ struct Heartrate: Codable, Identifiable, Dated {
             energyExpended = nil
         }
         
+        peripheralName = h0.peripheralName
         skinIsContacted = h0.skinIsContacted
         rr = nil
         id = UUID()
@@ -82,6 +86,7 @@ struct Heartrate: Codable, Identifiable, Dated {
         
         isOriginal = false
         
+        peripheralName = heartrate.peripheralName
         energyExpended = heartrate.energyExpended
         skinIsContacted = heartrate.skinIsContacted
         rr = heartrate.rr
@@ -193,7 +198,6 @@ class Heartrates {
         if heartrates.drop(before: truncateAt).isEmpty {return}
         latestOriginal = heartrates.first {$0.isOriginal}
         isDirty = true
-        intensities.maintain(truncateAt: truncateAt)
     }
     
     func save() {
@@ -202,11 +206,11 @@ class Heartrates {
         isDirty = false
     }
     
-    func load() {
+    func load(asOf: Date) {
         guard let heartrates = Files.read(Array<Heartrate>.self, from: "heartrates.json") else {return}
         
-        self.heartrates = heartrates
-        latestOriginal = heartrates.last(where: {$0.isOriginal})
+        self.heartrates = heartrates.filter {$0.date.distance(to: asOf) <= signalTimeout}
+        latestOriginal = self.heartrates.last(where: {$0.isOriginal})
         isDirty = false
     }
 

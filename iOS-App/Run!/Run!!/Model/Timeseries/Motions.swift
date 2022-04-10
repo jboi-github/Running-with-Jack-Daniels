@@ -8,9 +8,11 @@
 import Foundation
 import CoreMotion
 
-enum MotionType: String, Codable {
+enum MotionType: String, Codable, Identifiable {
     case unknown, walking, running, cycling
     case pause, invalid
+    
+    var id: RawValue {rawValue}
 }
 
 struct Motion: Codable, Identifiable, Dated {
@@ -109,7 +111,6 @@ class Motions {
         if motions.drop(before: truncateAt).isEmpty {return}
         latestOriginal = motions.first {$0.isOriginal}
         isDirty = true
-        isActives.maintain(truncateAt: truncateAt)
     }
     
     func save() {
@@ -118,11 +119,12 @@ class Motions {
         isDirty = false
     }
     
-    func load() {
+    /// Load and keep only last 10 minutes
+    func load(asOf: Date) {
         guard let motions = Files.read(Array<Motion>.self, from: "motions.json") else {return}
         
-        self.motions = motions
-        latestOriginal = motions.last(where: {$0.isOriginal})
+        self.motions = motions.filter {$0.asOf.distance(to: asOf) <= signalTimeout}
+        latestOriginal = self.motions.last(where: {$0.isOriginal})
         isDirty = false
     }
 

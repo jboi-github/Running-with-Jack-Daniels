@@ -13,7 +13,7 @@ enum Store {
         let value: Value
     }
 
-    static func read<Value: Codable>(for key: String) -> (Date, Value)? {
+    static func read<Value: Codable>(for key: String) -> (date: Date, value: Value)? {
         do {
             guard let data = NSUbiquitousKeyValueStore.default.data(forKey: key) else {return nil}
             let kv = try Files.decoder.decode(KeyValueData<Value>.self, from: data)

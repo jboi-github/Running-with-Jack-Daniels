@@ -8,7 +8,7 @@
 import Foundation
 import CoreLocation
 
-class Currents {
+class Currents: ObservableObject {
     // MARK: Initialization
     init(
         aclTwin: AclTwin, hrmTwin: HrmTwin, gpsTwin: GpsTwin,
@@ -29,34 +29,65 @@ class Currents {
     }
     
     // MARK: Interface
-    var aclStatus: AclStatus {aclTwin.status}
-    var hrmStatus: HrmStatus {hrmTwin.status}
-    var gpsStatus: GpsStatus {gpsTwin.status}
+    @Published private(set) var aclStatus: AclStatus = .stopped(since: .distantPast)
+    @Published private(set) var hrmStatus: BleStatus = .stopped(since: .distantPast)
+    @Published private(set) var gpsStatus: GpsStatus = .stopped(since: .distantPast)
     
-    var motionType: MotionType? {motions.latestOriginal?.motion}
-    var heartrate: Int? {heartrates.latestOriginal?.heartrate}
-    var energyExpended: Int? {heartrates.latestOriginal?.energyExpended}
-    var skinIsContacted: Bool? {heartrates.latestOriginal?.skinIsContacted}
-    var location: Location? {locations.latestOriginal}
+    @Published private(set) var motionType: MotionType? = nil
+    @Published private(set) var heartrate: Int? = nil
+    @Published private(set) var energyExpended: Int? = nil
     
-    var isActive: Bool? {isActives.isActives.last?.isActive}
-    var speed: CLLocationSpeed? {distances.distances.last?.speed}
-    var intensity: Run.Intensity? {intensities.intensities.last?.intensity}
-    
-    var duration: TimeInterval {workout.duration}
-    var distance: CLLocationDistance {workout.distance}
-    
-    var vdot: Double? {
-        guard let heartrate = heartrate else {return nil}
-        guard let speed = speed else {return nil}
-        guard let limits = Profile.hrLimits.value else {return nil}
+    @Published private(set) var skinIsContacted: Bool? = nil
+    @Published private(set) var peripheralName: String? = nil
+    @Published private(set) var batteryLevel: Int? = nil
 
-        return Run.train(
-            hrBpm: heartrate,
-            paceSecPerKm: 1000 / speed,
-            limits: limits)
+    @Published private(set) var location: Location? = nil
+    
+    @Published private(set) var isActive: Bool? = nil
+    @Published private(set) var speed: CLLocationSpeed? = nil
+    @Published private(set) var intensity: Run.Intensity? = nil
+    
+    @Published private(set) var duration: TimeInterval = 0
+    @Published private(set) var distance: CLLocationDistance = 0
+    
+    @Published private(set) var vdot: Double? = nil
+
+    func trigger() {
+        DispatchQueue.main.async { [self] in
+            aclStatus = aclTwin.status
+            hrmStatus = hrmTwin.status
+            gpsStatus = gpsTwin.status
+            
+            motionType = motions.latestOriginal?.motion
+            heartrate = heartrates.latestOriginal?.heartrate
+            energyExpended = heartrates.latestOriginal?.energyExpended
+            skinIsContacted = heartrates.latestOriginal?.skinIsContacted
+            
+            peripheralName = heartrates.latestOriginal?.peripheralName
+            batteryLevel = hrmTwin.batteryLevel
+            
+            location = locations.latestOriginal
+            
+            isActive = isActives.isActives.last?.isActive
+            speed = distances.distances.last?.speed
+            intensity = intensities.intensities.last?.intensity
+            
+            duration = workout.duration
+            distance = workout.distance
+            
+            vdot = {
+                guard let heartrate = heartrate else {return nil}
+                guard let speed = speed else {return nil}
+                guard let limits = Profile.hrLimits.value else {return nil}
+
+                return Run.train(
+                    hrBpm: heartrate,
+                    paceSecPerKm: 1000 / speed,
+                    limits: limits)
+            }()
+        }
     }
-
+    
     // MARK: Implementation
     private unowned let aclTwin: AclTwin
     private unowned let hrmTwin: HrmTwin

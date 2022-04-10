@@ -96,6 +96,7 @@ private struct Rotated<Rotated: View>: View {
     }
 }
 
+// MARK: Get size of a viww
 extension View {
     func captureSize(in binding: Binding<CGSize>) -> some View {
         overlay(
@@ -108,5 +109,16 @@ extension View {
     
     func rotated(_ angle: Angle = .degrees(-90)) -> some View {
         Rotated(view: self, angle: angle)
+    }
+}
+
+// MARK: Make a view refreshable
+extension View {
+    func refresh(action: @escaping @Sendable () -> Void) -> some View {
+        List {
+            self
+        }
+        .refreshable(action: action)
+        .listStyle(.plain)
     }
 }

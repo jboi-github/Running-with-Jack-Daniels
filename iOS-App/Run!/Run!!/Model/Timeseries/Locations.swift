@@ -92,7 +92,6 @@ class Locations {
     func maintain(truncateAt: Date) {
         if locations.drop(before: truncateAt).isEmpty {return}
         isDirty = true
-        distances.maintain(truncateAt: truncateAt)
     }
 
     func save() {
@@ -102,10 +101,10 @@ class Locations {
         isDirty = false
     }
     
-    func load() {
+    func load(asOf: Date) {
         guard let locations = Files.read(Array<Location>.self, from: "locations.json") else {return}
         
-        self.locations = locations
+        self.locations = locations.filter {$0.date.distance(to: asOf) <= signalTimeout}
         isDirty = false
     }
 

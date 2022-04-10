@@ -133,8 +133,8 @@ class CollectionsTests: XCTestCase {
         let totals2 = Totals(motionGetter: {_ in nil}, isActiveGetter: {_ in nil}, heartrateGetter: {_ in nil}, intensityGetter: {_ in nil}, distanceGetter: {_ in nil}, workout: workout)
         let isActives2 = IsActives(workout: workout2)
         let motions2 = Motions(isActives: isActives2, workout: workout2, totals: totals2)
-        motions2.load()
-        isActives2.load()
+        motions2.load(asOf: Date(timeIntervalSinceReferenceDate: 0))
+        isActives2.load(asOf: Date(timeIntervalSinceReferenceDate: 0))
         
         XCTAssertEqual(
             motions.motions,
@@ -256,8 +256,8 @@ class CollectionsTests: XCTestCase {
         
         let intensities2 = Intensities()
         let heartrates2 = Heartrates(intensities: intensities2, workout: workout, totals: totals)
-        heartrates2.load()
-        intensities2.load()
+        heartrates2.load(asOf: Date(timeIntervalSinceReferenceDate: 0))
+        intensities2.load(asOf: Date(timeIntervalSinceReferenceDate: 0))
 
         XCTAssertEqual(
             heartrates.heartrates, [
@@ -339,8 +339,8 @@ class CollectionsTests: XCTestCase {
         
         let distances2 = Distances(workout: workout, totals: totals)
         let locations2 = Locations(distances: distances2, workout: workout, totals: totals)
-        locations2.load()
-        distances2.load()
+        locations2.load(asOf: Date(timeIntervalSinceReferenceDate: 0))
+        distances2.load(asOf: Date(timeIntervalSinceReferenceDate: 0))
 
         XCTAssertEqual(locations.locations.map {$0.timestamp.timeIntervalSinceReferenceDate}, [10020.5])
         XCTAssertEqual(

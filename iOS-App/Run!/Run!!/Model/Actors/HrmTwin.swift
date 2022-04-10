@@ -8,15 +8,14 @@
 import Foundation
 import CoreBluetooth
 
-enum HrmStatus {
-    case stopped(since: Date)
-    case started(since: Date)
-    case notAllowed(since: Date)
-    case notAvailable(since: Date)
-}
-
 enum BodySensorLocation: UInt8 {
     case Other, Chest, Wrist, Finger, Hand, EarLobe, Foot
+    
+    static func parse(_ data: Data?) -> Self? {
+        guard let data = data, !data.isEmpty else {return nil}
+
+        return BodySensorLocation(rawValue: [UInt8](data)[0])
+    }
 }
 
 /// Heartrate Monitor (HRM) based on BLE
@@ -28,40 +27,45 @@ class HrmTwin {
     }
     
     // MARK: Public interface
-    private(set) var bodySensorLocation: BodySensorLocation = .Other
+    private(set) var bodySensorLocation: BodySensorLocation? = nil
+    private(set) var batteryLevel: Int? = nil
+    private(set) var peripherals = [UUID: CBPeripheral]()
     
     func start(asOf: Date) {
         if case .started = status {return}
         
         bleTwin.start(
             config: BleTwin.Config(
-                primaryUuid: Store.read(for: primaryKey)?.1,
-                ignoredUuids: Store.read(for: ignoredKey)?.1 ?? [UUID](),
+                primaryUuid: Store.primaryPeripheral,
+                ignoredUuids: Store.ignoredPeripherals,
                 stopScanningAfterFirst: true,
                 restoreId: HrmTwin.bleRestoreId,
                 status: status,
-                discoveredPeripheral: nil,
+                discoveredPeripheral: {self.peripherals[$1.identifier] = $1},
                 failedPeripheral: nil,
                 rssi: nil,
                 servicesCharacteristicsMap: [
-                    CBUUID(string: "180D") : [
+                    CBUUID(string: "180D") : (true, [
                         CBUUID(string: "2A37"), // Heartrate measurement
                         CBUUID(string: "2A38"), // Body Sensor Location
                         CBUUID(string: "2A39") // Heart rate control point (reset energy expedition)
-                    ]
+                    ]),
+                    CBUUID(string: "180F") : (false, [
+                        CBUUID(string: "2A19") // Battery level
+                    ])
                 ],
                 actions: [
-                    CBUUID(string: "2A37"): notifyHrMeasures,
-                    CBUUID(string: "2A38"): readBodySensorLocation,
-                    CBUUID(string: "2A39"): writeHrControlPoint
+                    CBUUID(string: "2A37"): bleTwin.startNotifying,
+                    CBUUID(string: "2A38"): bleTwin.read,
+                    CBUUID(string: "2A39"): {self.bleTwin.write(data: Data([UInt8(0x01)]), $0, $1, $2)},
+                    CBUUID(string: "2A19"): {self.bleTwin.poll(seconds: 300, $0, $1, $2)}
                 ],
                 readers: [
                     CBUUID(string: "2A37"): parseHrMeasure,
-                    CBUUID(string: "2A38"): parseBodySensorLocation
+                    CBUUID(string: "2A38"): parseBodySensorLocation,
+                    CBUUID(string: "2A19"): parseBatteryLevel
                 ]),
             asOf: asOf, transientFailedPeripheralUuid: nil)
-        // TODO: Read Battery Level every 5 minutes and after going to foreground
-        
         status = .started(since: asOf)
     }
 
@@ -74,7 +78,7 @@ class HrmTwin {
     }
 
     // MARK: Status handling
-    private(set) var status: HrmStatus = .stopped(since: .distantPast) {
+    private(set) var status: BleStatus = .stopped(since: .distantPast) {
         willSet {
             log(status, newValue)
         }
@@ -86,56 +90,13 @@ class HrmTwin {
     private unowned let heartrates: Heartrates
     
     private func status(_ bleStatus: BleStatus) {
-        switch bleStatus {
-        case .stopped(since: let since):
-            status = .stopped(since: since)
-        case .started(since: let since):
-            status = .started(since: since)
-        case .notAllowed(since: let since):
-            status = .notAllowed(since: since)
-        case .notAvailable(since: let since):
-            status = .notAvailable(since: since)
-        }
+        status = bleStatus
     }
 
-    private func notifyHrMeasures(
-        _ peripheralUuid: UUID,
-        _ characteristicUuid: CBUUID,
-        _ properties: CBCharacteristicProperties) -> Void
-    {
-        log(peripheralUuid, characteristicUuid, properties)
-        guard properties.contains(.notify) else {return}
-        
-        bleTwin.setNotifyValue(peripheralUuid, characteristicUuid, true)
-    }
-    
-    private func readBodySensorLocation(
-        _ peripheralUuid: UUID,
-        _ characteristicUuid: CBUUID,
-        _ properties: CBCharacteristicProperties) -> Void
-    {
-        log(peripheralUuid, characteristicUuid, properties)
-        guard properties.contains(.read) else {return}
-        
-        bleTwin.readValue(peripheralUuid, characteristicUuid)
-    }
-
-    private func writeHrControlPoint(
-        _ peripheralUuid: UUID,
-        _ characteristicUuid: CBUUID,
-        _ properties: CBCharacteristicProperties) -> Void
-    {
-        log(peripheralUuid, characteristicUuid, properties)
-        guard properties.contains(.write) else {return}
-        
-        bleTwin.writeValue(peripheralUuid, characteristicUuid, Data([UInt8(0x01)]))
-    }
-    
     private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        
         queue.async {
-            if let heartrate = Heartrate(timestamp, data) {
+            if let heartrate = Heartrate(timestamp, self.peripherals[peripheralUuid]?.name, data) {
                 self.heartrates.appendOriginal(heartrate: heartrate)
             }
         }
@@ -143,11 +104,12 @@ class HrmTwin {
     
     private func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        guard let data = data, !data.isEmpty else {return}
+        self.bodySensorLocation = BodySensorLocation.parse(data)
+    }
 
-        bodySensorLocation = BodySensorLocation(rawValue: [UInt8](data)[0]) ?? .Other
+    private func parseBatteryLevel(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
+        log(peripheralUuid, timestamp)
+        guard let data = data, !data.isEmpty else {return}
+        self.batteryLevel = Int([UInt8](data)[0])
     }
 }
-
-private let primaryKey = "com.apps4live.Run!!.PrimaryUUID"
-private let ignoredKey = "com.apps4live.Run!!.IgnoredUUIDs"

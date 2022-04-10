@@ -83,9 +83,9 @@ class Intensities {
         isDirty = false
     }
     
-    func load() {
+    func load(asOf: Date) {
         guard let intensities = Files.read(Array<Intensity>.self, from: "intensities.json") else {return}
-        self.intensities = intensities
+        self.intensities = intensities.filter {$0.date.distance(to: asOf) <= signalTimeout}
         isDirty = false
     }
     

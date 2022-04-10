@@ -7,9 +7,10 @@
 
 import Foundation
 import CoreLocation
+import UIKit
 
 
-class Totals {
+class Totals: ObservableObject {
     // MARK: Initalize
     init(
         motionGetter: @escaping (Date) -> Motion?,
@@ -77,7 +78,18 @@ class Totals {
         }
     }
     
-    private(set) var totals = [Key: Value]()
+    struct KeyValue {
+        let key: Key
+        let value: Value
+    }
+    
+    private(set) var totals = [Key: Value]() {
+        didSet {
+            let flattend = totals.map {KeyValue(key: $0.key, value: $0.value)} // TODO: Latest first, best order
+            DispatchQueue.main.async {self.flattend = flattend}
+        }
+    }
+    @Published private(set) var flattend = [KeyValue]()
     
     func changed(motions appendedM: [Motion], _ removedM: [Motion], _ appendedA: [IsActive], _ removedA: [IsActive]) {
         // For each removed second

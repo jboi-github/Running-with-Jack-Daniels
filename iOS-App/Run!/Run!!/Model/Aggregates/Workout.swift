@@ -8,6 +8,8 @@
 import Foundation
 import CoreLocation
 import HealthKit
+import MapKit
+import Combine
 
 enum WorkoutStatus: Equatable, Codable {
     case stopped(since: Date)
@@ -36,53 +38,77 @@ enum WorkoutStatus: Equatable, Codable {
             return false
         }
     }
+    
+    var since: Date {
+        switch self {
+        case .stopped(since: let since):
+            return since
+        case .waiting(since: let since):
+            return since
+        case .started(since: let since):
+            return since
+        case .paused(since: let since):
+            return since
+        }
+    }
 }
 
-class Workout {
+// TODO: Totals must be part of workout and kept in this scope
+class Workout: ObservableObject {
     // MARK: Initalize
-    init(isActiveGetter: @escaping (Date) -> IsActive?, distanceGetter: @escaping (Date) -> Distance?, bodySensorLocationGetter: @escaping () -> BodySensorLocation) {
+    init(isActiveGetter: @escaping (Date) -> IsActive?, distanceGetter: @escaping (Date) -> Distance?, bodySensorLocationGetter: @escaping () -> BodySensorLocation?) {
         self.isActiveGetter = isActiveGetter
         self.distanceGetter = distanceGetter
         self.bodySensorLocationGetter = bodySensorLocationGetter
     }
     
     // MARK: Interface
-    private(set) var status: WorkoutStatus = .stopped(since: .distantPast)
-    private(set) var distance: CLLocationDistance = 0
-    private(set) var startTime: Date = .distantFuture
+    @Published private(set) var status: WorkoutStatus = .stopped(since: .distantPast)
+    @Published private(set) var distance: CLLocationDistance = 0
+    @Published private(set) var startTime: Date = .distantFuture
     private(set) var endTime: Date = .distantFuture
     var duration: TimeInterval {startTime.distance(to: endTime)}
     
-    private(set) var heartrates = [Heartrate]()
-    private(set) var locations = [Location]()
+    @Published private(set) var heartrates = [Heartrate]()
+    @Published private(set) var locations = [Location]()
+    
     private(set) var motionTypes = [MotionType:Int]()
     private(set) var pauses = [Date]()
     private(set) var resumes = [Date]()
 
     func await(asOf: Date) {
+        log(asOf, status)
         guard case .stopped = status else {return}
-        status = .waiting(since: asOf)
-        startTime = asOf
-        endTime = asOf
-        distance = 0
+        
+        DispatchQueue.main.async { [self] in
+            status = .waiting(since: asOf)
+            startTime = asOf
+            endTime = asOf
+            distance = 0
+        }
     }
     
     func start(asOf: Date) {
+        log(asOf, status)
         switch status {
         case .waiting(since: let waitAsOf):
             // Start new Workout
-            status = .started(since: max(waitAsOf, asOf))
-            startTime = max(waitAsOf, asOf)
-            endTime = startTime
-            distance = 0
-            heartrates.removeAll()
-            locations.removeAll()
+            DispatchQueue.main.async { [self] in
+                status = .started(since: max(waitAsOf, asOf))
+                startTime = max(waitAsOf, asOf)
+                endTime = startTime
+                distance = 0
+                heartrates.removeAll()
+                locations.removeAll()
+            }
             motionTypes.removeAll()
             pauses.removeAll()
             resumes.removeAll()
         case .paused:
             // Resume to Workout
-            status = .started(since: asOf)
+            DispatchQueue.main.async { [self] in
+                status = .started(since: asOf)
+            }
             resumes.append(asOf)
         default:
             return
@@ -90,16 +116,23 @@ class Workout {
     }
     
     func pause(asOf: Date) {
+        log(asOf, status)
         guard case .started = status else {return}
-        status = .paused(since: asOf)
+        DispatchQueue.main.async { [self] in
+            status = .paused(since: asOf)
+        }
         pauses.append(asOf)
     }
     
+    // TODO: App gets killed when workout stops.
     func stop(asOf: Date) {
+        log(asOf,status)
         guard status.canStop else {return}
-        status = .stopped(since: max(endTime, asOf))
-        endTime = max(endTime, asOf)
-        saveToHK()
+        DispatchQueue.main.async { [self] in
+            status = .stopped(since: max(endTime, asOf))
+            endTime = max(endTime, asOf)
+            saveToHK()
+        }
     }
     
     func changed(distances appended: [Distance], _ removed: [Distance]) {
@@ -119,11 +152,11 @@ class Workout {
             
             return $0 - $1.speed
         }
-        distance += delta
+        DispatchQueue.main.async { [self] in distance += delta}
     }
     
     func changed(isActives appended: [IsActive], _ removed: [IsActive]) {
-        if status.canStop {endTime = max(endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
+        if status.canStop {endTime = max(startTime, endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
         
         var delta = appended.reduce(0.0) {
             guard (startTime ... endTime).contains($1.asOf) else {return $0}
@@ -139,11 +172,11 @@ class Workout {
             
             return $0 - d.speed
         }
-        distance += delta
+        DispatchQueue.main.async { [self] in distance += delta}
     }
     
     func changed(motions appended: [Motion], _ removed: [Motion]) {
-        if status.canStop {endTime = max(endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
+        if status.canStop {endTime = max(startTime, endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
         
         var delta = appended.reduce(into: [MotionType:Int]()) {
             guard (startTime ... endTime).contains($1.asOf) else {return}
@@ -168,15 +201,19 @@ class Workout {
     /// Must be called as the very last thing to ensure `endTime` is already maintained.
     func append(_ heartrate: Heartrate) {
         guard status.canStop else {return}
-        endTime = max(endTime, heartrate.date)
-        heartrates.append(heartrate)
+        DispatchQueue.main.async { [self] in
+            endTime = max(endTime, heartrate.date)
+            heartrates.append(heartrate)
+        }
     }
     
     /// Must be called as the very last thing to ensure `endTime` is already maintained.
     func append(_ location: Location) {
         guard status.canStop else {return}
-        endTime = max(endTime, location.date)
-        locations.append(location)
+        DispatchQueue.main.async { [self] in
+            endTime = max(endTime, location.date)
+            locations.append(location)
+        }
     }
     
     func save() {
@@ -189,15 +226,27 @@ class Workout {
         if let url = Files.write(info, to: "workout.json") {log(url)}
     }
     
-    func load() {
+    func load(asOf: Date) {
         guard let info = Files.read(Info.self, from: "workout.json") else {return}
+        switch info.status {
+        case .stopped(since: let since):
+            if since.distance(to: asOf) >= workoutTimeout {return}
+        case .waiting(since: let since):
+            if since.distance(to: asOf) >= workoutTimeout {return}
+        case .started(since: let since):
+            if since.distance(to: asOf) >= workoutTimeout {return}
+        case .paused(since: let since):
+            if since.distance(to: asOf) >= workoutTimeout {return}
+        }
         
-        self.status = info.status
-        self.distance = info.distance
-        self.startTime = info.startTime
-        self.endTime = info.endTime
-        self.heartrates = info.heartrates
-        self.locations = info.locations
+        DispatchQueue.main.async {
+            self.status = info.status
+            self.distance = info.distance
+            self.startTime = info.startTime
+            self.endTime = info.endTime
+            self.heartrates = info.heartrates
+            self.locations = info.locations
+        }
         self.motionTypes = info.motionTypes
         self.pauses = info.pauses
         self.resumes = info.resumes
@@ -206,7 +255,7 @@ class Workout {
     // MARK: Implementation
     private let isActiveGetter: (Date) -> IsActive?
     private let distanceGetter: (Date) -> Distance?
-    private let bodySensorLocationGetter: () -> BodySensorLocation
+    private let bodySensorLocationGetter: () -> BodySensorLocation?
 
     private struct Info: Codable {
         let status: WorkoutStatus
@@ -262,7 +311,7 @@ class Workout {
         // HR Sensor location
         let hkSensorLocation: HKHeartRateSensorLocation = {
             switch bodySensorLocationGetter() {
-            case .Other:
+            case .Other, .none:
                 return .other
             case .Chest:
                 return .chest

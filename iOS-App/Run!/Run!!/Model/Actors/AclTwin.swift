@@ -30,7 +30,7 @@ enum AclStatus {
         }
     }
     
-    func truncation(asOf: Date, _ tolerance: TimeInterval = -600) -> Date {
+    func truncation(asOf: Date, _ tolerance: TimeInterval = -signalTimeout) -> Date {
         switch self {
         case .paused(let since):
             return since.advanced(by: tolerance)
@@ -102,7 +102,9 @@ class AclTwin {
         guard CMMotionActivityManager.isActivityAvailable() else {
             check("motion data not available on current device")
             status = .notAvailable(since: asOf)
-            queue.async {self.motions.appendOriginal(motion: Motion(asOf: asOf, motion: .invalid))}
+            queue.async {
+                self.motions.appendOriginal(motion: Motion(asOf: asOf, motion: .invalid))
+            }
             return
         }
         
@@ -115,7 +117,7 @@ class AclTwin {
 
         motionActivityManager = CMMotionActivityManager()
         if let since = since {
-            queryActivityStarting(from: since, to: asOf, completion: startActivityUpdates) // Ensure to process query results first
+            queryActivityStarting(from: max(since, asOf.advanced(by: -workoutTimeout)), to: asOf, completion: startActivityUpdates) // Ensure to process query results first
         } else {
             startActivityUpdates()
         }

@@ -91,7 +91,7 @@ struct RunCurrentsView_Previews: PreviewProvider {
             activityType: .running, isActive: true,
             status: .started(asOf: Date()),
             peripheralName: "HR-Name",
-            batteryStatus: 50)
+            batteryLevel: 50)
         
         RunCurrentsView(
             hr: 100,
@@ -104,7 +104,7 @@ struct RunCurrentsView_Previews: PreviewProvider {
             activityType: .running, isActive: false,
             status: .started(asOf: Date()),
             peripheralName: "HR-Name",
-            batteryStatus: 50)
+            batteryLevel: 50)
     }
 }
 #endif

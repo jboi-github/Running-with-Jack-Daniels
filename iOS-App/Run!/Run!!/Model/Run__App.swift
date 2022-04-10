@@ -80,6 +80,18 @@ class AppTwin {
         hrmTwin = HrmTwin(queue: queue, heartrates: heartrates)
         gpsTwin = GpsTwin(queue: queue, locations: locations)
         
+        currents = Currents(
+            aclTwin: aclTwin,
+            hrmTwin: hrmTwin,
+            gpsTwin: gpsTwin,
+            motions: motions,
+            heartrates: heartrates,
+            locations: locations,
+            isActives: isActives,
+            distances: distances,
+            intensities: intensities,
+            workout: workout)
+        
         timer = RunTimer(
             isInBackground: {
                 switch AppTwin.shared.runAppStatus {
@@ -96,19 +108,8 @@ class AppTwin {
             locations: locations,
             isActives: isActives,
             intensities: intensities,
-            distances: distances)
-        
-        currents = Currents(
-            aclTwin: aclTwin,
-            hrmTwin: hrmTwin,
-            gpsTwin: gpsTwin,
-            motions: motions,
-            heartrates: heartrates,
-            locations: locations,
-            isActives: isActives,
             distances: distances,
-            intensities: intensities,
-            workout: workout)
+            currents: currents)
     }
     
     func launchedByBle(_ at: Date, restoreIds: [String]) {
@@ -215,16 +216,16 @@ class AppTwin {
     
     private func load() {
         queue.async { [self] in
-            workout.load()
+            workout.load(asOf: .now)
             totals.load()
 
-            isActives.load()
-            distances.load()
-            intensities.load()
+            isActives.load(asOf: .now)
+            distances.load(asOf: .now)
+            intensities.load(asOf: .now)
             
-            motions.load()
-            heartrates.load()
-            locations.load()
+            motions.load(asOf: .now)
+            heartrates.load(asOf: .now)
+            locations.load(asOf: .now)
         }
     }
     
@@ -270,3 +271,6 @@ enum RunAppStatus  {
     case activeRunView(since: Date)
     case inactiveRunView(since: Date)
 }
+
+let workoutTimeout: TimeInterval = 12*3600
+let signalTimeout: TimeInterval = 600

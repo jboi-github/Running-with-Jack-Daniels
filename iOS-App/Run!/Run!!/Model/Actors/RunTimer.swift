@@ -18,7 +18,8 @@ class RunTimer: ObservableObject {
         locations: Locations,
         isActives: IsActives,
         intensities: Intensities,
-        distances: Distances)
+        distances: Distances,
+        currents: Currents)
     {
         self.isInBackground = isInBackground
         
@@ -32,6 +33,8 @@ class RunTimer: ObservableObject {
         self.isActives = isActives
         self.intensities = intensities
         self.distances = distances
+        
+        self.currents = currents
     }
     
     // MARK: Interface
@@ -66,19 +69,25 @@ class RunTimer: ObservableObject {
     private unowned let isActives: IsActives
     private unowned let intensities: Intensities
     private unowned let distances: Distances
+    
+    private unowned let currents: Currents
 
     private func task(asOf: Date) {
         motions.trigger(asOf: asOf)
         heartrates.trigger(asOf: asOf)
         distances.trigger(asOf: asOf)
         
+        currents.trigger()
+        
         // Maintain motions, heartrates and locations to commit date
         let truncation = aclTwin.status.truncation(asOf: asOf)
-        log(truncation)
         motions.maintain(truncateAt: truncation)
+        isActives.maintain(truncateAt: truncation)
         heartrates.maintain(truncateAt: truncation)
+        intensities.maintain(truncateAt: truncation)
         locations.maintain(truncateAt: truncation)
-        
+        distances.maintain(truncateAt: truncation)
+
         // Save changes, if in background
         if isInBackground() {
             motions.save()
