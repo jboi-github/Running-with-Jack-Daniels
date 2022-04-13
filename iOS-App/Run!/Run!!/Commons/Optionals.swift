@@ -30,3 +30,13 @@ extension Optional: AdditiveArithmetic where Wrapped: AdditiveArithmetic {
         }
     }
 }
+
+extension Optional {
+    func ifNotNull<R>(_ action: (Wrapped) -> R) -> R? {
+        if let wrapped = self {
+            return action(wrapped)
+        } else {
+            return nil
+        }
+    }
+}

@@ -65,10 +65,9 @@ extension Location: Equatable {
 
 class Locations {
     // MARK: Initialization
-    init(distances: Distances, workout: Workout, totals: Totals) {
+    init(distances: Distances, workout: Workout) {
         self.distances = distances
         self.workout = workout
-        self.totals = totals
    }
     
     // MARK: Interface
@@ -86,7 +85,6 @@ class Locations {
         // Notify workout about appends and removes
         workout.changed(distances: changedDistances.appended, changedDistances.dropped)
         workout.append(location)
-        totals.changed(distances: changedDistances.appended, changedDistances.dropped)
     }
 
     func maintain(truncateAt: Date) {
@@ -112,5 +110,4 @@ class Locations {
     private var isDirty: Bool = false
     private unowned let distances: Distances
     private unowned let workout: Workout
-    private unowned let totals: Totals
 }

@@ -94,6 +94,25 @@ class AclTwin {
     }
     
     // MARK: Acl Implementation
+    private struct Event {
+        let type: MotionType
+        let confidence: CMMotionActivityConfidence?
+        let date: Date
+        
+        static func parse(activity: CMMotionActivity) -> [Event] {
+            guard !activity.stationary else {return [Event(type: .pause, confidence: activity.confidence, date: activity.startDate)]}
+            
+            var result = [Event]()
+            if activity.cycling {result.append(Event(type: .cycling, confidence: activity.confidence, date: activity.startDate))}
+            if activity.running {result.append(Event(type: .running, confidence: activity.confidence, date: activity.startDate))}
+            if activity.walking {result.append(Event(type: .walking, confidence: activity.confidence, date: activity.startDate))}
+            if !activity.cycling && !activity.running && !activity.walking {
+                result.append(Event(type: .unknown, confidence: activity.confidence, date: activity.startDate))
+            }
+            return result
+        }
+    }
+    
     private var motionActivityManager: CMMotionActivityManager?
     private unowned let queue: DispatchQueue
     private unowned let motions: Motions
@@ -133,11 +152,10 @@ class AclTwin {
         motionActivityManager?.queryActivityStarting(from: from, to: to, to: .current ?? .main) {
             check($1)
             guard let activities = $0 else {return}
-            log(activities)
             
             self.queue.async {
                 activities.forEach {
-                    self.motions.appendOriginal(motion: Motion($0))
+                    self.process(activity: $0)
                 }
             }
             completion?()
@@ -147,12 +165,14 @@ class AclTwin {
     private func startActivityUpdates() {
         motionActivityManager?.startActivityUpdates(to: .current ?? .main) {
             guard let activity = $0 else {return}
-            if activity.confidence == .low {return} // TODO: Needs a more intelligent filter
-            log(activity)
-            
-            self.queue.async {self.motions.appendOriginal(motion: Motion(activity))}
-            
+            self.queue.async {self.process(activity: activity)}
         }
+    }
+    
+    // TODO: Needs a more intelligent filter
+    private func process(activity: CMMotionActivity) {
+        log(activity)
+        motions.appendOriginal(motion: Motion(activity))
     }
 }
 

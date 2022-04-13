@@ -43,6 +43,8 @@ struct RunView: View {
                     heartratesNotEmpty: !workout.heartrates.isEmpty)
             }
             TabView {
+                PdmGridView()
+                    .refresh {refresh()}
                 RunMapCurrentsTotalsTextView(size: size, selection: $selection)
                     .refresh {refresh()}
                 RunCurrentsTotalsGraphView(size: size, selection: $selection)
@@ -58,6 +60,7 @@ struct RunView: View {
             .captureSize(in: $size)
         }
         .animation(.default, value: workout.status)
+        .animation(.default, value: selection)
     }
     
     private func refresh() {
@@ -99,7 +102,7 @@ private struct RunMapCurrentsTotalsTextView: View {
                 selection: $selection)
                 .frame(height: size.height * 0.9 * 0.3)
 
-            RunTotalsView(graphical: false, totals: AppTwin.shared.totals.flattend)
+            RunTotalsView(graphical: false, totals: AppTwin.shared.workout.totals)
                 .frame(height: size.height * 0.9 * 0.2)
         }
     }
@@ -128,7 +131,7 @@ private struct RunCurrentsTotalsGraphView: View {
                 selection: $selection)
                 .frame(height: size.height * 0.9 * 0.6)
 
-            RunTotalsView(graphical: true, totals: AppTwin.shared.totals.flattend)
+            RunTotalsView(graphical: true, totals: AppTwin.shared.workout.totals)
                 .frame(height: size.height * 0.9 * 0.4)
         }
     }
@@ -157,7 +160,7 @@ private struct RunCurrentsTotalsTextView: View {
                 selection: $selection)
                 .frame(height: size.height * 0.9 * 0.6)
 
-            RunTotalsView(graphical: false, totals: AppTwin.shared.totals.flattend)
+            RunTotalsView(graphical: false, totals: AppTwin.shared.workout.totals)
                 .frame(height: size.height * 0.9 * 0.4)
         }
     }
@@ -208,9 +211,33 @@ private struct RunMapTotalsTextView: View {
                 gpsStatus: AppTwin.shared.currents.gpsStatus)
                 .frame(height: size.height * 0.9 * 0.7)
 
-            RunTotalsView(graphical: false, totals: AppTwin.shared.totals.flattend)
+            RunTotalsView(graphical: false, totals: AppTwin.shared.workout.totals)
                 .frame(height: size.height * 0.9 * 0.3)
         }
+    }
+}
+
+private struct PdmGridView: View {
+    @ObservedObject private var steps = AppTwin.shared.steps
+    private static let columns: [GridItem] = Array(repeating: .init(.flexible()), count: 9)
+    
+    var body: some View {
+        LazyVGrid(columns: PdmGridView.columns) {
+            ForEach(steps.stepsUI) {
+                TimeText(time: $0.asOf.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 24*3600), short: true, max: 24*3600)
+                //Text("\($0.id.uuidString)")
+                Text("\($0.isOriginal ? "T" : "F")")
+                Text("\($0.numberOfSteps)")
+                DistanceText(distance: $0.distance)
+                SpeedText(speed: $0.averageActiveSpeed)
+                SpeedText(speed: $0.currentSpeed)
+                Text("\($0.currentCadence ?? .nan)")
+                DistanceText(distance: $0.metersAscended)
+                DistanceText(distance: $0.metersDescended)
+            }
+        }
+        .font(.caption)
+        .lineLimit(1)
     }
 }
 

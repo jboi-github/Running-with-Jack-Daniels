@@ -10,22 +10,20 @@ import CoreLocation
 import UIKit
 
 
-class Totals: ObservableObject {
+class Totals {
     // MARK: Initalize
     init(
         motionGetter: @escaping (Date) -> Motion?,
         isActiveGetter: @escaping (Date) -> IsActive?,
         heartrateGetter: @escaping (Date) -> Heartrate?,
         intensityGetter: @escaping (Date) -> Intensity?,
-        distanceGetter: @escaping (Date) -> Distance?,
-        workout: Workout)
+        distanceGetter: @escaping (Date) -> Distance?)
     {
         self.motionGetter = motionGetter
         self.isActiveGetter = isActiveGetter
         self.heartrateGetter = heartrateGetter
         self.intensityGetter = intensityGetter
         self.distanceGetter = distanceGetter
-        self.workout = workout
     }
     
     // MARK: Interface
@@ -78,7 +76,7 @@ class Totals: ObservableObject {
         }
     }
     
-    struct KeyValue {
+    struct KeyValue: Codable {
         let key: Key
         let value: Value
     }
@@ -89,12 +87,16 @@ class Totals: ObservableObject {
             DispatchQueue.main.async {self.flattend = flattend}
         }
     }
-    @Published private(set) var flattend = [KeyValue]()
+    private(set) var flattend = [KeyValue]()
     
-    func changed(motions appendedM: [Motion], _ removedM: [Motion], _ appendedA: [IsActive], _ removedA: [IsActive]) {
+    func reset() {
+        totals.removeAll()
+    }
+    
+    func changed(motions appendedM: [Motion], _ removedM: [Motion], _ appendedA: [IsActive], _ removedA: [IsActive], _ time: ClosedRange<Date>) {
         // For each removed second
         removedM.forEach {
-            guard (workout.startTime ... workout.endTime).contains($0.date) else {return}
+            guard time.contains($0.date) else {return}
 
             let key = key(asOf: $0.date, isActive: removedA[$0.date]?.isActive, motionType: removedM[$0.date]?.motion)
             let value = value(asOf: $0.date)
@@ -103,7 +105,7 @@ class Totals: ObservableObject {
         
         // For each appended second
         appendedM.forEach {
-            guard (workout.startTime ... workout.endTime).contains($0.date) else {return}
+            guard time.contains($0.date) else {return}
 
             let key = key(asOf: $0.date, isActive: appendedA[$0.date]?.isActive, motionType: appendedM[$0.date]?.motion)
             let value = value(asOf: $0.date)
@@ -111,10 +113,10 @@ class Totals: ObservableObject {
         }
     }
 
-    func changed(intensities appendedI: [Intensity], _ removedI: [Intensity], _ appendedH: [Heartrate], _ removedH: [Heartrate]) {
+    func changed(intensities appendedI: [Intensity], _ removedI: [Intensity], _ appendedH: [Heartrate], _ removedH: [Heartrate], _ time: ClosedRange<Date>) {
         // For each removed second
         removedI.forEach {
-            guard (workout.startTime ... workout.endTime).contains($0.date) else {return}
+            guard time.contains($0.date) else {return}
 
             let key = key(asOf: $0.date, intensity: removedI[$0.date]?.intensity)
             let value = value(asOf: $0.date, heartrate: removedH[$0.date]?.heartrate)
@@ -123,7 +125,7 @@ class Totals: ObservableObject {
         
         // For each appended second
         appendedI.forEach {
-            guard (workout.startTime ... workout.endTime).contains($0.date) else {return}
+            guard time.contains($0.date) else {return}
 
             let key = key(asOf: $0.date, intensity: appendedI[$0.date]?.intensity)
             let value = value(asOf: $0.date, heartrate: appendedH[$0.date]?.heartrate)
@@ -131,9 +133,9 @@ class Totals: ObservableObject {
         }
     }
     
-    func changed(distances appended: [Distance], _ removed: [Distance]) {
+    func changed(distances appended: [Distance], _ removed: [Distance], _ time: ClosedRange<Date>) {
         removed.forEach {
-            guard (workout.startTime ... workout.endTime).contains($0.date) else {return}
+            guard time.contains($0.date) else {return}
             
             let value = value(asOf: $0.date, distance: removed[$0.date]?.speed)
             let key = key(asOf: $0.date)
@@ -141,7 +143,7 @@ class Totals: ObservableObject {
         }
         
         appended.forEach {
-            guard (workout.startTime ... workout.endTime).contains($0.date) else {return}
+            guard time.contains($0.date) else {return}
             
             let value = value(asOf: $0.date, distance: appended[$0.date]?.speed)
             let key = key(asOf: $0.date)
@@ -164,8 +166,6 @@ class Totals: ObservableObject {
     private let heartrateGetter: (Date) -> Heartrate?
     private let intensityGetter: (Date) -> Intensity?
     private let distanceGetter: (Date) -> Distance?
-    
-    private unowned let workout: Workout
     
     private func key(asOf: Date, isActive: Bool? = nil, motionType: MotionType? = nil, intensity: Run.Intensity? = nil) -> Key {
         Key(isActive: isActive ?? isActiveGetter(asOf)?.isActive,

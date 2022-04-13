@@ -30,7 +30,7 @@ struct RunAppView: View {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                     }
                 }
-                .tag(3)
+                .tag(1)
             ProfileView()
                 .tabItem {
                     Label {
@@ -39,7 +39,7 @@ struct RunAppView: View {
                         Image(systemName: "person")
                     }
                 }
-                .tag(1)
+                .tag(2)
             PlanView()
                 .tabItem {
                     Label {
@@ -48,7 +48,7 @@ struct RunAppView: View {
                         Image(systemName: "calendar")
                     }
                 }
-                .tag(2)
+                .tag(3)
             ScannerView()
                 .tabItem {
                     Label {

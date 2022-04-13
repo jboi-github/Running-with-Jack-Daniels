@@ -53,17 +53,30 @@ enum WorkoutStatus: Equatable, Codable {
     }
 }
 
-// TODO: Totals must be part of workout and kept in this scope
 class Workout: ObservableObject {
     // MARK: Initalize
-    init(isActiveGetter: @escaping (Date) -> IsActive?, distanceGetter: @escaping (Date) -> Distance?, bodySensorLocationGetter: @escaping () -> BodySensorLocation?) {
+    init(
+        motionGetter: @escaping (Date) -> Motion?,
+        isActiveGetter: @escaping (Date) -> IsActive?,
+        heartrateGetter: @escaping (Date) -> Heartrate?,
+        intensityGetter: @escaping (Date) -> Intensity?,
+        distanceGetter: @escaping (Date) -> Distance?,
+        bodySensorLocationGetter: @escaping () -> BodySensorLocation?)
+    {
         self.isActiveGetter = isActiveGetter
         self.distanceGetter = distanceGetter
         self.bodySensorLocationGetter = bodySensorLocationGetter
+        self.totalsCollector = Totals(
+            motionGetter: motionGetter,
+            isActiveGetter: isActiveGetter,
+            heartrateGetter: heartrateGetter,
+            intensityGetter: intensityGetter,
+            distanceGetter: distanceGetter)
     }
     
     // MARK: Interface
     @Published private(set) var status: WorkoutStatus = .stopped(since: .distantPast)
+    @Published private(set) var totals = [Totals.KeyValue]()
     @Published private(set) var distance: CLLocationDistance = 0
     @Published private(set) var startTime: Date = .distantFuture
     private(set) var endTime: Date = .distantFuture
@@ -95,6 +108,8 @@ class Workout: ObservableObject {
             // Start new Workout
             DispatchQueue.main.async { [self] in
                 status = .started(since: max(waitAsOf, asOf))
+                totalsCollector.reset()
+                totals.removeAll()
                 startTime = max(waitAsOf, asOf)
                 endTime = startTime
                 distance = 0
@@ -124,7 +139,6 @@ class Workout: ObservableObject {
         pauses.append(asOf)
     }
     
-    // TODO: App gets killed when workout stops.
     func stop(asOf: Date) {
         log(asOf,status)
         guard status.canStop else {return}
@@ -152,10 +166,109 @@ class Workout: ObservableObject {
             
             return $0 - $1.speed
         }
-        DispatchQueue.main.async { [self] in distance += delta}
+        totalsCollector.changed(distances: appended, removed, startTime ... endTime)
+        DispatchQueue.main.async { [self] in
+            distance += delta
+            totals = totalsCollector.flattend
+        }
     }
     
-    func changed(isActives appended: [IsActive], _ removed: [IsActive]) {
+    func changed(motions appendedM: [Motion], _ removedM: [Motion], _ appendedA: [IsActive], _ removedA: [IsActive]) {
+        changed(motions: appendedM, removedM)
+        let delta = changed(isActives: appendedA, removedA)
+        totalsCollector.changed(motions: appendedM, removedM, appendedA, removedA, startTime ... endTime)
+        DispatchQueue.main.async { [self] in
+            distance += delta
+            totals = totalsCollector.flattend
+        }
+    }
+    
+    func changed(intensities appendedI: [Intensity], _ removedI: [Intensity], _ appendedH: [Heartrate], _ removedH: [Heartrate]) {
+        totalsCollector.changed(intensities: appendedI, removedI, appendedH, removedH, startTime ... endTime)
+        DispatchQueue.main.async { [self] in
+            totals = totalsCollector.flattend
+        }
+    }
+    
+    /// Must be called as the very last thing to ensure `endTime` is already maintained.
+    func append(_ heartrate: Heartrate) {
+        guard status.canStop else {return}
+        DispatchQueue.main.async { [self] in
+            endTime = max(endTime, heartrate.date)
+            heartrates.append(heartrate)
+        }
+    }
+    
+    /// Must be called as the very last thing to ensure `endTime` is already maintained.
+    func append(_ location: Location) {
+        guard status.canStop else {return}
+        DispatchQueue.main.async { [self] in
+            endTime = max(endTime, location.date)
+            locations.append(location)
+        }
+    }
+    
+    func save() {
+        let info = Info(
+            status: status, totals: totals, distance: distance,
+            startTime: startTime, endTime: endTime,
+            heartrates: heartrates, locations: locations,
+            motionTypes: motionTypes,
+            pauses: pauses, resumes: resumes)
+        if let url = Files.write(info, to: "workout.json") {log(url)}
+        totalsCollector.save()
+    }
+    
+    func load(asOf: Date) {
+        guard let info = Files.read(Info.self, from: "workout.json") else {return}
+        totalsCollector.load()
+        switch info.status {
+        case .stopped(since: let since):
+            if since.distance(to: asOf) >= workoutTimeout {return}
+        case .waiting(since: let since):
+            if since.distance(to: asOf) >= workoutTimeout {return}
+        case .started(since: let since):
+            if since.distance(to: asOf) >= workoutTimeout {return}
+        case .paused(since: let since):
+            if since.distance(to: asOf) >= workoutTimeout {return}
+        }
+        
+        DispatchQueue.main.async {
+            self.status = info.status
+            self.totals = info.totals
+            self.distance = info.distance
+            self.startTime = info.startTime
+            self.endTime = info.endTime
+            self.heartrates = info.heartrates
+            self.locations = info.locations
+        }
+        self.motionTypes = info.motionTypes
+        self.pauses = info.pauses
+        self.resumes = info.resumes
+    }
+    
+    // MARK: Implementation
+    private let isActiveGetter: (Date) -> IsActive?
+    private let distanceGetter: (Date) -> Distance?
+    private let bodySensorLocationGetter: () -> BodySensorLocation?
+    private let totalsCollector: Totals
+
+    private struct Info: Codable {
+        let status: WorkoutStatus
+        let totals: [Totals.KeyValue]
+        let distance: CLLocationDistance
+        let startTime: Date
+        let endTime: Date
+
+        let heartrates: [Heartrate]
+        let locations: [Location]
+        let motionTypes: [MotionType:Int]
+
+        let pauses: [Date]
+        let resumes: [Date]
+    }
+    
+    private func changed(isActives appended: [IsActive], _ removed: [IsActive]) -> Double {
         if status.canStop {endTime = max(startTime, endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
         
         var delta = appended.reduce(0.0) {
@@ -172,10 +285,10 @@ class Workout: ObservableObject {
             
             return $0 - d.speed
         }
-        DispatchQueue.main.async { [self] in distance += delta}
+        return delta
     }
     
-    func changed(motions appended: [Motion], _ removed: [Motion]) {
+    private func changed(motions appended: [Motion], _ removed: [Motion]) {
         if status.canStop {endTime = max(startTime, endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
         
         var delta = appended.reduce(into: [MotionType:Int]()) {
@@ -198,79 +311,6 @@ class Workout: ObservableObject {
         }
     }
 
-    /// Must be called as the very last thing to ensure `endTime` is already maintained.
-    func append(_ heartrate: Heartrate) {
-        guard status.canStop else {return}
-        DispatchQueue.main.async { [self] in
-            endTime = max(endTime, heartrate.date)
-            heartrates.append(heartrate)
-        }
-    }
-    
-    /// Must be called as the very last thing to ensure `endTime` is already maintained.
-    func append(_ location: Location) {
-        guard status.canStop else {return}
-        DispatchQueue.main.async { [self] in
-            endTime = max(endTime, location.date)
-            locations.append(location)
-        }
-    }
-    
-    func save() {
-        let info = Info(
-            status: status, distance: distance,
-            startTime: startTime, endTime: endTime,
-            heartrates: heartrates, locations: locations,
-            motionTypes: motionTypes,
-            pauses: pauses, resumes: resumes)
-        if let url = Files.write(info, to: "workout.json") {log(url)}
-    }
-    
-    func load(asOf: Date) {
-        guard let info = Files.read(Info.self, from: "workout.json") else {return}
-        switch info.status {
-        case .stopped(since: let since):
-            if since.distance(to: asOf) >= workoutTimeout {return}
-        case .waiting(since: let since):
-            if since.distance(to: asOf) >= workoutTimeout {return}
-        case .started(since: let since):
-            if since.distance(to: asOf) >= workoutTimeout {return}
-        case .paused(since: let since):
-            if since.distance(to: asOf) >= workoutTimeout {return}
-        }
-        
-        DispatchQueue.main.async {
-            self.status = info.status
-            self.distance = info.distance
-            self.startTime = info.startTime
-            self.endTime = info.endTime
-            self.heartrates = info.heartrates
-            self.locations = info.locations
-        }
-        self.motionTypes = info.motionTypes
-        self.pauses = info.pauses
-        self.resumes = info.resumes
-    }
-    
-    // MARK: Implementation
-    private let isActiveGetter: (Date) -> IsActive?
-    private let distanceGetter: (Date) -> Distance?
-    private let bodySensorLocationGetter: () -> BodySensorLocation?
-
-    private struct Info: Codable {
-        let status: WorkoutStatus
-        let distance: CLLocationDistance
-        let startTime: Date
-        let endTime: Date
-
-        let heartrates: [Heartrate]
-        let locations: [Location]
-        let motionTypes: [MotionType:Int]
-
-        let pauses: [Date]
-        let resumes: [Date]
-    }
-    
     // Save workout to HealthKit
     private func saveToHK() {
         // Activity Type
@@ -290,14 +330,14 @@ class Workout: ObservableObject {
         // Pauses
         let hkPauses: [HKWorkoutEvent] = {
             pauses
-                .filter {(startTime ... endTime).contains($0)}
+                .filter {(startTime ..< endTime).contains($0)}
                 .map {HKWorkoutEvent(type: .motionPaused, dateInterval: DateInterval(start: $0, duration: 0), metadata: nil)}
         }()
         
         // Resumes
         let hkResumes: [HKWorkoutEvent] = {
             resumes
-                .filter {(startTime ... endTime).contains($0)}
+                .filter {(startTime ..< endTime).contains($0)}
                 .map {HKWorkoutEvent(type: .motionResumed, dateInterval: DateInterval(start: $0, duration: 0), metadata: nil)}
         }()
 
@@ -340,10 +380,7 @@ class Workout: ObservableObject {
         
         // locations as [CLLocation]
         var hkLocations: [CLLocation] {
-            locations.map {
-                log($0.timestamp)
-                return $0.asCLLocation
-            }
+            locations.filter {(startTime ..< endTime).contains($0.date)}.map {$0.asCLLocation}
         }
         
         // heartrates as HK Samples
@@ -352,7 +389,7 @@ class Workout: ObservableObject {
 
             var prev: Heartrate? = nil
             let hkSensorLocation = hkSensorLocation
-            return heartrates.compactMap { heartrate in
+            return heartrates.filter {(startTime ..< endTime).contains($0.date)}.compactMap { heartrate in
                 defer {prev = heartrate}
                 guard let prev = prev else {return nil}
                 

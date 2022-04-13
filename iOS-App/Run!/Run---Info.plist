@@ -2,14 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Use your Health-App as a secure data store of your profile.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Use your Health-App as a secure data store of your profile.</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Needed to track heartrate during workout. Continues to track while workout is ongoing or Run!! is in foreground.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>Needed to detect workouts and pauses. If disabled, Run!! is just a complicated stop-watch.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

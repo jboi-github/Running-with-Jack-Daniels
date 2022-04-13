@@ -143,10 +143,9 @@ extension Heartrate: Equatable {
 
 class Heartrates {
     // MARK: Initialization
-    init(intensities: Intensities, workout: Workout, totals: Totals) {
+    init(intensities: Intensities, workout: Workout) {
         self.intensities = intensities
         self.workout = workout
-        self.totals = totals
     }
     
     // MARK: Interface
@@ -171,7 +170,7 @@ class Heartrates {
 
         // Notify workout and totals about appends and removes
         workout.append(heartrate)
-        totals.changed(intensities: intensityChanges.appended, intensityChanges.dropped, heartrateChanges.appended, heartrateChanges.dropped)
+        workout.changed(intensities: intensityChanges.appended, intensityChanges.dropped, heartrateChanges.appended, heartrateChanges.dropped)
     }
     
     func trigger(asOf: Date) {
@@ -180,7 +179,7 @@ class Heartrates {
             let extendedIntensities = intensities.extend(asOf)
             
             // Notify totals about appends and removes
-            totals.changed(intensities: extendedIntensities, [], [], [])
+            workout.changed(intensities: extendedIntensities, [], [], [])
             return
         }
 
@@ -191,7 +190,7 @@ class Heartrates {
         if !extendedHeartrates.isEmpty {isDirty = true} // Mark dirty
         
         // Notify totals about appends and removes
-        totals.changed(intensities: intensityChanges.appended, intensityChanges.dropped, extendedHeartrates, [])
+        workout.changed(intensities: intensityChanges.appended, intensityChanges.dropped, extendedHeartrates, [])
     }
     
     func maintain(truncateAt: Date) {
@@ -218,5 +217,4 @@ class Heartrates {
     private var isDirty: Bool = false
     private unowned let intensities: Intensities
     private unowned let workout: Workout
-    private unowned let totals: Totals
 }

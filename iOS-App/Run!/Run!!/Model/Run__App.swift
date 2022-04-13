@@ -55,28 +55,26 @@ class AppTwin {
     static let shared = AppTwin()
     private init() {
         workout = Workout(
-            isActiveGetter: {AppTwin.shared.isActives.isActives[$0]},
-            distanceGetter: {AppTwin.shared.distances.distances[$0]},
-            bodySensorLocationGetter: {AppTwin.shared.hrmTwin.bodySensorLocation})
-        totals = Totals(
             motionGetter: {AppTwin.shared.motions.motions[$0]},
             isActiveGetter: {AppTwin.shared.isActives.isActives[$0]},
             heartrateGetter: {AppTwin.shared.heartrates.heartrates[$0]},
             intensityGetter: {AppTwin.shared.intensities.intensities[$0]},
             distanceGetter: {AppTwin.shared.distances.distances[$0]},
-            workout: workout)
+            bodySensorLocationGetter: {AppTwin.shared.hrmTwin.bodySensorLocation})
 
         isActives = IsActives(workout: workout)
-        distances = Distances(workout: workout, totals: totals)
+        distances = Distances(workout: workout)
         intensities = Intensities()
         
-        motions = Motions(isActives: isActives, workout: workout, totals: totals)
-        heartrates = Heartrates(intensities: intensities, workout: workout, totals: totals)
-        locations = Locations(distances: distances, workout: workout, totals: totals)
+        motions = Motions(isActives: isActives, workout: workout)
+        steps = Steps()
+        heartrates = Heartrates(intensities: intensities, workout: workout)
+        locations = Locations(distances: distances, workout: workout)
         
         queue = DispatchQueue(label: "run-processing", qos: .userInitiated)
         
         aclTwin = AclTwin(queue: queue, motions: motions)
+        pdmTwin = PdmTwin(queue: queue, steps: steps)
         hrmTwin = HrmTwin(queue: queue, heartrates: heartrates)
         gpsTwin = GpsTwin(queue: queue, locations: locations)
         
@@ -160,29 +158,34 @@ class AppTwin {
             case (.background(_), .activeRunView(let since)):
                 workout.await(asOf: since)
                 aclTwin.start(asOf: since)
+                pdmTwin.start(asOf: since)
                 hrmTwin.start(asOf: since)
                 gpsTwin.start(asOf: since)
                 timer.start()
             case (.inactiveRunView(_), .activeRunView(let since)):
                 workout.await(asOf: since)
                 aclTwin.start(asOf: since)
+                pdmTwin.start(asOf: since)
                 hrmTwin.start(asOf: since)
                 gpsTwin.start(asOf: since)
                 timer.start()
             case (.activeRunView(_), .inactiveRunView(let since)):
                 timer.stop()
                 aclTwin.stop(asOf: since)
+                pdmTwin.stop(asOf: since)
                 hrmTwin.stop(asOf: since)
                 gpsTwin.stop(asOf: since)
             case (.activeRunView(_), .background(let since)):
                 timer.stop()
-                if case .stopped = workout.status {
+                if workout.status.isStopped {
                     aclTwin.stop(asOf: since)
+                    pdmTwin.stop(asOf: since)
                     hrmTwin.stop(asOf: since)
                     gpsTwin.stop(asOf: since)
                 } else {
-                    userReturn()
+                    if workout.status.canStop {AppTwin.userReturn()}
                     aclTwin.pause(asOf: since)
+                    pdmTwin.pause(asOf: since)
                 }
                 // Save collections
                 save()
@@ -202,36 +205,39 @@ class AppTwin {
     let intensities: Intensities
     
     let motions: Motions
+    let steps: Steps
     let heartrates: Heartrates
     let locations: Locations
     
     let aclTwin: AclTwin
+    let pdmTwin: PdmTwin
     let hrmTwin: HrmTwin
     let gpsTwin: GpsTwin
     
     let timer: RunTimer
     let workout: Workout
-    let totals: Totals
     let currents: Currents
     
     private func load() {
+        let asOf = Date.now
         queue.async { [self] in
-            workout.load(asOf: .now)
-            totals.load()
+            workout.load(asOf: asOf)
 
-            isActives.load(asOf: .now)
-            distances.load(asOf: .now)
-            intensities.load(asOf: .now)
+            isActives.load(asOf: asOf)
+            distances.load(asOf: asOf)
+            intensities.load(asOf: asOf)
             
-            motions.load(asOf: .now)
-            heartrates.load(asOf: .now)
-            locations.load(asOf: .now)
+            steps.load(asOf: asOf)
+            motions.load(asOf: asOf)
+            heartrates.load(asOf: asOf)
+            locations.load(asOf: asOf)
         }
     }
     
     private func save() {
         queue.async { [self] in
             motions.save()
+            steps.save()
             heartrates.save()
             locations.save()
             
@@ -240,21 +246,20 @@ class AppTwin {
             intensities.save()
             
             workout.save()
-            totals.save()
         }
     }
     
-    private func userReturn() {
+    private static func userReturn() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
             guard check(error), success else {return}
             
             let content = UNMutableNotificationContent()
-            content.title = "RUN!!"
-            content.subtitle = "return to RUN!!"
+            content.title = "RUN!! Workout in progress"
+            content.subtitle = "return to RUN!! whenever needed."
             content.sound = UNNotificationSound.default
 
             // show this notification five seconds from now
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0, repeats: false)
 
             // choose a random identifier
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)

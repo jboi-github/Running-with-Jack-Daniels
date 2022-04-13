@@ -65,10 +65,9 @@ extension Motion: Equatable {
 
 class Motions {
     // MARK: Initialization
-    init(isActives: IsActives, workout: Workout, totals: Totals) {
+    init(isActives: IsActives, workout: Workout) {
         self.isActives = isActives
         self.workout = workout
-        self.totals = totals
     }
     
     // MARK: Interface
@@ -88,9 +87,7 @@ class Motions {
         latestOriginal = motion
         
         // Notify workout and totals about appends and removes
-        workout.changed(isActives: isActiveChanges.appended, isActiveChanges.dropped)
-        workout.changed(motions: motionChanges.appended, motionChanges.dropped)
-        totals.changed(motions: motionChanges.appended, motionChanges.dropped, isActiveChanges.appended, isActiveChanges.dropped)
+        workout.changed(motions: motionChanges.appended, motionChanges.dropped, isActiveChanges.appended, isActiveChanges.dropped)
     }
 
     func trigger(asOf: Date) {
@@ -103,8 +100,7 @@ class Motions {
         if !extendedMotions.isEmpty {isDirty = true} // Mark dirty
         
         // Notify workout and totals about appends and removes
-        workout.changed(isActives: isActiveChanges.appended, isActiveChanges.dropped)
-        totals.changed(motions: extendedMotions, [], isActiveChanges.appended, isActiveChanges.dropped)
+        workout.changed(motions: extendedMotions, [], isActiveChanges.appended, isActiveChanges.dropped)
     }
     
     func maintain(truncateAt: Date) {
@@ -132,5 +128,4 @@ class Motions {
     private var isDirty: Bool = false
     private unowned let isActives: IsActives
     private unowned let workout: Workout
-    private unowned let totals: Totals
 }

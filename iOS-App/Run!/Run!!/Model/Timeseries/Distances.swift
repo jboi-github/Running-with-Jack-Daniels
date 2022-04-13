@@ -44,9 +44,8 @@ extension Distance: Equatable {
 
 class Distances {
     // MARK: Initialization
-    init(workout: Workout, totals: Totals) {
+    init(workout: Workout) {
         self.workout = workout
-        self.totals = totals
     }
     
     // MARK: Interface
@@ -75,7 +74,6 @@ class Distances {
         
         // Notify workout and totals about appends and removes
         workout.changed(distances: appended, [])
-        totals.changed(distances: appended, [])
 
         // TODO: If GpsTwin is .notA*, read from step counter as second best source
     }
@@ -101,5 +99,4 @@ class Distances {
     // MARK: Implementation
     private var isDirty = false
     private unowned let workout: Workout
-    private unowned let totals: Totals
 }
