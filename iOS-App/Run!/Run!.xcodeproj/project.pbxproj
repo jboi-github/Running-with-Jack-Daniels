@@ -57,6 +57,20 @@
 		155D271C2731ADE8007125CB /* MotionSymbolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155D271B2731ADE8007125CB /* MotionSymbolsView.swift */; };
 		1565EF3A2773C771008C0730 /* HrGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1565EF392773C771008C0730 /* HrGraphView.swift */; };
 		1565EF3C2773C7F9008C0730 /* RunStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1565EF3B2773C7F9008C0730 /* RunStatusView.swift */; };
+		1592605628073E6F0042D54C /* PeripheralStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592604B28073E6D0042D54C /* PeripheralStatusView.swift */; };
+		1592605728073E6F0042D54C /* IntensityColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592604C28073E6D0042D54C /* IntensityColors.swift */; };
+		1592605828073E6F0042D54C /* BodysensorLocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592604D28073E6E0042D54C /* BodysensorLocationView.swift */; };
+		1592605928073E6F0042D54C /* MotionStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592604E28073E6E0042D54C /* MotionStatusView.swift */; };
+		1592605A28073E6F0042D54C /* GpsStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592604F28073E6E0042D54C /* GpsStatusView.swift */; };
+		1592605B28073E6F0042D54C /* PeripheralRssiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605028073E6E0042D54C /* PeripheralRssiView.swift */; };
+		1592605C28073E6F0042D54C /* SkinContactedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605128073E6E0042D54C /* SkinContactedView.swift */; };
+		1592605D28073E6F0042D54C /* MotionSymbolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605228073E6E0042D54C /* MotionSymbolsView.swift */; };
+		1592605E28073E6F0042D54C /* SourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605328073E6E0042D54C /* SourceView.swift */; };
+		1592605F28073E6F0042D54C /* BatteryStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605428073E6E0042D54C /* BatteryStatusView.swift */; };
+		1592606028073E6F0042D54C /* BleHrStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605528073E6E0042D54C /* BleHrStatusView.swift */; };
+		1592606528073EEE0042D54C /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592606228073EED0042D54C /* ChartView.swift */; };
+		1592606628073EEE0042D54C /* ChartAxisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592606328073EED0042D54C /* ChartAxisView.swift */; };
+		1592606728073EEE0042D54C /* ChartCommons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592606428073EED0042D54C /* ChartCommons.swift */; };
 		15B358B427426F0F001702D6 /* LogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358B327426F0F001702D6 /* LogicTests.swift */; };
 		15B358B627428927001702D6 /* CommonsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358B527428927001702D6 /* CommonsTests.swift */; };
 		15B358B8274297B6001702D6 /* EventsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B358B7274297B6001702D6 /* EventsTests.swift */; };
@@ -118,26 +132,12 @@
 		15C36A7327F6C68500FBF275 /* DistanceText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A7227F6C68500FBF275 /* DistanceText.swift */; };
 		15C36A7527F6C6AF00FBF275 /* TimeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A7427F6C6AF00FBF275 /* TimeText.swift */; };
 		15C36A7A27F6C72B00FBF275 /* RunStandardChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A7627F6C72B00FBF275 /* RunStandardChart.swift */; };
-		15C36A7B27F6C72B00FBF275 /* ChartCommons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A7727F6C72B00FBF275 /* ChartCommons.swift */; };
-		15C36A7C27F6C72B00FBF275 /* ChartAxisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A7827F6C72B00FBF275 /* ChartAxisView.swift */; };
-		15C36A7D27F6C72B00FBF275 /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A7927F6C72B00FBF275 /* ChartView.swift */; };
 		15C36A8527F6C9C000FBF275 /* EnumPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A7E27F6C9BF00FBF275 /* EnumPickerView.swift */; };
 		15C36A8627F6C9C000FBF275 /* ResetButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A7F27F6C9BF00FBF275 /* ResetButton.swift */; };
 		15C36A8727F6C9C000FBF275 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8027F6C9C000FBF275 /* LockScreenView.swift */; };
 		15C36A8827F6C9C000FBF275 /* DatePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8127F6C9C000FBF275 /* DatePickerView.swift */; };
 		15C36A8927F6C9C000FBF275 /* PrimaryIgnoredToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8227F6C9C000FBF275 /* PrimaryIgnoredToggle.swift */; };
-		15C36A8A27F6C9C000FBF275 /* SourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8327F6C9C000FBF275 /* SourceView.swift */; };
 		15C36A8B27F6C9C000FBF275 /* NumberPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8427F6C9C000FBF275 /* NumberPickerView.swift */; };
-		15C36A9627F6C9D100FBF275 /* MotionSymbolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8C27F6C9D000FBF275 /* MotionSymbolsView.swift */; };
-		15C36A9727F6C9D100FBF275 /* PeripheralRssiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8D27F6C9D000FBF275 /* PeripheralRssiView.swift */; };
-		15C36A9827F6C9D100FBF275 /* BatteryStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8E27F6C9D000FBF275 /* BatteryStatusView.swift */; };
-		15C36A9927F6C9D100FBF275 /* MotionStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A8F27F6C9D000FBF275 /* MotionStatusView.swift */; };
-		15C36A9A27F6C9D100FBF275 /* PeripheralStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A9027F6C9D100FBF275 /* PeripheralStatusView.swift */; };
-		15C36A9B27F6C9D100FBF275 /* GpsStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A9127F6C9D100FBF275 /* GpsStatusView.swift */; };
-		15C36A9C27F6C9D100FBF275 /* BleHrStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A9227F6C9D100FBF275 /* BleHrStatusView.swift */; };
-		15C36A9D27F6C9D100FBF275 /* BodysensorLocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A9327F6C9D100FBF275 /* BodysensorLocationView.swift */; };
-		15C36A9E27F6C9D100FBF275 /* IntensityColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A9427F6C9D100FBF275 /* IntensityColors.swift */; };
-		15C36A9F27F6C9D100FBF275 /* SkinContactedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36A9527F6C9D100FBF275 /* SkinContactedView.swift */; };
 		15C36AA227F6C9F200FBF275 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36AA027F6C9F100FBF275 /* MapView.swift */; };
 		15C36AA327F6C9F200FBF275 /* HrLimitsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36AA127F6C9F100FBF275 /* HrLimitsView.swift */; };
 		15C36AA727F835B500FBF275 /* Gps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C36AA627F835B500FBF275 /* Gps.swift */; };
@@ -252,6 +252,20 @@
 		155D271B2731ADE8007125CB /* MotionSymbolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionSymbolsView.swift; sourceTree = "<group>"; };
 		1565EF392773C771008C0730 /* HrGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HrGraphView.swift; sourceTree = "<group>"; };
 		1565EF3B2773C7F9008C0730 /* RunStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunStatusView.swift; sourceTree = "<group>"; };
+		1592604B28073E6D0042D54C /* PeripheralStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeripheralStatusView.swift; sourceTree = "<group>"; };
+		1592604C28073E6D0042D54C /* IntensityColors.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IntensityColors.swift; sourceTree = "<group>"; };
+		1592604D28073E6E0042D54C /* BodysensorLocationView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BodysensorLocationView.swift; sourceTree = "<group>"; };
+		1592604E28073E6E0042D54C /* MotionStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionStatusView.swift; sourceTree = "<group>"; };
+		1592604F28073E6E0042D54C /* GpsStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GpsStatusView.swift; sourceTree = "<group>"; };
+		1592605028073E6E0042D54C /* PeripheralRssiView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeripheralRssiView.swift; sourceTree = "<group>"; };
+		1592605128073E6E0042D54C /* SkinContactedView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SkinContactedView.swift; sourceTree = "<group>"; };
+		1592605228073E6E0042D54C /* MotionSymbolsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionSymbolsView.swift; sourceTree = "<group>"; };
+		1592605328073E6E0042D54C /* SourceView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SourceView.swift; sourceTree = "<group>"; };
+		1592605428073E6E0042D54C /* BatteryStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BatteryStatusView.swift; sourceTree = "<group>"; };
+		1592605528073E6E0042D54C /* BleHrStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BleHrStatusView.swift; sourceTree = "<group>"; };
+		1592606228073EED0042D54C /* ChartView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
+		1592606328073EED0042D54C /* ChartAxisView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChartAxisView.swift; sourceTree = "<group>"; };
+		1592606428073EED0042D54C /* ChartCommons.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChartCommons.swift; sourceTree = "<group>"; };
 		15B358B327426F0F001702D6 /* LogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicTests.swift; sourceTree = "<group>"; };
 		15B358B527428927001702D6 /* CommonsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommonsTests.swift; sourceTree = "<group>"; };
 		15B358B7274297B6001702D6 /* EventsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsTests.swift; sourceTree = "<group>"; };
@@ -320,26 +334,12 @@
 		15C36A7227F6C68500FBF275 /* DistanceText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceText.swift; sourceTree = "<group>"; };
 		15C36A7427F6C6AF00FBF275 /* TimeText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeText.swift; sourceTree = "<group>"; };
 		15C36A7627F6C72B00FBF275 /* RunStandardChart.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RunStandardChart.swift; sourceTree = "<group>"; };
-		15C36A7727F6C72B00FBF275 /* ChartCommons.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChartCommons.swift; sourceTree = "<group>"; };
-		15C36A7827F6C72B00FBF275 /* ChartAxisView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChartAxisView.swift; sourceTree = "<group>"; };
-		15C36A7927F6C72B00FBF275 /* ChartView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
 		15C36A7E27F6C9BF00FBF275 /* EnumPickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EnumPickerView.swift; sourceTree = "<group>"; };
 		15C36A7F27F6C9BF00FBF275 /* ResetButton.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ResetButton.swift; sourceTree = "<group>"; };
 		15C36A8027F6C9C000FBF275 /* LockScreenView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LockScreenView.swift; sourceTree = "<group>"; };
 		15C36A8127F6C9C000FBF275 /* DatePickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DatePickerView.swift; sourceTree = "<group>"; };
 		15C36A8227F6C9C000FBF275 /* PrimaryIgnoredToggle.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PrimaryIgnoredToggle.swift; sourceTree = "<group>"; };
-		15C36A8327F6C9C000FBF275 /* SourceView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SourceView.swift; sourceTree = "<group>"; };
 		15C36A8427F6C9C000FBF275 /* NumberPickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NumberPickerView.swift; sourceTree = "<group>"; };
-		15C36A8C27F6C9D000FBF275 /* MotionSymbolsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionSymbolsView.swift; sourceTree = "<group>"; };
-		15C36A8D27F6C9D000FBF275 /* PeripheralRssiView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeripheralRssiView.swift; sourceTree = "<group>"; };
-		15C36A8E27F6C9D000FBF275 /* BatteryStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BatteryStatusView.swift; sourceTree = "<group>"; };
-		15C36A8F27F6C9D000FBF275 /* MotionStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MotionStatusView.swift; sourceTree = "<group>"; };
-		15C36A9027F6C9D100FBF275 /* PeripheralStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeripheralStatusView.swift; sourceTree = "<group>"; };
-		15C36A9127F6C9D100FBF275 /* GpsStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GpsStatusView.swift; sourceTree = "<group>"; };
-		15C36A9227F6C9D100FBF275 /* BleHrStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BleHrStatusView.swift; sourceTree = "<group>"; };
-		15C36A9327F6C9D100FBF275 /* BodysensorLocationView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BodysensorLocationView.swift; sourceTree = "<group>"; };
-		15C36A9427F6C9D100FBF275 /* IntensityColors.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IntensityColors.swift; sourceTree = "<group>"; };
-		15C36A9527F6C9D100FBF275 /* SkinContactedView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SkinContactedView.swift; sourceTree = "<group>"; };
 		15C36AA027F6C9F100FBF275 /* MapView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
 		15C36AA127F6C9F100FBF275 /* HrLimitsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HrLimitsView.swift; sourceTree = "<group>"; };
 		15C36AA627F835B500FBF275 /* Gps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gps.swift; sourceTree = "<group>"; };
@@ -586,6 +586,34 @@
 			path = Graphicals;
 			sourceTree = "<group>";
 		};
+		1592606128073E850042D54C /* Icons */ = {
+			isa = PBXGroup;
+			children = (
+				1592605428073E6E0042D54C /* BatteryStatusView.swift */,
+				1592605528073E6E0042D54C /* BleHrStatusView.swift */,
+				1592604D28073E6E0042D54C /* BodysensorLocationView.swift */,
+				1592604F28073E6E0042D54C /* GpsStatusView.swift */,
+				1592604C28073E6D0042D54C /* IntensityColors.swift */,
+				1592604E28073E6E0042D54C /* MotionStatusView.swift */,
+				1592605228073E6E0042D54C /* MotionSymbolsView.swift */,
+				1592605028073E6E0042D54C /* PeripheralRssiView.swift */,
+				1592604B28073E6D0042D54C /* PeripheralStatusView.swift */,
+				1592605128073E6E0042D54C /* SkinContactedView.swift */,
+				1592605328073E6E0042D54C /* SourceView.swift */,
+			);
+			path = Icons;
+			sourceTree = "<group>";
+		};
+		1592606828073F010042D54C /* Charts */ = {
+			isa = PBXGroup;
+			children = (
+				1592606328073EED0042D54C /* ChartAxisView.swift */,
+				1592606428073EED0042D54C /* ChartCommons.swift */,
+				1592606228073EED0042D54C /* ChartView.swift */,
+			);
+			path = Charts;
+			sourceTree = "<group>";
+		};
 		15B358BF2743F42A001702D6 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -692,10 +720,10 @@
 				15B9FC6E27DD1CFD002813D1 /* ImproveView.swift */,
 				15B9FC7027DD1E98002813D1 /* ScannerView.swift */,
 				15C36A6B27F6C39B00FBF275 /* UserInput */,
-				15C36A6A27F6C38600FBF275 /* Icons */,
-				15C36A6827F6C36300FBF275 /* Charts */,
+				1592606128073E850042D54C /* Icons */,
 				15C36A6927F6C37800FBF275 /* Texts */,
 				15C2C59927FCCECE002156D0 /* UiElements */,
+				1592606828073F010042D54C /* Charts */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -778,16 +806,6 @@
 			path = Aggregates;
 			sourceTree = "<group>";
 		};
-		15C36A6827F6C36300FBF275 /* Charts */ = {
-			isa = PBXGroup;
-			children = (
-				15C36A7827F6C72B00FBF275 /* ChartAxisView.swift */,
-				15C36A7727F6C72B00FBF275 /* ChartCommons.swift */,
-				15C36A7927F6C72B00FBF275 /* ChartView.swift */,
-			);
-			path = Charts;
-			sourceTree = "<group>";
-		};
 		15C36A6927F6C37800FBF275 /* Texts */ = {
 			isa = PBXGroup;
 			children = (
@@ -798,24 +816,6 @@
 				15C36A7427F6C6AF00FBF275 /* TimeText.swift */,
 			);
 			path = Texts;
-			sourceTree = "<group>";
-		};
-		15C36A6A27F6C38600FBF275 /* Icons */ = {
-			isa = PBXGroup;
-			children = (
-				15C36A8327F6C9C000FBF275 /* SourceView.swift */,
-				15C36A8E27F6C9D000FBF275 /* BatteryStatusView.swift */,
-				15C36A9227F6C9D100FBF275 /* BleHrStatusView.swift */,
-				15C36A9327F6C9D100FBF275 /* BodysensorLocationView.swift */,
-				15C36A9127F6C9D100FBF275 /* GpsStatusView.swift */,
-				15C36A9427F6C9D100FBF275 /* IntensityColors.swift */,
-				15C36A8F27F6C9D000FBF275 /* MotionStatusView.swift */,
-				15C36A8C27F6C9D000FBF275 /* MotionSymbolsView.swift */,
-				15C36A8D27F6C9D000FBF275 /* PeripheralRssiView.swift */,
-				15C36A9027F6C9D100FBF275 /* PeripheralStatusView.swift */,
-				15C36A9527F6C9D100FBF275 /* SkinContactedView.swift */,
-			);
-			path = Icons;
 			sourceTree = "<group>";
 		};
 		15C36A6B27F6C39B00FBF275 /* UserInput */ = {
@@ -1171,26 +1171,24 @@
 			files = (
 				15DE268927FF5F9400CBF64A /* RunStatusView.swift in Sources */,
 				15C2C59B27FCCF8F002156D0 /* ScnTwin.swift in Sources */,
+				1592605928073E6F0042D54C /* MotionStatusView.swift in Sources */,
 				15B9FC7727DD46DD002813D1 /* AclTwin.swift in Sources */,
 				15B9FC8A27E37DED002813D1 /* IsActives.swift in Sources */,
 				15B9FC8227E246A8002813D1 /* Motions.swift in Sources */,
 				15C36A5E27F30A5200FBF275 /* Optionals.swift in Sources */,
 				15C36A6D27F6C43400FBF275 /* SpeedText.swift in Sources */,
-				15C36A9B27F6C9D100FBF275 /* GpsStatusView.swift in Sources */,
 				15B9FCA227F0C6C6002813D1 /* Currents.swift in Sources */,
 				15DE26932806BE2100CBF64A /* Steps.swift in Sources */,
 				15DE268F27FF83CF00CBF64A /* RunTotalsView.swift in Sources */,
 				15B9FC7B27E100B5002813D1 /* BleTwin.swift in Sources */,
-				15C36A9E27F6C9D100FBF275 /* IntensityColors.swift in Sources */,
+				1592605F28073E6F0042D54C /* BatteryStatusView.swift in Sources */,
 				15B9FC8427E253CC002813D1 /* Ranges.swift in Sources */,
 				15B9FC7E27E24666002813D1 /* Heartrates.swift in Sources */,
 				15B9FC9027E3C26E002813D1 /* Files.swift in Sources */,
-				15C36A9A27F6C9D100FBF275 /* PeripheralStatusView.swift in Sources */,
 				15B9FC8027E24691002813D1 /* Locations.swift in Sources */,
-				15C36A9C27F6C9D100FBF275 /* BleHrStatusView.swift in Sources */,
-				15C36A9727F6C9D100FBF275 /* PeripheralRssiView.swift in Sources */,
 				15B9FC7927DD479B002813D1 /* Workout.swift in Sources */,
 				15DE268D27FF795F00CBF64A /* RunCurrentsView.swift in Sources */,
+				1592606728073EEE0042D54C /* ChartCommons.swift in Sources */,
 				15B9FC9427E3C7E3002813D1 /* RunningFormula.swift in Sources */,
 				15C36A8627F6C9C000FBF275 /* ResetButton.swift in Sources */,
 				15C36A7327F6C68500FBF275 /* DistanceText.swift in Sources */,
@@ -1198,22 +1196,24 @@
 				15DE268627FF598500CBF64A /* RunView.swift in Sources */,
 				15B9FC2327DCE712002813D1 /* RunAppView.swift in Sources */,
 				15DE268B27FF61A300CBF64A /* RunMapView.swift in Sources */,
+				1592605628073E6F0042D54C /* PeripheralStatusView.swift in Sources */,
 				15C36A8527F6C9C000FBF275 /* EnumPickerView.swift in Sources */,
 				15C36AA727F835B500FBF275 /* Gps.swift in Sources */,
+				1592606528073EEE0042D54C /* ChartView.swift in Sources */,
 				15C36A7127F6C62600FBF275 /* HeartrateText.swift in Sources */,
 				15C36AA327F6C9F200FBF275 /* HrLimitsView.swift in Sources */,
+				1592606628073EEE0042D54C /* ChartAxisView.swift in Sources */,
 				15C36A8927F6C9C000FBF275 /* PrimaryIgnoredToggle.swift in Sources */,
-				15C36A7C27F6C72B00FBF275 /* ChartAxisView.swift in Sources */,
-				15C36A9627F6C9D100FBF275 /* MotionSymbolsView.swift in Sources */,
-				15C36A9827F6C9D100FBF275 /* BatteryStatusView.swift in Sources */,
-				15C36A9D27F6C9D100FBF275 /* BodysensorLocationView.swift in Sources */,
 				15B9FCA427F0E91E002813D1 /* Totals.swift in Sources */,
 				15C36A8827F6C9C000FBF275 /* DatePickerView.swift in Sources */,
+				1592605D28073E6F0042D54C /* MotionSymbolsView.swift in Sources */,
 				15C36A5C27F300A800FBF275 /* Arrays.swift in Sources */,
 				15B9FC9627E3C8C5002813D1 /* PlanningFormula.swift in Sources */,
 				15B9FC9827E3D19F002813D1 /* Intensities.swift in Sources */,
+				1592605728073E6F0042D54C /* IntensityColors.swift in Sources */,
 				15B9FC8627E37140002813D1 /* Distances.swift in Sources */,
 				15C36A6F27F6C5F800FBF275 /* VdotText.swift in Sources */,
+				1592605828073E6F0042D54C /* BodysensorLocationView.swift in Sources */,
 				15C36A7527F6C6AF00FBF275 /* TimeText.swift in Sources */,
 				15B9FC8C27E3C1B9002813D1 /* Profile.swift in Sources */,
 				15B9FC7127DD1E98002813D1 /* ScannerView.swift in Sources */,
@@ -1222,21 +1222,21 @@
 				15C36AA227F6C9F200FBF275 /* MapView.swift in Sources */,
 				15B9FC7527DD46BA002813D1 /* GpsTwin.swift in Sources */,
 				15B9FC7327DD45CA002813D1 /* HrmTwin.swift in Sources */,
-				15C36A9927F6C9D100FBF275 /* MotionStatusView.swift in Sources */,
 				15C36A8B27F6C9C000FBF275 /* NumberPickerView.swift in Sources */,
+				1592606028073E6F0042D54C /* BleHrStatusView.swift in Sources */,
 				15B9FC6F27DD1CFD002813D1 /* ImproveView.swift in Sources */,
 				15DE26912806036F00CBF64A /* PdmTwin.swift in Sources */,
 				15B9FC6527DCF223002813D1 /* Logging.swift in Sources */,
+				1592605B28073E6F0042D54C /* PeripheralRssiView.swift in Sources */,
 				15B9FC6B27DD1CE4002813D1 /* ProfileView.swift in Sources */,
+				1592605C28073E6F0042D54C /* SkinContactedView.swift in Sources */,
+				1592605E28073E6F0042D54C /* SourceView.swift in Sources */,
 				15B9FC8E27E3C22E002813D1 /* Store.swift in Sources */,
-				15C36A7B27F6C72B00FBF275 /* ChartCommons.swift in Sources */,
-				15C36A8A27F6C9C000FBF275 /* SourceView.swift in Sources */,
 				15B9FC9E27EB7800002813D1 /* Views.swift in Sources */,
 				15B9FC8827E37C08002813D1 /* RunTimer.swift in Sources */,
-				15C36A7D27F6C72B00FBF275 /* ChartView.swift in Sources */,
 				15B9FC2127DCE712002813D1 /* Run__App.swift in Sources */,
 				15B9FC6D27DD1CF1002813D1 /* PlanView.swift in Sources */,
-				15C36A9F27F6C9D100FBF275 /* SkinContactedView.swift in Sources */,
+				1592605A28073E6F0042D54C /* GpsStatusView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
