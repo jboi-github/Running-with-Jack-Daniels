@@ -16,9 +16,9 @@ struct RunCurrentsView: View {
     let distance: CLLocationDistance
     let speed: CLLocationSpeed?
     let vdot: Double?
-    let motionType: MotionType?
+    let cadence: Double?
     let isActive: Bool?
-    let hrmStatus: BleStatus
+    let hrmStatus: ClientStatus
     let peripheralName: String?
     let batteryLevel: Int?
     
@@ -26,26 +26,9 @@ struct RunCurrentsView: View {
 
     var body: some View {
         ZStack {
-            if let hrLimits = hrLimits, hrmStatus.isStarted {
+            if let hrLimits = hrLimits, case .started = hrmStatus {
                 HrLimitsView(heartrate: heartrate, intensity: intensity, hrLimits: hrLimits)
-            } else if !hrmStatus.isStarted {
-                Button {
-                    withAnimation {
-                        selection = 4
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: "antenna.radiowaves.left.and.right")
-                        Text("Bluetooth Scanner")
-                        Image(systemName: "chevron.right")
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(.accentColor)
-                    .padding()
-                }
-                .padding()
-                .buttonStyle(BorderlessButtonStyle()) // Buttons in List-Rows are triggered all at once.
-            } else {
+            } else if case .started = hrmStatus {
                 Button {
                     withAnimation {
                         selection = 3
@@ -62,10 +45,27 @@ struct RunCurrentsView: View {
                 }
                 .padding()
                 .buttonStyle(BorderlessButtonStyle()) // Buttons in List-Rows are triggered all at once.
+            } else {
+                Button {
+                    withAnimation {
+                        selection = 4
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                        Text("Bluetooth Scanner")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.accentColor)
+                    .padding()
+                }
+                .padding()
+                .buttonStyle(BorderlessButtonStyle()) // Buttons in List-Rows are triggered all at once.
             }
             VStack {
                 HStack(alignment: .lastTextBaseline, spacing: 0) {
-                    MotionSymbolsView(motionType: motionType, intensity: intensity)
+                    ActivityView(isActive: isActive, intensity: intensity)
                         .font(.subheadline)
                         .foregroundColor(Color(uiColor: (isActive ?? false) ? .systemRed : .systemBlue))
                     TimeText(time: duration)
@@ -108,7 +108,7 @@ struct RunCurrentsView_Previews: PreviewProvider {
             distance: 10400,
             speed: 5.1,
             vdot: 23.4,
-            motionType: .running, isActive: true,
+            cadence: 10, isActive: true,
             hrmStatus: .started(since: Date()),
             peripheralName: "HR-Name",
             batteryLevel: 50, selection: .constant(0))
@@ -121,7 +121,7 @@ struct RunCurrentsView_Previews: PreviewProvider {
             distance: 10400,
             speed: 3.5,
             vdot: 23.4,
-            motionType: .running, isActive: false,
+            cadence: 130, isActive: false,
             hrmStatus: .started(since: Date()),
             peripheralName: "HR-Name",
             batteryLevel: 50, selection: .constant(0))

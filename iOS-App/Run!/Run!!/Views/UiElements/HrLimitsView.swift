@@ -7,8 +7,10 @@
 
 import SwiftUI
 
-private let intensityOrder = [Run.Intensity.Cold, .Easy, .Long, .Marathon, .Threshold, .Interval]
-private let intensityUpper = [true, true, false, true, false, true]
+private let intensityOrder: [Run.Intensity] = [.Cold, .Easy, .Long, .Marathon, .Threshold, .Interval]
+private let intensityUpper: [Run.Intensity: Bool] = [
+    .Cold: true, .Easy: true, .Long: false, .Marathon: true, .Threshold: false, .Interval: true
+]
 private let lineWidth: CGFloat = 10
 
 struct HrLimitsView: View {
@@ -46,14 +48,14 @@ struct HrLimitsView: View {
                         .foregroundColor(Color.primary)
                     
                     // Intensities
-                    ForEach(intensityOrder.indices) {
+                    ForEach(intensityOrder) {
                         Circle()
-                            .inset(by: intensityUpper[$0] ? 0 : lineWidth)
+                            .inset(by: (intensityUpper[$0] ?? false) ? 0 : lineWidth)
                             .trim(
-                                from: norm(hrLimits[intensityOrder[$0]]?.lowerBound ?? min),
-                                to: norm(hrLimits[intensityOrder[$0]]?.upperBound ?? max))
+                                from: norm(hrLimits[$0]?.lowerBound ?? min),
+                                to: norm(hrLimits[$0]?.upperBound ?? max))
                             .stroke(style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
-                            .foregroundColor(intensityOrder[$0].color)
+                            .foregroundColor($0.color)
                     }
                     
                     // Needle

@@ -56,19 +56,19 @@ enum WorkoutStatus: Equatable, Codable {
 class Workout: ObservableObject {
     // MARK: Initalize
     init(
-        motionGetter: @escaping (Date) -> Motion?,
-        isActiveGetter: @escaping (Date) -> IsActive?,
-        heartrateGetter: @escaping (Date) -> Heartrate?,
-        intensityGetter: @escaping (Date) -> Intensity?,
-        distanceGetter: @escaping (Date) -> Distance?,
+        stepGetter: @escaping (Date) -> StepX?,
+        activityGetter: @escaping (Date) -> ActivityX?,
+        heartrateGetter: @escaping (Date) -> HeartrateX?,
+        intensityGetter: @escaping (Date) -> IntensityX?,
+        distanceGetter: @escaping (Date) -> DistanceX?,
         bodySensorLocationGetter: @escaping () -> BodySensorLocation?)
     {
-        self.isActiveGetter = isActiveGetter
+        self.activityGetter = activityGetter
         self.distanceGetter = distanceGetter
         self.bodySensorLocationGetter = bodySensorLocationGetter
         self.totalsCollector = Totals(
-            motionGetter: motionGetter,
-            isActiveGetter: isActiveGetter,
+            stepGetter: stepGetter,
+            activityGetter: activityGetter,
             heartrateGetter: heartrateGetter,
             intensityGetter: intensityGetter,
             distanceGetter: distanceGetter)
@@ -82,10 +82,9 @@ class Workout: ObservableObject {
     private(set) var endTime: Date = .distantFuture
     var duration: TimeInterval {startTime.distance(to: endTime)}
     
-    @Published private(set) var heartrates = [Heartrate]()
-    @Published private(set) var locations = [Location]()
+    @Published private(set) var heartrates = [HeartrateX]()
+    @Published private(set) var locations = [LocationX]()
     
-    private(set) var motionTypes = [MotionType:Int]()
     private(set) var pauses = [Date]()
     private(set) var resumes = [Date]()
 
@@ -116,7 +115,6 @@ class Workout: ObservableObject {
                 heartrates.removeAll()
                 locations.removeAll()
             }
-            motionTypes.removeAll()
             pauses.removeAll()
             resumes.removeAll()
         case .paused:
@@ -149,19 +147,19 @@ class Workout: ObservableObject {
         }
     }
     
-    func changed(distances appended: [Distance], _ removed: [Distance]) {
+    func changed(distances appended: [DistanceX], _ removed: [DistanceX]) {
         if status.canStop {endTime = max(endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
         
         var delta = appended.reduce(0.0) {
             guard (startTime ... endTime).contains($1.asOf) else {return $0}
-            guard let a = isActiveGetter($1.asOf) else {return $0}
+            guard let a = activityGetter($1.asOf) else {return $0}
             guard a.isActive else {return $0}
             
             return $0 + $1.speed
         }
         delta = removed.reduce(delta) {
             guard (startTime ... endTime).contains($1.asOf) else {return $0}
-            guard let a = isActiveGetter($1.asOf) else {return $0}
+            guard let a = activityGetter($1.asOf) else {return $0}
             guard a.isActive else {return $0}
             
             return $0 - $1.speed
@@ -173,17 +171,32 @@ class Workout: ObservableObject {
         }
     }
     
-    func changed(motions appendedM: [Motion], _ removedM: [Motion], _ appendedA: [IsActive], _ removedA: [IsActive]) {
-        changed(motions: appendedM, removedM)
-        let delta = changed(isActives: appendedA, removedA)
-        totalsCollector.changed(motions: appendedM, removedM, appendedA, removedA, startTime ... endTime)
+    func changed(activities appendedA: [ActivityX], _ removedA: [ActivityX]) {
+        if status.canStop {endTime = max(startTime, endTime, appendedA.map {$0.asOf}.max() ?? .distantPast)}
+        
+        var delta = appendedA.reduce(0.0) {
+            guard (startTime ... endTime).contains($1.asOf) else {return $0}
+            guard $1.isActive else {return $0}
+            guard let d = distanceGetter($1.asOf) else {return $0}
+            
+            return $0 + d.speed
+        }
+        delta = removedA.reduce(delta) {
+            guard (startTime ... endTime).contains($1.asOf) else {return $0}
+            guard $1.isActive else {return $0}
+            guard let d = distanceGetter($1.asOf) else {return $0}
+            
+            return $0 - d.speed
+        }
+        
+        totalsCollector.changed(activities: appendedA, removedA, startTime ... endTime)
         DispatchQueue.main.async { [self] in
             distance += delta
             totals = totalsCollector.flattend
         }
     }
-    
-    func changed(intensities appendedI: [Intensity], _ removedI: [Intensity], _ appendedH: [Heartrate], _ removedH: [Heartrate]) {
+
+    func changed(intensities appendedI: [IntensityX], _ removedI: [IntensityX], _ appendedH: [HeartrateX], _ removedH: [HeartrateX]) {
         totalsCollector.changed(intensities: appendedI, removedI, appendedH, removedH, startTime ... endTime)
         DispatchQueue.main.async { [self] in
             totals = totalsCollector.flattend
@@ -191,7 +204,7 @@ class Workout: ObservableObject {
     }
     
     /// Must be called as the very last thing to ensure `endTime` is already maintained.
-    func append(_ heartrate: Heartrate) {
+    func append(_ heartrate: HeartrateX) {
         guard status.canStop else {return}
         DispatchQueue.main.async { [self] in
             endTime = max(endTime, heartrate.date)
@@ -200,7 +213,7 @@ class Workout: ObservableObject {
     }
     
     /// Must be called as the very last thing to ensure `endTime` is already maintained.
-    func append(_ location: Location) {
+    func append(_ location: LocationX) {
         guard status.canStop else {return}
         DispatchQueue.main.async { [self] in
             endTime = max(endTime, location.date)
@@ -213,7 +226,6 @@ class Workout: ObservableObject {
             status: status, totals: totals, distance: distance,
             startTime: startTime, endTime: endTime,
             heartrates: heartrates, locations: locations,
-            motionTypes: motionTypes,
             pauses: pauses, resumes: resumes)
         if let url = Files.write(info, to: "workout.json") {log(url)}
         totalsCollector.save()
@@ -242,14 +254,13 @@ class Workout: ObservableObject {
             self.heartrates = info.heartrates
             self.locations = info.locations
         }
-        self.motionTypes = info.motionTypes
         self.pauses = info.pauses
         self.resumes = info.resumes
     }
     
     // MARK: Implementation
-    private let isActiveGetter: (Date) -> IsActive?
-    private let distanceGetter: (Date) -> Distance?
+    private let activityGetter: (Date) -> ActivityX?
+    private let distanceGetter: (Date) -> DistanceX?
     private let bodySensorLocationGetter: () -> BodySensorLocation?
     private let totalsCollector: Totals
 
@@ -260,73 +271,15 @@ class Workout: ObservableObject {
         let startTime: Date
         let endTime: Date
 
-        let heartrates: [Heartrate]
-        let locations: [Location]
-        let motionTypes: [MotionType:Int]
+        let heartrates: [HeartrateX]
+        let locations: [LocationX]
 
         let pauses: [Date]
         let resumes: [Date]
     }
-    
-    private func changed(isActives appended: [IsActive], _ removed: [IsActive]) -> Double {
-        if status.canStop {endTime = max(startTime, endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
-        
-        var delta = appended.reduce(0.0) {
-            guard (startTime ... endTime).contains($1.asOf) else {return $0}
-            guard $1.isActive else {return $0}
-            guard let d = distanceGetter($1.asOf) else {return $0}
-            
-            return $0 + d.speed
-        }
-        delta = removed.reduce(delta) {
-            guard (startTime ... endTime).contains($1.asOf) else {return $0}
-            guard $1.isActive else {return $0}
-            guard let d = distanceGetter($1.asOf) else {return $0}
-            
-            return $0 - d.speed
-        }
-        return delta
-    }
-    
-    private func changed(motions appended: [Motion], _ removed: [Motion]) {
-        if status.canStop {endTime = max(startTime, endTime, appended.map {$0.asOf}.max() ?? .distantPast)}
-        
-        var delta = appended.reduce(into: [MotionType:Int]()) {
-            guard (startTime ... endTime).contains($1.asOf) else {return}
-            guard let a = isActiveGetter($1.asOf) else {return}
-            guard a.isActive else {return}
-
-            $0[$1.motion, default: 0] += 1
-        }
-        delta = removed.reduce(into: delta) {
-            guard (startTime ... endTime).contains($1.asOf) else {return}
-            guard let a = isActiveGetter($1.asOf) else {return}
-            guard a.isActive else {return}
-
-            $0[$1.motion, default: 0] -= 1
-        }
-        
-        delta.forEach {
-            motionTypes[$0, default: 0] += $1
-        }
-    }
 
     // Save workout to HealthKit
     private func saveToHK() {
-        // Activity Type
-        let hkActivityType: HKWorkoutActivityType = {
-            switch motionTypes.max(by: {$0.value < $1.value})?.key ?? .invalid {
-            case .walking:
-                return .walking
-            case .running:
-                return .running
-            case .cycling:
-                return .cycling
-            default:
-                return .other
-            }
-        }()
-        
         // Pauses
         let hkPauses: [HKWorkoutEvent] = {
             pauses
@@ -368,9 +321,9 @@ class Workout: ObservableObject {
             }
         }()
         
-        log(startTime, endTime, hkActivityType, hkPauses, hkResumes, distance)
+        log(startTime, endTime, hkPauses, hkResumes, distance)
         let hkWorkout = HKWorkout(
-            activityType: hkActivityType,
+            activityType: .running,
             start: startTime,
             end: endTime,
             workoutEvents: hkPauses + hkResumes,
@@ -387,7 +340,7 @@ class Workout: ObservableObject {
         var hkHeartrates: [HKQuantitySample] {
             guard let hrType = HKObjectType.quantityType(forIdentifier: .heartRate) else {return []}
 
-            var prev: Heartrate? = nil
+            var prev: HeartrateX? = nil
             let hkSensorLocation = hkSensorLocation
             return heartrates.filter {(startTime ..< endTime).contains($0.date)}.compactMap { heartrate in
                 defer {prev = heartrate}

@@ -8,14 +8,22 @@
 import Foundation
 import SwiftUI
 
-protocol Dated {
-    var date: Date {get}
-}
-
 extension Date {
     var seconds: Int {Int(timeIntervalSinceReferenceDate)}
     init(seconds: Int) {
         self.init(timeIntervalSinceReferenceDate: TimeInterval(seconds))
+    }
+}
+
+extension Sequence {
+    func array() -> [Element] {Array(self)}
+    
+    /// Like map on a window of `n` elements.
+    func ngram(_ n: Int) -> [[Element]] {
+        guard n >= 1 else {return []}
+        return enumerated()
+            .map {dropFirst($0.offset).prefix(n).array()}
+            .filter {$0.count == n}
     }
 }
 

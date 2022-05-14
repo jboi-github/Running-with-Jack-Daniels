@@ -9,7 +9,7 @@ import SwiftUI
 import MapKit
 
 struct MapView: View {
-    let path: [Location]
+    let path: [LocationX]
     let intensityGetter: (Date) -> Run.Intensity?
     @Binding var region: MKCoordinateRegion
     @Binding var userTrackingMode: MapUserTrackingMode

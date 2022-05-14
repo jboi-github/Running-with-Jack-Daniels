@@ -9,12 +9,14 @@ import Foundation
 import CoreMotion
 import CoreLocation
 
-struct Step: Codable, Identifiable, Dated {
+struct StepX: Codable, Identifiable, Dated {
     var date: Date {asOf}
     let id: UUID
     let isOriginal: Bool
     let asOf: Date
     
+    let startDate: Date
+    let endDate: Date
     let numberOfSteps: Int
     let distance: CLLocationDistance?
     let averageActiveSpeed: CLLocationSpeed?
@@ -26,17 +28,21 @@ struct Step: Codable, Identifiable, Dated {
     /// Standard init
     init(
         asOf: Date,
-        numberOfSteps: Int,
-        distance: CLLocationDistance?,
-        averageActiveSpeed: CLLocationSpeed?,
-        currentSpeed: CLLocationSpeed?,
-        currentCadence: Double?,
-        metersAscended: CLLocationDistance?,
-        metersDescended: CLLocationDistance?)
+        startDate: Date = .distantFuture,
+        endDate: Date = .distantFuture,
+        numberOfSteps: Int = 0,
+        distance: CLLocationDistance? = nil,
+        averageActiveSpeed: CLLocationSpeed? = nil,
+        currentSpeed: CLLocationSpeed? = nil,
+        currentCadence: Double? = nil,
+        metersAscended: CLLocationDistance? = nil,
+        metersDescended: CLLocationDistance? = nil)
     {
         self.asOf = asOf
         self.id = UUID()
         self.isOriginal = false
+        self.startDate = startDate
+        self.endDate = endDate
         self.numberOfSteps = numberOfSteps
         self.distance = distance
         self.averageActiveSpeed = averageActiveSpeed
@@ -47,12 +53,14 @@ struct Step: Codable, Identifiable, Dated {
     }
     
     /// Interploate
-    init(asOf: Date, s0: Step, s1: Step) {
+    init(asOf: Date, s0: StepX, s1: StepX) {
         self.asOf = asOf
         isOriginal = false
         id = UUID()
 
         // TODO: Implement
+        self.startDate = s0.startDate
+        self.endDate = s1.endDate
         self.numberOfSteps = s0.numberOfSteps
         self.distance = s0.distance
         self.averageActiveSpeed = s0.averageActiveSpeed
@@ -63,12 +71,14 @@ struct Step: Codable, Identifiable, Dated {
     }
     
     /// Extrapolate
-    init(asOf: Date, step: Step) {
+    init(asOf: Date, step: StepX) {
         self.asOf = asOf
         isOriginal = false
         id = UUID()
         
         // TODO: Implement
+        self.startDate = step.startDate
+        self.endDate = step.endDate
         self.numberOfSteps = step.numberOfSteps
         self.distance = step.distance
         self.averageActiveSpeed = step.averageActiveSpeed
@@ -81,9 +91,11 @@ struct Step: Codable, Identifiable, Dated {
     /// Parse original from Pedometer
     init(asOf: Date, _ data: CMPedometerData) {
         self.asOf = asOf
-        isOriginal = false
+        isOriginal = true
         id = UUID()
         
+        self.startDate = data.startDate
+        self.endDate = data.endDate
         self.numberOfSteps = Int(truncating: data.numberOfSteps)
         self.distance = data.distance.ifNotNull {CLLocationDistance(truncating: $0)}
         self.averageActiveSpeed = data.averageActivePace.ifNotNull {1.0 / Double(truncating: $0)}
@@ -94,7 +106,7 @@ struct Step: Codable, Identifiable, Dated {
     }
 }
 
-extension Step: Equatable {
+extension StepX: Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         guard lhs.asOf == rhs.asOf else {return false}
         guard lhs.isOriginal == rhs.isOriginal else {return false}
@@ -111,21 +123,21 @@ extension Step: Equatable {
 
 class Steps: ObservableObject {
     // MARK: Interface
-    private(set) var latestOriginal: Step? = nil
-    private(set) var steps = [Step]() {
+    private(set) var latestOriginal: StepX? = nil
+    private(set) var steps = [StepX]() {
         didSet {
             let steps = steps
             DispatchQueue.main.async {self.stepsUI = steps}
         }
     }
-    @Published private(set) var stepsUI = [Step]()
+    @Published private(set) var stepsUI = [StepX]()
 
-    func appendOriginal(step: Step) {
+    func appendOriginal(step: StepX) {
         // drop all from last original to end here and in isActives
         // For all seconds between last and new motion, interpolate
         // append new motion and remember as latest original
         let stepChanges = steps.replace(step, replaceAfter: (latestOriginal ?? step).date) {
-            Step(asOf: $0, step: latestOriginal ?? step)
+            StepX(asOf: $0, step: latestOriginal ?? step)
         }
         if !stepChanges.appended.isEmpty || !stepChanges.dropped.isEmpty {isDirty = true} // Mark dirty
         
@@ -136,7 +148,7 @@ class Steps: ObservableObject {
         guard let last = steps.last else {return}
 
         // For all seconds between last and new time, extrapolate
-        let extendedSteps = steps.extend(asOf) {Step(asOf: $0, step: last)}
+        let extendedSteps = steps.extend(asOf) {StepX(asOf: $0, step: last)}
         
         if !extendedSteps.isEmpty {isDirty = true} // Mark dirty
         
@@ -157,7 +169,7 @@ class Steps: ObservableObject {
     
     /// Load and keep only last 10 minutes
     func load(asOf: Date) {
-        guard let steps = Files.read(Array<Step>.self, from: "steps.json") else {return}
+        guard let steps = Files.read(Array<StepX>.self, from: "steps.json") else {return}
         
         self.steps = steps.filter {$0.asOf.distance(to: asOf) <= signalTimeout}
         latestOriginal = self.steps.last(where: {$0.isOriginal})

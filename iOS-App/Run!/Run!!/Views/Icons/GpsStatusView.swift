@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct GpsStatusView: View {
-    let status: GpsStatus
+    let status: ClientStatus
     let pathHasLength: Bool // path in service has count > 1
     
     var body: some View {

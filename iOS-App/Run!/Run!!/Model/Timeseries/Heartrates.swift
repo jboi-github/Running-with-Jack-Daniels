@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Heartrate: Codable, Identifiable, Dated {
+struct HeartrateX: Codable, Identifiable, Dated {
     var date: Date {timestamp}
     let id: UUID
     let timestamp: Date
@@ -36,14 +36,14 @@ struct Heartrate: Codable, Identifiable, Dated {
         guard let data = data, !data.isEmpty else {return nil}
 
         timestamp = asOf
-        (heartrate, skinIsContacted, energyExpended, rr) = Heartrate.parse(data)
+        (heartrate, skinIsContacted, energyExpended, rr) = HeartrateX.parse(data)
         isOriginal = true
         self.peripheralName = peripheralName
         id = UUID()
     }
     
     /// Interpolate
-    init(asOf: Date, h0: Heartrate, h1: Heartrate) {
+    init(asOf: Date, h0: HeartrateX, h1: HeartrateX) {
         timestamp = asOf
         
         let p = (h0.timestamp ..< h1.timestamp).p(asOf)
@@ -80,7 +80,7 @@ struct Heartrate: Codable, Identifiable, Dated {
     }
     
     /// Extrapolate
-    init(asOf: Date, heartrate: Heartrate) {
+    init(asOf: Date, heartrate: HeartrateX) {
         timestamp = asOf
         self.heartrate = heartrate.heartrate
         
@@ -132,7 +132,7 @@ struct Heartrate: Codable, Identifiable, Dated {
     }
 }
 
-extension Heartrate: Equatable {
+extension HeartrateX: Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         guard lhs.timestamp == rhs.timestamp else {return false}
         guard lhs.heartrate == rhs.heartrate else {return false}
@@ -149,15 +149,15 @@ class Heartrates {
     }
     
     // MARK: Interface
-    private(set) var latestOriginal: Heartrate? = nil
-    private(set) var heartrates = [Heartrate]()
+    private(set) var latestOriginal: HeartrateX? = nil
+    private(set) var heartrates = [HeartrateX]()
 
-    func appendOriginal(heartrate: Heartrate) {
+    func appendOriginal(heartrate: HeartrateX) {
         // Replace heartrates if latest original already eists. Insert heartrate if not
-        let heartrateChanges: (dropped: [Heartrate], appended: [Heartrate]) = {
+        let heartrateChanges: (dropped: [HeartrateX], appended: [HeartrateX]) = {
             if let latestOriginal = self.latestOriginal {
                 return self.heartrates.replace(heartrate, replaceAfter: latestOriginal.date) {
-                    Heartrate(asOf: $0, h0: latestOriginal, h1: heartrate)
+                    HeartrateX(asOf: $0, h0: latestOriginal, h1: heartrate)
                 }
             } else {
                 self.heartrates.append(heartrate)
@@ -184,7 +184,7 @@ class Heartrates {
         }
 
         // For all seconds between last and new time, extrapolate
-        let extendedHeartrates = heartrates.extend(asOf) {Heartrate(asOf: $0, heartrate: last)}
+        let extendedHeartrates = heartrates.extend(asOf) {HeartrateX(asOf: $0, heartrate: last)}
         let intensityChanges = intensities.replace(heartrates: extendedHeartrates)
         
         if !extendedHeartrates.isEmpty {isDirty = true} // Mark dirty
@@ -206,7 +206,7 @@ class Heartrates {
     }
     
     func load(asOf: Date) {
-        guard let heartrates = Files.read(Array<Heartrate>.self, from: "heartrates.json") else {return}
+        guard let heartrates = Files.read(Array<HeartrateX>.self, from: "heartrates.json") else {return}
         
         self.heartrates = heartrates.filter {$0.date.distance(to: asOf) <= signalTimeout}
         latestOriginal = self.heartrates.last(where: {$0.isOriginal})

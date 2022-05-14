@@ -13,14 +13,14 @@ import UIKit
 class Totals {
     // MARK: Initalize
     init(
-        motionGetter: @escaping (Date) -> Motion?,
-        isActiveGetter: @escaping (Date) -> IsActive?,
-        heartrateGetter: @escaping (Date) -> Heartrate?,
-        intensityGetter: @escaping (Date) -> Intensity?,
-        distanceGetter: @escaping (Date) -> Distance?)
+        stepGetter: @escaping (Date) -> StepX?,
+        activityGetter: @escaping (Date) -> ActivityX?,
+        heartrateGetter: @escaping (Date) -> HeartrateX?,
+        intensityGetter: @escaping (Date) -> IntensityX?,
+        distanceGetter: @escaping (Date) -> DistanceX?)
     {
-        self.motionGetter = motionGetter
-        self.isActiveGetter = isActiveGetter
+        self.stepGetter = stepGetter
+        self.activityGetter = activityGetter
         self.heartrateGetter = heartrateGetter
         self.intensityGetter = intensityGetter
         self.distanceGetter = distanceGetter
@@ -29,7 +29,6 @@ class Totals {
     // MARK: Interface
     struct Key: Hashable, Codable, Equatable {
         let isActive: Bool?
-        let motionType: MotionType?
         let intensity: Run.Intensity?
     }
     
@@ -37,11 +36,18 @@ class Totals {
         var sumHeartrate: Int?
         var sumDuration: TimeInterval?
         var sumDistance: CLLocationDistance?
+        var sumCadence: Double?
         
         var avgHeartrate: Int? {
             guard let sumDuration = sumDuration, let sumHeartrate = sumHeartrate, sumDuration > 0 else {return nil}
             return Int(Double(sumHeartrate) / sumDuration + 0.5)
         }
+        
+        var avgCadence: Double? {
+            guard let sumDuration = sumDuration, let sumCadence = sumCadence, sumDuration > 0 else {return nil}
+            return sumCadence / sumDuration
+        }
+
         var avgSpeed: CLLocationSpeed? {
             guard let sumDistance = sumDistance, let sumDuration = sumDuration, sumDuration > 0 else {return nil}
             return sumDistance / sumDuration
@@ -59,20 +65,22 @@ class Totals {
         }
         
         // MARK: Implement AdditiveArithmetic
-        static var zero: Value {Value(sumHeartrate: 0, sumDuration: 0, sumDistance: 0)}
+        static var zero: Value {Value(sumHeartrate: 0, sumDuration: 0, sumDistance: 0, sumCadence: 0.0)}
         
         static func + (lhs: Value, rhs: Value) -> Value {
             Value(
                 sumHeartrate: lhs.sumHeartrate + rhs.sumHeartrate,
                 sumDuration: lhs.sumDuration + rhs.sumDuration,
-                sumDistance: lhs.sumDistance + rhs.sumDistance)
+                sumDistance: lhs.sumDistance + rhs.sumDistance,
+                sumCadence: lhs.sumCadence + rhs.sumCadence)
         }
 
         static func - (lhs: Value, rhs: Value) -> Value {
             Value(
                 sumHeartrate: lhs.sumHeartrate - rhs.sumHeartrate,
                 sumDuration: lhs.sumDuration - rhs.sumDuration,
-                sumDistance: lhs.sumDistance - rhs.sumDistance)
+                sumDistance: lhs.sumDistance - rhs.sumDistance,
+                sumCadence: lhs.sumCadence - rhs.sumCadence)
         }
     }
     
@@ -93,27 +101,27 @@ class Totals {
         totals.removeAll()
     }
     
-    func changed(motions appendedM: [Motion], _ removedM: [Motion], _ appendedA: [IsActive], _ removedA: [IsActive], _ time: ClosedRange<Date>) {
+    func changed(activities appendedA: [ActivityX], _ removedA: [ActivityX], _ time: ClosedRange<Date>) {
         // For each removed second
-        removedM.forEach {
+        removedA.forEach {
             guard time.contains($0.date) else {return}
 
-            let key = key(asOf: $0.date, isActive: removedA[$0.date]?.isActive, motionType: removedM[$0.date]?.motion)
+            let key = key(asOf: $0.date, isActive: $0.isActive)
             let value = value(asOf: $0.date)
             totals[key, default: .zero] -= value
         }
         
         // For each appended second
-        appendedM.forEach {
+        appendedA.forEach {
             guard time.contains($0.date) else {return}
 
-            let key = key(asOf: $0.date, isActive: appendedA[$0.date]?.isActive, motionType: appendedM[$0.date]?.motion)
+            let key = key(asOf: $0.date, isActive: $0.isActive)
             let value = value(asOf: $0.date)
             totals[key, default: .zero] += value
         }
     }
 
-    func changed(intensities appendedI: [Intensity], _ removedI: [Intensity], _ appendedH: [Heartrate], _ removedH: [Heartrate], _ time: ClosedRange<Date>) {
+    func changed(intensities appendedI: [IntensityX], _ removedI: [IntensityX], _ appendedH: [HeartrateX], _ removedH: [HeartrateX], _ time: ClosedRange<Date>) {
         // For each removed second
         removedI.forEach {
             guard time.contains($0.date) else {return}
@@ -133,7 +141,7 @@ class Totals {
         }
     }
     
-    func changed(distances appended: [Distance], _ removed: [Distance], _ time: ClosedRange<Date>) {
+    func changed(distances appended: [DistanceX], _ removed: [DistanceX], _ time: ClosedRange<Date>) {
         removed.forEach {
             guard time.contains($0.date) else {return}
             
@@ -161,22 +169,22 @@ class Totals {
     }
 
     // MARK: Implementation
-    private let motionGetter: (Date) -> Motion?
-    private let isActiveGetter: (Date) -> IsActive?
-    private let heartrateGetter: (Date) -> Heartrate?
-    private let intensityGetter: (Date) -> Intensity?
-    private let distanceGetter: (Date) -> Distance?
+    private let stepGetter: (Date) -> StepX?
+    private let activityGetter: (Date) -> ActivityX?
+    private let heartrateGetter: (Date) -> HeartrateX?
+    private let intensityGetter: (Date) -> IntensityX?
+    private let distanceGetter: (Date) -> DistanceX?
     
-    private func key(asOf: Date, isActive: Bool? = nil, motionType: MotionType? = nil, intensity: Run.Intensity? = nil) -> Key {
-        Key(isActive: isActive ?? isActiveGetter(asOf)?.isActive,
-            motionType: motionType ?? motionGetter(asOf)?.motion,
+    private func key(asOf: Date, isActive: Bool? = nil, intensity: Run.Intensity? = nil) -> Key {
+        Key(isActive: isActive ?? activityGetter(asOf)?.isActive,
             intensity: intensity ?? intensityGetter(asOf)?.intensity)
     }
 
-    private func value(asOf: Date, heartrate: Int? = nil, distance: CLLocationDistance? = nil) -> Value {
+    private func value(asOf: Date, heartrate: Int? = nil, distance: CLLocationDistance? = nil, cadence: Double? = nil) -> Value {
         Value(
             sumHeartrate: heartrate ?? heartrateGetter(asOf)?.heartrate,
             sumDuration: 1,
-            sumDistance: distance ?? distanceGetter(asOf)?.speed)
+            sumDistance: distance ?? distanceGetter(asOf)?.speed,
+            sumCadence: cadence ?? stepGetter(asOf)?.currentCadence)
     }
 }

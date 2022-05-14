@@ -26,5 +26,3 @@ extension Range where Bound: Strideable, Bound.Stride: BinaryInteger {
         lowerBound.advanced(by: Bound.Stride(p * Double(lowerBound.distance(to: upperBound)) + 0.5))
     }
 }
-
-extension Date: Strideable {}

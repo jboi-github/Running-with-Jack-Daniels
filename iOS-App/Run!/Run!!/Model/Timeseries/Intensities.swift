@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Intensity: Codable, Identifiable {
+struct IntensityX: Codable, Identifiable {
     let id: UUID
     let asOf: Date
     let intensity: Run.Intensity
@@ -19,7 +19,7 @@ struct Intensity: Codable, Identifiable {
     }
 
     /// Parse heartrate
-    init(_ heartrate: Heartrate, prev: Run.Intensity?) {
+    init(_ heartrate: HeartrateX, prev: Run.Intensity?) {
         asOf = heartrate.timestamp
         
         if let hrLimits = Profile.hrLimits.value {
@@ -34,7 +34,7 @@ struct Intensity: Codable, Identifiable {
     }
 }
 
-extension Intensity: Equatable, Dated {
+extension IntensityX: Equatable, Dated {
     var date: Date {asOf}
     
     static func == (lhs: Self, rhs: Self) -> Bool {
@@ -46,16 +46,16 @@ extension Intensity: Equatable, Dated {
 
 class Intensities {
     // MARK: Interface
-    private(set) var intensities = [Intensity]()
+    private(set) var intensities = [IntensityX]()
     
-    func replace(heartrates: [Heartrate], replaceAfter: Date = .distantFuture) -> (dropped: [Intensity], appended: [Intensity]) {
+    func replace(heartrates: [HeartrateX], replaceAfter: Date = .distantFuture) -> (dropped: [IntensityX], appended: [IntensityX]) {
         var prev: Run.Intensity? = {
             if let prev = intensities[replaceAfter] {return prev.intensity}
             if let last = intensities.last, replaceAfter > last.date {return last.intensity}
             return nil
         }()
         let changes = intensities.replace(heartrates, replaceAfter: replaceAfter) {
-            let intensity = Intensity($0, prev: prev)
+            let intensity = IntensityX($0, prev: prev)
             prev = intensity.intensity
             return intensity
         }
@@ -63,11 +63,11 @@ class Intensities {
         return changes
     }
 
-    func extend(_ through: Date) -> [Intensity] {
+    func extend(_ through: Date) -> [IntensityX] {
         if let last = intensities.last {
-            return intensities.extend(through) {Intensity(asOf: $0, intensity: last.intensity)}
+            return intensities.extend(through) {IntensityX(asOf: $0, intensity: last.intensity)}
         } else {
-            let intensity = Intensity(asOf: through, intensity: .Cold)
+            let intensity = IntensityX(asOf: through, intensity: .Cold)
             intensities.append(intensity)
             return [intensity]
         }
@@ -84,7 +84,7 @@ class Intensities {
     }
     
     func load(asOf: Date) {
-        guard let intensities = Files.read(Array<Intensity>.self, from: "intensities.json") else {return}
+        guard let intensities = Files.read(Array<IntensityX>.self, from: "intensities.json") else {return}
         self.intensities = intensities.filter {$0.date.distance(to: asOf) <= signalTimeout}
         isDirty = false
     }

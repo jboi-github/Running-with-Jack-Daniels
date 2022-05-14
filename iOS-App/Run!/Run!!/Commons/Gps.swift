@@ -9,7 +9,7 @@ import Foundation
 import MapKit
 
 extension MKCoordinateRegion {
-    init(location: Location, radiusFactor: Double = 2.0) {
+    init(location: LocationX, radiusFactor: Double = 2.0) {
         self.init(
             center: CLLocationCoordinate2D(
                 latitude: location.latitude,

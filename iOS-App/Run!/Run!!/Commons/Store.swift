@@ -34,3 +34,21 @@ enum Store {
         }
     }
 }
+
+// MARK: Persistence Property Wrapper
+@propertyWrapper struct Persistent<Value> where Value: Codable {
+    init(wrappedValue defaultValue: Value, key: String) {
+        self.key = key
+        self.defaultValue = defaultValue
+    }
+    
+    let key: String
+    let defaultValue: Value
+
+    var wrappedValue: Value {
+        get {Store.read(for: key)?.value ?? defaultValue}
+        set {Store.write(newValue, at: .now, for: key)}
+    }
+    
+    var projectedValue: Persistent<Value> {self}
+}

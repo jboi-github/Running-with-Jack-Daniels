@@ -9,9 +9,9 @@ import SwiftUI
 import MapKit
 
 struct RunMapView: View {
-    let path: [Location]
+    let path: [LocationX]
     let intensityGetter: (Date) -> Run.Intensity?
-    let gpsStatus: GpsStatus
+    let gpsStatus: ClientStatus
     
     @State private var region = MKCoordinateRegion()
     @State private var userTrackingMode = MapUserTrackingMode.follow
@@ -28,7 +28,9 @@ struct RunMapView: View {
                     HStack {
                         Spacer()
                         Button {
-                            userTrackingMode = .follow
+                            DispatchQueue.main.async {
+                                userTrackingMode = .follow
+                            }
                         } label: {
                             Image(systemName: "location.fill")
                                 .font(.callout)

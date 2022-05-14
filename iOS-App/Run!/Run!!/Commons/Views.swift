@@ -114,7 +114,7 @@ extension View {
 
 // MARK: Make a view refreshable
 extension View {
-    func refresh(action: @escaping @Sendable () -> Void) -> some View {
+    func refresh(action: @escaping @Sendable () async -> Void) -> some View {
         List {
             self
         }

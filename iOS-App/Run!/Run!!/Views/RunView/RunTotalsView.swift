@@ -8,7 +8,6 @@
 import SwiftUI
 import CoreLocation
 
-private let motionTypeOrder: [MotionType] = [.walking, .running, .cycling, .unknown, .invalid]
 private let intensityOrder: [Run.Intensity] = [.Cold, .Easy, .Long, .Marathon, .Threshold, .Interval, .Repetition]
 
 extension Totals.KeyValue: ChartDataPoint {
@@ -24,10 +23,7 @@ extension Totals.KeyValue: ChartDataPoint {
     -> some View
     {
         VStack {
-            MotionSymbolsView(
-                motionType: key.motionType,
-                intensity: key.intensity)
-
+            ActivityView(isActive: key.isActive, intensity: key.intensity)
             VdotText(vdot: value.vdot)
         }
         .font(.caption)
@@ -52,26 +48,17 @@ struct RunTotalsView: View {
     let totals: [Totals.KeyValue]
     
     var body: some View {
-        graphical ?
-            RunTotalGraphicalView(totals: totals).anyview
-            :
-        VStack(spacing: 0) {
-                ForEach(motionTypeOrder) {type in
-                    let totals = totals.filter {$0.key.motionType == type}
-                    if !totals.isEmpty {
-                        RunTotalTableView(motionType: type, totals: totals)
-                    }
-                }
-            }
-            .anyview
+        if graphical {
+            RunTotalGraphicalView(totals: totals)
+        } else if !totals.isEmpty {
+            RunTotalTableView(totals: totals)
+        }
     }
 }
 
 private struct RunTotalTableView: View {
-    let motionType: MotionType
     let totals: [Totals.KeyValue]
     
-    @State private var widthMotionSymbol: CGFloat = 0
     @State private var widthDuration: CGFloat = 0
     @State private var widthDistance: CGFloat = 0
     @State private var widthSpeed: CGFloat = 0
@@ -86,7 +73,6 @@ private struct RunTotalTableView: View {
                     ZStack {
                         Capsule().foregroundColor((total.key.intensity ?? .Cold).color)
                         HStack {
-                            MotionSymbolsView(motionType: motionType, intensity: intensity).alignedView(width: $widthMotionSymbol)
                             TimeText(time: total.value.sumDuration).alignedView(width: $widthDuration)
                             DistanceText(distance: total.value.sumDistance).alignedView(width: $widthDistance)
                             HeartrateText(heartrate: total.value.avgHeartrate).alignedView(width: $widthHeartrate)
@@ -126,25 +112,25 @@ struct RunTotalsView_Previews: PreviewProvider {
         RunTotalsView(graphical: true, totals: [])
         RunTotalsView(graphical: false, totals: [
             Totals.KeyValue(
-                key: Totals.Key(isActive: false, motionType: .pause, intensity: .Cold),
-                value: Totals.Value(sumHeartrate: 100 * 100, sumDuration: 100, sumDistance: 0)),
+                key: Totals.Key(isActive: false, intensity: .Cold),
+                value: Totals.Value(sumHeartrate: 100 * 100, sumDuration: 100, sumDistance: 0, sumCadence: 35)),
             Totals.KeyValue(
-                key: Totals.Key(isActive: true, motionType: .running, intensity: .Easy),
-                value: Totals.Value(sumHeartrate: 150 * 500, sumDuration: 500, sumDistance: 1400)),
+                key: Totals.Key(isActive: true, intensity: .Easy),
+                value: Totals.Value(sumHeartrate: 150 * 500, sumDuration: 500, sumDistance: 1400, sumCadence: 250)),
             Totals.KeyValue(
-                key: Totals.Key(isActive: true, motionType: .running, intensity: .Marathon),
-                value: Totals.Value(sumHeartrate: 160 * 400, sumDuration: 400, sumDistance: 1300))
+                key: Totals.Key(isActive: true, intensity: .Marathon),
+                value: Totals.Value(sumHeartrate: 160 * 400, sumDuration: 400, sumDistance: 1300, sumCadence: 150))
         ])
         RunTotalsView(graphical: true, totals: [
             Totals.KeyValue(
-                key: Totals.Key(isActive: false, motionType: .pause, intensity: .Cold),
-                value: Totals.Value(sumHeartrate: 100 * 100, sumDuration: 100, sumDistance: 0)),
+                key: Totals.Key(isActive: false, intensity: .Cold),
+                value: Totals.Value(sumHeartrate: 100 * 100, sumDuration: 100, sumDistance: 0, sumCadence: 30)),
             Totals.KeyValue(
-                key: Totals.Key(isActive: true, motionType: .running, intensity: .Easy),
-                value: Totals.Value(sumHeartrate: 150 * 500, sumDuration: 500, sumDistance: 1400)),
+                key: Totals.Key(isActive: true, intensity: .Easy),
+                value: Totals.Value(sumHeartrate: 150 * 500, sumDuration: 500, sumDistance: 1400, sumCadence: 200)),
             Totals.KeyValue(
-                key: Totals.Key(isActive: true, motionType: .running, intensity: .Marathon),
-                value: Totals.Value(sumHeartrate: 160 * 1200, sumDuration: 1200, sumDistance: 1400))
+                key: Totals.Key(isActive: true, intensity: .Marathon),
+                value: Totals.Value(sumHeartrate: 160 * 1200, sumDuration: 1200, sumDistance: 1400, sumCadence: 100))
         ])
     }
 }

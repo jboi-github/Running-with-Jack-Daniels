@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct BleHrStatusView: View {
-    let status: BleStatus
+    let status: ClientStatus
     let graphHasLength: Bool // graph in service is not empty
     
     var body: some View {

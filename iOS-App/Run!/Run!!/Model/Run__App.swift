@@ -11,7 +11,7 @@ import UserNotifications
 @main
 struct Run__App: App {
     @Environment(\.scenePhase) private var scenePhase
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDalagate
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     @State private var isRunViewActive: Bool = true
     
@@ -54,70 +54,23 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 class AppTwin {
     static let shared = AppTwin()
     private init() {
-        workout = Workout(
-            motionGetter: {AppTwin.shared.motions.motions[$0]},
-            isActiveGetter: {AppTwin.shared.isActives.isActives[$0]},
-            heartrateGetter: {AppTwin.shared.heartrates.heartrates[$0]},
-            intensityGetter: {AppTwin.shared.intensities.intensities[$0]},
-            distanceGetter: {AppTwin.shared.distances.distances[$0]},
-            bodySensorLocationGetter: {AppTwin.shared.hrmTwin.bodySensorLocation})
-
-        isActives = IsActives(workout: workout)
-        distances = Distances(workout: workout)
-        intensities = Intensities()
-        
-        motions = Motions(isActives: isActives, workout: workout)
-        steps = Steps()
-        heartrates = Heartrates(intensities: intensities, workout: workout)
-        locations = Locations(distances: distances, workout: workout)
-        
+        Files.initDirectory()
         queue = DispatchQueue(label: "run-processing", qos: .userInitiated)
-        
-        aclTwin = AclTwin(queue: queue, motions: motions)
-        pdmTwin = PdmTwin(queue: queue, steps: steps)
-        hrmTwin = HrmTwin(queue: queue, heartrates: heartrates)
-        gpsTwin = GpsTwin(queue: queue, locations: locations)
-        
-        currents = Currents(
-            aclTwin: aclTwin,
-            hrmTwin: hrmTwin,
-            gpsTwin: gpsTwin,
-            motions: motions,
-            heartrates: heartrates,
-            locations: locations,
-            isActives: isActives,
-            distances: distances,
-            intensities: intensities,
-            workout: workout)
-        
-        timer = RunTimer(
-            isInBackground: {
-                switch AppTwin.shared.runAppStatus {
-                case .background:
-                    return true
-                default:
-                    return false
-                }
-            },
-            queue: queue,
-            aclTwin: aclTwin,
-            motions: motions,
-            heartrates: heartrates,
-            locations: locations,
-            isActives: isActives,
-            intensities: intensities,
-            distances: distances,
-            currents: currents)
+
+        pedometerDataClient = Client(delegate: PedometerDataClient(queue: queue))
+        pedometerEventClient = Client(delegate: PedometerEventClient(queue: queue))
+        motionActivityClient = Client(delegate: MotionActivityClient(queue: queue))
+        locationClient = Client(delegate: LocationClient(queue: queue))
+        heartrateMonitorClient = Client(delegate: HeartrateMonitorClient(queue: queue))
+        workoutClient = Client(delegate: WorkoutClient(queue: queue))
     }
     
     func launchedByBle(_ at: Date, restoreIds: [String]) {
         runAppStatus = .background(since: at)
-        if restoreIds.contains(HrmTwin.bleRestoreId) {hrmTwin.start(asOf: at)}
     }
     
     func launchedByGps(_ at: Date) {
         runAppStatus = .background(since: at)
-        gpsTwin.start(asOf: at)
     }
     
     func launchedByUser(_ at: Date) {
@@ -129,9 +82,13 @@ class AppTwin {
         case .active:
             runViewActiveChanged(at: at, isRunViewActive)
         case .inactive:
-            if prev == .active {runAppStatus = .background(since: at)}
+            if prev == .active {
+                runAppStatus = .background(since: at)
+            }
         case .background:
-            if prev == .active {runAppStatus = .background(since: at)}
+            if prev == .active {
+                runAppStatus = .background(since: at)
+            }
         @unknown default:
             check("ScenePhase unknown!")
         }
@@ -147,107 +104,37 @@ class AppTwin {
     
     private(set) var runAppStatus: RunAppStatus = .terminated {
         didSet {
-            log(oldValue, runAppStatus)
-            switch (oldValue, runAppStatus) {
-            case (.terminated, .background(_)):
-                Files.initDirectory()
-                Profile.setup()
-                
-                // Restore collections
-                load()
-            case (.background(_), .activeRunView(let since)):
-                workout.await(asOf: since)
-                aclTwin.start(asOf: since)
-                pdmTwin.start(asOf: since)
-                hrmTwin.start(asOf: since)
-                gpsTwin.start(asOf: since)
-                timer.start()
-            case (.inactiveRunView(_), .activeRunView(let since)):
-                workout.await(asOf: since)
-                aclTwin.start(asOf: since)
-                pdmTwin.start(asOf: since)
-                hrmTwin.start(asOf: since)
-                gpsTwin.start(asOf: since)
-                timer.start()
-            case (.activeRunView(_), .inactiveRunView(let since)):
-                timer.stop()
-                aclTwin.stop(asOf: since)
-                pdmTwin.stop(asOf: since)
-                hrmTwin.stop(asOf: since)
-                gpsTwin.stop(asOf: since)
-            case (.activeRunView(_), .background(let since)):
-                timer.stop()
-                if workout.status.isStopped {
-                    aclTwin.stop(asOf: since)
-                    pdmTwin.stop(asOf: since)
-                    hrmTwin.stop(asOf: since)
-                    gpsTwin.stop(asOf: since)
-                } else {
-                    if workout.status.canStop {AppTwin.userReturn()}
-                    aclTwin.pause(asOf: since)
-                    pdmTwin.pause(asOf: since)
-                }
-                // Save collections
-                save()
-            case (.inactiveRunView(_), .background(_)):
-                // Save collections
-                save()
-            case (_, _):
-                break
+            let asOf = Date.now
+            log(asOf, oldValue, runAppStatus)
+
+            if case .activeRunView = runAppStatus {
+                pedometerDataClient.start(asOf: asOf)
+                pedometerEventClient.start(asOf: asOf)
+                motionActivityClient.start(asOf: asOf)
+                locationClient.start(asOf: asOf)
+                heartrateMonitorClient.start(asOf: asOf)
+            }
+            if case .activeRunView = oldValue, case .stopped = workoutClient.status {
+                pedometerDataClient.stop(asOf: asOf)
+                pedometerEventClient.stop(asOf: asOf)
+                motionActivityClient.stop(asOf: asOf)
+                locationClient.stop(asOf: asOf)
+                heartrateMonitorClient.stop(asOf: asOf)
+            }
+            if case .background = runAppStatus, case .started = workoutClient.status {
+                AppTwin.userReturn()
             }
         }
     }
 
     let queue: DispatchQueue
-    
-    let isActives: IsActives
-    let distances: Distances
-    let intensities: Intensities
-    
-    let motions: Motions
-    let steps: Steps
-    let heartrates: Heartrates
-    let locations: Locations
-    
-    let aclTwin: AclTwin
-    let pdmTwin: PdmTwin
-    let hrmTwin: HrmTwin
-    let gpsTwin: GpsTwin
-    
-    let timer: RunTimer
-    let workout: Workout
-    let currents: Currents
-    
-    private func load() {
-        let asOf = Date.now
-        queue.async { [self] in
-            workout.load(asOf: asOf)
-
-            isActives.load(asOf: asOf)
-            distances.load(asOf: asOf)
-            intensities.load(asOf: asOf)
-            
-            steps.load(asOf: asOf)
-            motions.load(asOf: asOf)
-            heartrates.load(asOf: asOf)
-            locations.load(asOf: asOf)
-        }
-    }
-    
-    private func save() {
-        queue.async { [self] in
-            motions.save()
-            steps.save()
-            heartrates.save()
-            locations.save()
-            
-            isActives.save()
-            distances.save()
-            intensities.save()
-            
-            workout.save()
-        }
-    }
+        
+    let pedometerDataClient: Client<PedometerDataClient>
+    let pedometerEventClient: Client<PedometerEventClient>
+    let motionActivityClient: Client<MotionActivityClient>
+    let locationClient: Client<LocationClient>
+    let heartrateMonitorClient: Client<HeartrateMonitorClient>
+    let workoutClient: Client<WorkoutClient>
     
     private static func userReturn() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
@@ -258,8 +145,8 @@ class AppTwin {
             content.subtitle = "return to RUN!! whenever needed."
             content.sound = UNNotificationSound.default
 
-            // show this notification five seconds from now
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0, repeats: false)
+            // show this notification one seconds from now
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
 
             // choose a random identifier
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)

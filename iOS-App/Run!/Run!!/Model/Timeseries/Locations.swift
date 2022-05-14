@@ -8,7 +8,7 @@
 import Foundation
 import CoreLocation
 
-struct Location: Codable, Identifiable, Dated {
+struct LocationX: Codable, Identifiable, Dated {
     var date: Date {timestamp}
     let id: UUID
     let latitude: CLLocationDegrees
@@ -53,7 +53,7 @@ struct Location: Codable, Identifiable, Dated {
     }
 }
 
-extension Location: Equatable {
+extension LocationX: Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         guard lhs.timestamp == rhs.timestamp else {return false}
         guard lhs.latitude == rhs.latitude else {return false}
@@ -71,10 +71,10 @@ class Locations {
    }
     
     // MARK: Interface
-    var latestOriginal: Location? {locations.last}
-    private(set) var locations = [Location]()
+    var latestOriginal: LocationX? {locations.last}
+    private(set) var locations = [LocationX]()
 
-    func appendOriginal(location: Location) {
+    func appendOriginal(location: LocationX) {
         // For all seconds between last and new location, interpolate distances
         let changedDistances = distances.replace(l0: latestOriginal, l1: location)
         
@@ -100,7 +100,7 @@ class Locations {
     }
     
     func load(asOf: Date) {
-        guard let locations = Files.read(Array<Location>.self, from: "locations.json") else {return}
+        guard let locations = Files.read(Array<LocationX>.self, from: "locations.json") else {return}
         
         self.locations = locations.filter {$0.date.distance(to: asOf) <= signalTimeout}
         isDirty = false

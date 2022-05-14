@@ -8,23 +8,7 @@
 import Foundation
 import CoreBluetooth
 
-enum BleStatus {
-    case stopped(since: Date)
-    case started(since: Date)
-    case notAllowed(since: Date)
-    case notAvailable(since: Date)
-    
-    var isStarted: Bool {
-        switch self {
-        case .started:
-            return true
-        default:
-            return false
-        }
-    }
-}
-
-class BleTwin {
+class BleClient {
     // MARK: Interface
     struct Config {
         /// Primary peripheral, if defined. This peripheral will be connected in a preferred way.
@@ -41,7 +25,7 @@ class BleTwin {
         let restoreId: String?
         
         /// Callback for overall status of BLE.
-        let status: (BleStatus) -> Void
+        let status: (ClientStatus) -> Void
 
         /// Callback, whenever a peripheral was discovered or recognized.
         let discoveredPeripheral: ((Date, CBPeripheral) -> Void)?
@@ -168,7 +152,7 @@ class BleTwin {
 
     // MARK: Implementation
     private var config: Config?
-    private var status = BleStatus.stopped(since: .distantPast)
+    private var status = ClientStatus.stopped(since: .distantPast)
     private var centralManagerDelegate: CBCentralManagerDelegate?
     private var peripheralDelegate: CBPeripheralDelegate?
     private var rssiTimer: Timer?
@@ -209,7 +193,7 @@ class BleTwin {
 // MARK: - Central Manager Delegate
 private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     fileprivate init(
-        status: @escaping (BleStatus) -> Void,
+        status: @escaping (ClientStatus) -> Void,
         stopScanningAfterFirst: Bool,
         discoveredPeripheral: @escaping (Date, CBPeripheral) -> Void,
         failedPeripheral: @escaping (Date, UUID, Error?) -> Void,
@@ -229,7 +213,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     }
     
     /// Overall status of the BLE
-    private let status: (BleStatus) -> Void
+    private let status: (ClientStatus) -> Void
     private let stopScanningAfterFirst: Bool
 
     ///  Events along peripherals
@@ -428,7 +412,7 @@ extension Store {
     }
 }
 
-extension BleTwin {
+extension BleClient {
     func read(_ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ properties: CBCharacteristicProperties) {
         log(peripheralUuid, characteristicUuid, properties)
         guard properties.contains(.read) else {return}

@@ -20,7 +20,7 @@ class ScnTwin {
 
         var peripheral: CBPeripheral? = nil
         var rssi: Double = .nan
-        var heartrate: Heartrate? = nil
+        var heartrate: HeartrateX? = nil
         var bodySensorLocation: BodySensorLocation?
         var batteryLevel: Int? = nil
         var error: Error? = nil
@@ -69,7 +69,7 @@ class ScnTwin {
         Store.ignoredPeripherals.forEach {peripherals[$0] = Peripheral(id: $0)}
 
         bleTwin.start(
-            config: BleTwin.Config(
+            config: BleClient.Config(
                 primaryUuid: Store.primaryPeripheral,
                 ignoredUuids: [],
                 stopScanningAfterFirst: false,
@@ -108,16 +108,16 @@ class ScnTwin {
     }
 
     // MARK: Status handling
-    private(set) var status: BleStatus = .stopped(since: .distantPast) {
+    private(set) var status: ClientStatus = .stopped(since: .distantPast) {
         willSet {
             log(status, newValue)
         }
     }
     
     // MARK: Implementation
-    private var bleTwin = BleTwin()
+    private var bleTwin = BleClient()
     
-    private func status(_ bleStatus: BleStatus) {
+    private func status(_ bleStatus: ClientStatus) {
         status = bleStatus
     }
     
@@ -136,7 +136,7 @@ class ScnTwin {
     private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
 
-        if let heartrate = Heartrate(timestamp, peripherals[peripheralUuid]?.peripheral?.name, data) {
+        if let heartrate = HeartrateX(timestamp, peripherals[peripheralUuid]?.peripheral?.name, data) {
             peripherals[peripheralUuid]?.heartrate = heartrate
         }
     }

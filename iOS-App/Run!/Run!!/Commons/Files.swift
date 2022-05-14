@@ -35,16 +35,19 @@ enum Files {
     
     static func initDirectory() {
         func getUrl() throws -> URL? {
-            if FileManager.default.ubiquityIdentityToken != nil {
-                return FileManager
-                    .default
-                    .url(forUbiquityContainerIdentifier: nil)?
-                    .appendingPathComponent("Run", isDirectory: true)
-            } else {
-                return try FileManager
-                    .default
-                    .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            }
+            return FileManager
+                .default
+                .urls(for: .documentDirectory, in: .userDomainMask).first
+//  TODO:           if FileManager.default.ubiquityIdentityToken != nil {
+//                return FileManager
+//                    .default
+//                    .url(forUbiquityContainerIdentifier: nil)?
+//                    .appendingPathComponent("Run", isDirectory: true)
+//            } else {
+//                return try FileManager
+//                    .default
+//                    .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+//            }
         }
         
         queue.async {
@@ -79,7 +82,7 @@ enum Files {
             guard let url = url(for: to) else {return nil}
             
             do {
-                let data = try encoder.encode(encodable) // (encoder.encode(encodable) as NSData).compressed(using: .zlib)
+                let data = try encoder.encode(encodable) // TODO: (encoder.encode(encodable) as NSData).compressed(using: .zlib)
                 try data.write(to: url, options: .atomic)
                 return url
             } catch {
@@ -94,12 +97,37 @@ enum Files {
             guard let url = url(for: fileName) else {return nil}
             
             do {
-                let data = try Data(contentsOf: url) // (Data(contentsOf: url) as NSData).decompressed(using: .zlib)
+                let data = try Data(contentsOf: url) // TODO: (Data(contentsOf: url) as NSData).decompressed(using: .zlib)
                 return try decoder.decode(decodable, from: data)
             } catch {
                 check(error)
                 return nil
             }
+        }
+    }
+    
+    @discardableResult static func append(_ msg: String, to: String) -> URL? {
+        guard let url = url(for: to) else {return nil}
+        guard let msg = msg.data(using: .utf8) else {return nil}
+        
+        guard let file = try? FileHandle(forWritingTo: url) else {
+            do {
+                try msg.write(to: url, options: .atomic)
+                return url
+            } catch {
+                check(error)
+                return nil
+            }
+        }
+        defer {try? file.close()}
+        
+        do {
+            try file.seekToEnd()
+            file.write(msg)
+            return url
+        } catch {
+            check(error)
+            return nil
         }
     }
 }

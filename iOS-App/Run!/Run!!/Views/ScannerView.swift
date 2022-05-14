@@ -142,7 +142,7 @@ private struct ScannerPeripheralView: View {
 }
 
 private struct ScannerToolbarView: View {
-    let scnStatus: BleStatus
+    let scnStatus: ClientStatus
     let peripheralsFound: Bool
     
     var body: some View {
