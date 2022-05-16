@@ -143,7 +143,7 @@ extension HeartrateX: Equatable {
 
 class Heartrates {
     // MARK: Initialization
-    init(intensities: Intensities, workout: Workout) {
+    init(intensities: Intensities, workout: WorkoutX) {
         self.intensities = intensities
         self.workout = workout
     }
@@ -216,5 +216,5 @@ class Heartrates {
     // MARK: Implementation
     private var isDirty: Bool = false
     private unowned let intensities: Intensities
-    private unowned let workout: Workout
+    private unowned let workout: WorkoutX
 }

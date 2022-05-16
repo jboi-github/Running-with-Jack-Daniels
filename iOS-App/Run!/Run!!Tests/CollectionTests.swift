@@ -18,46 +18,46 @@ class CollectionsTests: XCTestCase {
     override func tearDownWithError() throws {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
-    
+
     func testNgramMapNltCount() throws {
         let array = [1,2,3,4,5,6,7,8,9]
         let result = array.ngram(3)
-        
+
         XCTAssertEqual(result, [[1,2,3], [2,3,4], [3,4,5], [4,5,6], [5,6,7], [6,7,8], [7,8,9]])
     }
-    
+
     func testNgramMapNeqCount() throws {
         let array = [1,2,3,4,5,6,7,8,9]
         let result = array.ngram(array.count)
-        
+
         XCTAssertEqual(result, [[1,2,3,4,5,6,7,8,9]])
     }
-    
+
     func testNgramMapNgtCount() throws {
         let array = [1,2,3,4,5,6,7,8,9]
         let result = array.ngram(array.count + 1)
-        
+
         XCTAssertEqual(result, [])
     }
-    
+
     func testNgramMapEmpty() throws {
         let array = [Int]()
         let result = array.ngram(2)
-        
+
         XCTAssertEqual(result, [])
     }
-    
+
     func testNgramMapN0() throws {
         let array = [1,2,3,4,5,6,7,8,9]
         let result = array.ngram(0)
-        
+
         XCTAssertEqual(result, [])
     }
-    
+
     func testNgramMapN1() throws {
         let array = [1,2,3,4,5,6,7,8,9]
         let result = array.ngram(1)
-        
+
         XCTAssertEqual(result, [[1],[2],[3],[4],[5],[6],[7],[8],[9]])
     }
 

@@ -11,8 +11,8 @@ import SwiftUI
 // Done: Archive
 // Done: Rename BLe-Twin to Client
 // Done: Create HeartrateMonitorClient
-// TODO: Connect clients to timeseries
-// TODO: Create Workout-Timeseries with archiving
+// Done: Connect clients to timeseries
+// Done: Create Workout-Timeseries with archiving
 // TODO: Build derived timeseries
 // TODO: Build CalulationEngine
 // TODO: Local user defaults and archives to icloud
@@ -251,7 +251,7 @@ enum None: Codable, Equatable {
 /// - Get a single element at a given point in time, either an original-, interpolated- or extrapolated element
 /// - Travers through elements in date order
 /// - Travers through a number of different timeseries, returning a sequence of tuples or given time series by time. Missing elements are inter- oder extrapolated.
-struct TimeSeries<Element> where Element: KeyedTimeSeriesElement {
+class TimeSeries<Element> where Element: KeyedTimeSeriesElement {
     @Persistent(key: Element.key) private(set) var elements = [Element]()
     
     static func merge(_ d: [Date]...) -> [Date] {
@@ -277,7 +277,7 @@ struct TimeSeries<Element> where Element: KeyedTimeSeriesElement {
     }
     
     /// Insert a new element, enforce ascending order by date.
-    mutating func insert(_ element: Element) {
+    func insert(_ element: Element) {
         let idx = getIdx(for: element.date)
         
         if let at = idx.at {
@@ -306,7 +306,7 @@ struct TimeSeries<Element> where Element: KeyedTimeSeriesElement {
     }
 
     /// Archive data and truncate in array. Always keep up to two elements which have older or equal date.
-    mutating func archive(upTo date: Date) {
+    func archive(upTo date: Date) {
         let idx = getIdx(for: date)
         let truncationIdx: Int? = {
             if idx.at != nil, let before = idx.before {
@@ -321,6 +321,9 @@ struct TimeSeries<Element> where Element: KeyedTimeSeriesElement {
         Files.write(elements.prefix(upTo: truncationIdx).array(), to: "\(Element.key)-\(Date.now).json")
         elements = elements.suffix(from: truncationIdx).array()
     }
+    
+    /// For test cases only. Use `archive` instead.
+    func reset() {elements.removeAll()}
 
     private func getByIdx(date: Date, before: Int?, at: Int?, after: Int?) -> Element? {
         if let at = at {

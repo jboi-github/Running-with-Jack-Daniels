@@ -9,7 +9,7 @@ import Foundation
 import CoreBluetooth
 
 /// Heartrate Monitor Scanner based on BLE
-class ScnTwin {
+class ScannerClient {
     // MARK: Initialization
     
     // MARK: Public interface
@@ -21,7 +21,7 @@ class ScnTwin {
         var peripheral: CBPeripheral? = nil
         var rssi: Double = .nan
         var heartrate: HeartrateX? = nil
-        var bodySensorLocation: BodySensorLocation?
+        var bodySensorLocation: BodySensorLocationX?
         var batteryLevel: Int? = nil
         var error: Error? = nil
     }
@@ -143,7 +143,7 @@ class ScnTwin {
 
     private func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        peripherals[peripheralUuid]?.bodySensorLocation = BodySensorLocation.parse(data)
+        peripherals[peripheralUuid]?.bodySensorLocation = BodySensorLocationX.parse(data)
     }
 
     private func parseBatteryLevel(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {

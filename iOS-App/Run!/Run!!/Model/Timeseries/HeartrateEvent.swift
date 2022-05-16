@@ -1,5 +1,5 @@
 //
-//  Heartrate.swift
+//  HeartrateEvent.swift
 //  Run!!
 //
 //  Created by Jürgen Boiselle on 13.05.22.
@@ -7,9 +7,9 @@
 
 import Foundation
 
-struct Heartrate: GenericTimeseriesElement {
+struct HeartrateEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.Heartrate"
+    static let key: String = "com.apps4live.Run!!.HeartrateEvent"
     let vector: VectorElement<Bool?>
     init(_ vector: VectorElement<Bool?>) {self.vector = vector}
 
@@ -23,7 +23,7 @@ struct Heartrate: GenericTimeseriesElement {
     var skinIsContacted: Bool? {vector.categorical}
 }
 
-extension TimeSeries where Element == Heartrate {
+extension TimeSeries where Element == HeartrateEvent {
     /// Parse CoreBluetooth characteristic
     func parse(_ asOf: Date, _ data: Data?) -> Element? {
         guard let data = data, !data.isEmpty else {return nil}

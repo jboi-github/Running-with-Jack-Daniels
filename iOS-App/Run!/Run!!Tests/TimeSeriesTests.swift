@@ -34,7 +34,7 @@ class TimeSeriesTests: XCTestCase {
 
     // MARK: Inserts
     func testInsertFirst() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -42,7 +42,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertBeforeAll() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -55,7 +55,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertAfterAll() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -65,7 +65,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertWithin() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -78,7 +78,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertOnFirst() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -91,7 +91,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertOnLast() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -105,7 +105,7 @@ class TimeSeriesTests: XCTestCase {
 
     // MARK: Archives
     func testArchiveBeforeAll() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -118,7 +118,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testArchiveAfterAll() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(500))
@@ -133,7 +133,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testArchiveOnMid() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -150,7 +150,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testArchiveWithin() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -167,7 +167,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testArchiveOnEmpty() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.archive(upTo: makeDt(1500))
@@ -176,7 +176,7 @@ class TimeSeriesTests: XCTestCase {
 
     // MARK: Get single element
     func testGetOneDirect() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -189,7 +189,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testGetOneBeforeAll() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -205,7 +205,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testGetOneAfterAll() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -221,7 +221,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testGetOneWithin() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -250,7 +250,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testGetMany() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -264,7 +264,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testBinSearch() throws {
-        var ts = TimeSeries<Continuos>()
+        let ts = TimeSeries<Continuos>()
         XCTAssertTrue(ts.elements.isEmpty)
 
         stride(from: 1000, to: 2000, by: 10).forEach {ts.insert(makeEl($0))}

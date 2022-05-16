@@ -12,10 +12,12 @@ final class MotionActivityClient: ClientDelegate {
     weak var client: Client<MotionActivityClient>?
     private var motionActivityManager: CMMotionActivityManager?
     private unowned let queue: DispatchQueue
+    private unowned let motionActivityTimeseries: TimeSeries<MotionActivityEvent>
     @Persistent(key: "com.apps4live.Run!!.MotionActivityClient.lastRun") private var lastRun: Date = .distantPast
 
-    init(queue: DispatchQueue) {
+    init(queue: DispatchQueue, motionActivityTimeseries: TimeSeries<MotionActivityEvent>) {
         self.queue = queue
+        self.motionActivityTimeseries = motionActivityTimeseries
     }
 
     func start(asOf: Date) -> ClientStatus {
@@ -32,8 +34,9 @@ final class MotionActivityClient: ClientDelegate {
         motionActivityManager = nil
     }
     
+    // TODO: Call eversy full second while in workout
     func trigger(asOf: Date) {
-        guard let  motionActivityManager = motionActivityManager else {return}
+        guard let motionActivityManager = motionActivityManager else {return}
         let from = max(lastRun, asOf.addingTimeInterval(-workoutTimeout))
         lastRun = from
         
@@ -41,10 +44,9 @@ final class MotionActivityClient: ClientDelegate {
             check($1)
             guard let activities = $0 else {return}
             
-            self.queue.async {
-                activities.forEach { a in
-                    let msg = "\(from.timeIntervalSinceReferenceDate)\t\(asOf.timeIntervalSinceReferenceDate)\t\(Date.now.timeIntervalSinceReferenceDate)\t\(a.startDate.timeIntervalSinceReferenceDate)\t\(a.confidence)\t\(a.stationary)\t\(a.walking)\t\(a.running)\t\(a.automotive)\t\(a.cycling)\t\(a.unknown)\n"
-                    Files.append(msg, to: "motionActivityX.txt")
+            self.queue.async { [self] in
+                activities.forEach { motionActivity in
+                    motionActivityTimeseries.insert(motionActivityTimeseries.parse(motionActivity))
                     DispatchQueue.main.async {self.client?.counter += 1}
                 }
             }

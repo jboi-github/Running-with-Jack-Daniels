@@ -53,7 +53,7 @@ enum WorkoutStatus: Equatable, Codable {
     }
 }
 
-class Workout: ObservableObject {
+class WorkoutX: ObservableObject {
     // MARK: Initalize
     init(
         stepGetter: @escaping (Date) -> StepX?,
@@ -61,7 +61,7 @@ class Workout: ObservableObject {
         heartrateGetter: @escaping (Date) -> HeartrateX?,
         intensityGetter: @escaping (Date) -> IntensityX?,
         distanceGetter: @escaping (Date) -> DistanceX?,
-        bodySensorLocationGetter: @escaping () -> BodySensorLocation?)
+        bodySensorLocationGetter: @escaping () -> BodySensorLocationX?)
     {
         self.activityGetter = activityGetter
         self.distanceGetter = distanceGetter
@@ -261,7 +261,7 @@ class Workout: ObservableObject {
     // MARK: Implementation
     private let activityGetter: (Date) -> ActivityX?
     private let distanceGetter: (Date) -> DistanceX?
-    private let bodySensorLocationGetter: () -> BodySensorLocation?
+    private let bodySensorLocationGetter: () -> BodySensorLocationX?
     private let totalsCollector: Totals
 
     private struct Info: Codable {

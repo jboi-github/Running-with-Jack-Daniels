@@ -12,9 +12,11 @@ final class PedometerEventClient: ClientDelegate {
     weak var client: Client<PedometerEventClient>?
     private var pedometer: CMPedometer?
     private unowned let queue: DispatchQueue
+    private unowned let pedometerEventTimeseries: TimeSeries<PedometerEvent>
     
-    init(queue: DispatchQueue) {
+    init(queue: DispatchQueue, pedometerEventTimeseries: TimeSeries<PedometerEvent>) {
         self.queue = queue
+        self.pedometerEventTimeseries = pedometerEventTimeseries
     }
 
     func start(asOf: Date) -> ClientStatus {
@@ -24,11 +26,12 @@ final class PedometerEventClient: ClientDelegate {
         pedometer = CMPedometer()
         pedometer?.startEventUpdates {
             check($1)
-            guard let pe = $0 else {return}
+            guard let pedometerEvent = $0 else {return}
             
-            let msg = "\(asOf.timeIntervalSinceReferenceDate)\t\(Date.now.timeIntervalSinceReferenceDate)\t\(pe.date.timeIntervalSinceReferenceDate)\t\(pe.type)\n"
-            Files.append(msg, to: "pedometerEventX.txt")
-            DispatchQueue.main.async {self.client?.counter += 1}
+            self.queue.async { [self] in
+                pedometerEventTimeseries.insert(pedometerEventTimeseries.parse(pedometerEvent))
+                DispatchQueue.main.async {self.client?.counter += 1}
+            }
         }
         return .started(since: asOf)
     }

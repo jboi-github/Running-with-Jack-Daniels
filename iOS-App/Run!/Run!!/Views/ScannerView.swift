@@ -9,7 +9,7 @@ import SwiftUI
 import CoreBluetooth
 
 struct ScannerView: View {
-    @State private var scanner = ScnTwin()
+    @State private var scanner = ScannerClient()
     
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) {_ in
@@ -38,7 +38,7 @@ struct ScannerView: View {
 }
 
 private struct ScannerPeripheralListView: View {
-    let peripherals: [ScnTwin.Peripheral]
+    let peripherals: [ScannerClient.Peripheral]
 
     var body: some View {
         List {
@@ -57,7 +57,7 @@ private struct ScannerPeripheralListView: View {
 
 /// Show RSSI, name, connection-status, primary and ignored, body location if available.
 private struct ScannerPeripheralView: View {
-    let peripheral: ScnTwin.Peripheral
+    let peripheral: ScannerClient.Peripheral
     @State private var selection: Int = 1
     
     var body: some View {

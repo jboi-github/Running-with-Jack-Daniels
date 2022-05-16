@@ -44,7 +44,7 @@ extension DistanceX: Equatable {
 
 class Distances {
     // MARK: Initialization
-    init(workout: Workout) {
+    init(workout: WorkoutX) {
         self.workout = workout
     }
     
@@ -98,5 +98,5 @@ class Distances {
 
     // MARK: Implementation
     private var isDirty = false
-    private unowned let workout: Workout
+    private unowned let workout: WorkoutX
 }

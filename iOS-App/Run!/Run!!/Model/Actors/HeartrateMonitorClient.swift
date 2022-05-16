@@ -8,28 +8,37 @@
 import Foundation
 import CoreBluetooth
 
-enum BodySensorLocation: UInt8 {
+enum BodySensorLocationX: UInt8 {
     case Other, Chest, Wrist, Finger, Hand, EarLobe, Foot
     
     static func parse(_ data: Data?) -> Self? {
         guard let data = data, !data.isEmpty else {return nil}
 
-        return BodySensorLocation(rawValue: [UInt8](data)[0])
+        return BodySensorLocationX(rawValue: [UInt8](data)[0])
     }
 }
 final class HeartrateMonitorClient: ClientDelegate {
     weak var client: Client<HeartrateMonitorClient>?
-    
-    // TODO: Put in timeseries.
-    private(set) var bodySensorLocation: BodySensorLocation? = nil
-    private(set) var batteryLevel: Int? = nil
-    private(set) var peripherals = [UUID: CBPeripheral]() // TODO: Put latest name in time series
 
     private var bleClient: BleClient?
     private unowned let queue: DispatchQueue
-    
-    init(queue: DispatchQueue) {
+    private unowned let heartrateTimeseries: TimeSeries<HeartrateEvent>
+    private unowned let batteryLevelTimeseries: TimeSeries<BatteryLevelEvent>
+    private unowned let bodySensorLocationTimeseries: TimeSeries<BodySensorLocationEvent>
+    private unowned let peripheralTimeseries: TimeSeries<PeripheralEvent>
+
+    init(
+        queue: DispatchQueue,
+        heartrateTimeseries: TimeSeries<HeartrateEvent>,
+        batteryLevelTimeseries: TimeSeries<BatteryLevelEvent>,
+        bodySensorLocationTimeseries: TimeSeries<BodySensorLocationEvent>,
+        peripheralTimeseries: TimeSeries<PeripheralEvent>)
+    {
         self.queue = queue
+        self.heartrateTimeseries = heartrateTimeseries
+        self.batteryLevelTimeseries = batteryLevelTimeseries
+        self.bodySensorLocationTimeseries = bodySensorLocationTimeseries
+        self.peripheralTimeseries = peripheralTimeseries
     }
     
     func start(asOf: Date) -> ClientStatus {
@@ -43,7 +52,11 @@ final class HeartrateMonitorClient: ClientDelegate {
                 stopScanningAfterFirst: true,
                 restoreId: "com.apps4live.Run!!.HeartrateMonitorClient.restoreId",
                 status: { status in DispatchQueue.main.async {self.client?.statusChanged(to: status)}},
-                discoveredPeripheral: {self.peripherals[$1.identifier] = $1},
+                discoveredPeripheral: { date, peripheral in
+                    self.queue.async{ [self] in
+                        peripheralTimeseries.insert(peripheralTimeseries.parse(date, peripheral))
+                    }
+                },
                 failedPeripheral: nil,
                 rssi: nil,
                 servicesCharacteristicsMap: [
@@ -78,27 +91,25 @@ final class HeartrateMonitorClient: ClientDelegate {
 
     private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        queue.async {
-            if let heartrate = HeartrateX(timestamp, self.peripherals[peripheralUuid]?.name, data) {
-                Files.append("\(timestamp.ISO8601Format(.iso8601))\t" +
-                             "\(heartrate.heartrate)\t" +
-                             "\(heartrate.isOriginal)\t" +
-                             "\(String(describing: heartrate.peripheralName))\t" +
-                             "\(String(describing: heartrate.skinIsContacted))\t" +
-                             "\(String(describing: heartrate.energyExpended))\n", to: "heartrate.txt")
-            }
+        queue.async { [self] in
+            guard let heartrate = heartrateTimeseries.parse(timestamp, data) else {return}
+            heartrateTimeseries.insert(heartrate)
         }
     }
     
     private func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        bodySensorLocation = BodySensorLocation.parse(data)
-        Files.append("\(timestamp.ISO8601Format(.iso8601))\t\(String(describing: bodySensorLocation))\n", to: "bodySensorLocation.txt")    }
+        queue.async { [self] in
+            guard let bodySensorLocation = bodySensorLocationTimeseries.parse(timestamp, data) else {return}
+            bodySensorLocationTimeseries.insert(bodySensorLocation)
+        }
+    }
 
     private func parseBatteryLevel(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        guard let data = data, !data.isEmpty else {return}
-        batteryLevel = Int([UInt8](data)[0])
-        Files.append("\(timestamp.ISO8601Format(.iso8601))\t\(String(describing: batteryLevel))\n", to: "batterylevel.txt")
+        queue.async { [self] in
+            guard let batteryLevel = batteryLevelTimeseries.parse(timestamp, data) else {return}
+            batteryLevelTimeseries.insert(batteryLevel)
+        }
     }
 }

@@ -85,6 +85,42 @@ enum Run {
             return Int(l + 0.5) ..< Int(u + 0.5)
         }
         
+        public func getHrBuckets(for limits: [Intensity: Range<Int>]) -> [Intensity: Range<Int>] {
+            guard let coldUpper = limits[.Cold]?.upperBound else {return [:]}
+            guard let easyUpper = limits[.Easy]?.upperBound else {return [:]}
+            guard let marathonUpper = limits[.Marathon]?.upperBound else {return [:]}
+            guard let thresholdLower = limits[.Threshold]?.lowerBound else {return [:]}
+            guard let thresholdUpper = limits[.Threshold]?.upperBound else {return [:]}
+            guard let intervalLower = limits[.Interval]?.lowerBound else {return [:]}
+            guard let intervalUpper = limits[.Interval]?.upperBound else {return [:]}
+            var result = [Intensity: Range<Int>]()
+            
+            switch self {
+            case .Cold, .Easy, .Long, .Marathon:
+                result[.Cold] = 0 ..< coldUpper
+                result[.Easy] = coldUpper ..< easyUpper
+                result[.Marathon] = easyUpper ..< marathonUpper
+                result[.Threshold] = marathonUpper ..< thresholdUpper
+                result[.Interval] = thresholdUpper ..< intervalUpper
+                result[.Repetition] = intervalUpper ..< Int.max
+            case .Threshold:
+                result[.Cold] = 0 ..< coldUpper
+                result[.Easy] = coldUpper ..< easyUpper
+                result[.Marathon] = easyUpper ..< thresholdLower
+                result[.Threshold] = thresholdLower ..< thresholdUpper
+                result[.Interval] = thresholdUpper ..< intervalUpper
+                result[.Repetition] = intervalUpper ..< Int.max
+            case .Interval, .Repetition, .Race:
+                result[.Cold] = 0 ..< coldUpper
+                result[.Easy] = coldUpper ..< easyUpper
+                result[.Marathon] = easyUpper ..< thresholdLower
+                result[.Threshold] = thresholdLower ..< intervalLower
+                result[.Interval] = intervalLower ..< intervalUpper
+                result[.Repetition] = intervalUpper ..< Int.max
+            }
+            return result
+        }
+        
         func getVdotPercent() -> Range<Double> {
             switch self {
             case .Cold:

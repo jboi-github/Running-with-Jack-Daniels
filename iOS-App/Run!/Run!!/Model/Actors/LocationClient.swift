@@ -13,22 +13,30 @@ final class LocationClient: ClientDelegate {
     
     private var locationManager: CLLocationManager?
     private var locationManagerDelegate: LocationManagerDelegate?
-    private var prev: CLLocation?
     private unowned let queue: DispatchQueue
+    private unowned let locationTimeseries: TimeSeries<LocationEvent>
+    private unowned let distanceTimeseries: TimeSeries<DistanceEvent>
     
-    init(queue: DispatchQueue) {
+    init(
+        queue: DispatchQueue,
+        locationTimeseries: TimeSeries<LocationEvent>,
+        distanceTimeseries: TimeSeries<DistanceEvent>)
+    {
         self.queue = queue
+        self.locationTimeseries = locationTimeseries
+        self.distanceTimeseries = distanceTimeseries
     }
 
     func start(asOf: Date) -> ClientStatus {
         locationManager = CLLocationManager()
         locationManagerDelegate = LocationManagerDelegate(
-            value: { l in
-                self.queue.async {
-                    defer {self.prev = l}
-                    let msg = "\(asOf.timeIntervalSinceReferenceDate)\t\(Date.now.timeIntervalSinceReferenceDate)\t\(l.timestamp.timeIntervalSinceReferenceDate)\t\(l.coordinate.latitude)\t\(l.coordinate.longitude)\t\(l.altitude)\t\(l.ellipsoidalAltitude)\t\(l.floor?.level ?? 0)\t\(l.horizontalAccuracy)\t\(l.verticalAccuracy)\t\(l.speed)\t\(l.speedAccuracy)\t\(l.course)\t\(l.courseAccuracy)\t\(l.distance(from: self.prev ?? l))\n"
-                    Files.append(msg, to: "locationX.txt")
-                    DispatchQueue.main.async {self.client?.counter += 1} 
+            value: { location in
+                self.queue.async { [self] in
+                    locationTimeseries.insert(locationTimeseries.parse(location))
+                    distanceTimeseries
+                        .parse(location, locationTimeseries.elements.last?.clLocation)
+                        .forEach {distanceTimeseries.insert($0)}
+                    DispatchQueue.main.async {self.client?.counter += 1}
                 }
             },
             status: { status in DispatchQueue.main.async {self.client?.statusChanged(to: status)}},

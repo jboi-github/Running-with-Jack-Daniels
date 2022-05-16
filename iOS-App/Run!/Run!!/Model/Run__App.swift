@@ -57,12 +57,55 @@ class AppTwin {
         Files.initDirectory()
         queue = DispatchQueue(label: "run-processing", qos: .userInitiated)
 
-        pedometerDataClient = Client(delegate: PedometerDataClient(queue: queue))
-        pedometerEventClient = Client(delegate: PedometerEventClient(queue: queue))
-        motionActivityClient = Client(delegate: MotionActivityClient(queue: queue))
-        locationClient = Client(delegate: LocationClient(queue: queue))
-        heartrateMonitorClient = Client(delegate: HeartrateMonitorClient(queue: queue))
-        workoutClient = Client(delegate: WorkoutClient(queue: queue))
+        // Timeseries
+        pedometerDataTimeseries = TimeSeries<PedometerDataEvent>()
+        pedometerEventTimeseries = TimeSeries<PedometerEvent>()
+        motionActivityTimeseries = TimeSeries<MotionActivityEvent>()
+        locationTimeseries = TimeSeries<LocationEvent>()
+        distanceTimeseries = TimeSeries<DistanceEvent>()
+        heartrateTimeseries = TimeSeries<HeartrateEvent>()
+        batteryLevelTimeseries = TimeSeries<BatteryLevelEvent>()
+        bodySensorLocationTimeseries = TimeSeries<BodySensorLocationEvent>()
+        peripheralTimeseries = TimeSeries<PeripheralEvent>()
+        workoutTimeseries = TimeSeries<WorkoutEvent>()
+
+        // Clients
+        pedometerDataClient = Client(
+            delegate: PedometerDataClient(
+                queue: queue,
+                pedometerDataTimeseries: pedometerDataTimeseries))
+        pedometerEventClient = Client(
+            delegate: PedometerEventClient(
+                queue: queue,
+                pedometerEventTimeseries: pedometerEventTimeseries))
+        motionActivityClient = Client(
+            delegate: MotionActivityClient(
+                queue: queue,
+                motionActivityTimeseries: motionActivityTimeseries))
+        locationClient = Client(
+            delegate: LocationClient(
+                queue: queue,
+                locationTimeseries: locationTimeseries,
+                distanceTimeseries: distanceTimeseries))
+        heartrateMonitorClient = Client(
+            delegate: HeartrateMonitorClient(
+                queue: queue,
+                heartrateTimeseries: heartrateTimeseries,
+                batteryLevelTimeseries: batteryLevelTimeseries,
+                bodySensorLocationTimeseries: bodySensorLocationTimeseries,
+                peripheralTimeseries: peripheralTimeseries))
+        workoutClient = Client(
+            delegate: WorkoutClient(
+                queue: queue,
+                workoutTimeseries: workoutTimeseries,
+                pedometerDataTimeseries: pedometerDataTimeseries,
+                pedometerEventTimeseries: pedometerEventTimeseries,
+                motionActivityTimeseries: motionActivityTimeseries,
+                locationTimeseries: locationTimeseries,
+                heartrateTimeseries: heartrateTimeseries,
+                batteryLevelTimeseries: batteryLevelTimeseries,
+                bodySensorLocationTimeseries: bodySensorLocationTimeseries,
+                peripheralTimeseries: peripheralTimeseries))
     }
     
     func launchedByBle(_ at: Date, restoreIds: [String]) {
@@ -108,6 +151,7 @@ class AppTwin {
             log(asOf, oldValue, runAppStatus)
 
             if case .activeRunView = runAppStatus {
+                Profile.onAppear()
                 pedometerDataClient.start(asOf: asOf)
                 pedometerEventClient.start(asOf: asOf)
                 motionActivityClient.start(asOf: asOf)
@@ -128,7 +172,8 @@ class AppTwin {
     }
 
     let queue: DispatchQueue
-        
+    
+    // Clients
     let pedometerDataClient: Client<PedometerDataClient>
     let pedometerEventClient: Client<PedometerEventClient>
     let motionActivityClient: Client<MotionActivityClient>
@@ -136,6 +181,18 @@ class AppTwin {
     let heartrateMonitorClient: Client<HeartrateMonitorClient>
     let workoutClient: Client<WorkoutClient>
     
+    // Timeseries
+    let pedometerDataTimeseries: TimeSeries<PedometerDataEvent>
+    let pedometerEventTimeseries: TimeSeries<PedometerEvent>
+    let motionActivityTimeseries: TimeSeries<MotionActivityEvent>
+    let locationTimeseries: TimeSeries<LocationEvent>
+    let distanceTimeseries: TimeSeries<DistanceEvent>
+    let heartrateTimeseries: TimeSeries<HeartrateEvent>
+    let batteryLevelTimeseries: TimeSeries<BatteryLevelEvent>
+    let bodySensorLocationTimeseries: TimeSeries<BodySensorLocationEvent>
+    let peripheralTimeseries: TimeSeries<PeripheralEvent>
+    let workoutTimeseries: TimeSeries<WorkoutEvent>
+
     private static func userReturn() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
             guard check(error), success else {return}

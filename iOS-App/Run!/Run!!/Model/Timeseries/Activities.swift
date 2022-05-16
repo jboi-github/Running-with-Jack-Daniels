@@ -44,7 +44,7 @@ extension ActivityX: Equatable {
 
 class Activities: ObservableObject {
     // MARK: Initialize
-    init(workout: Workout) {
+    init(workout: WorkoutX) {
         self.workout = workout
     }
     
@@ -106,5 +106,5 @@ class Activities: ObservableObject {
 
     // MARK: Implementation
     private var isDirty = false
-    private unowned let workout: Workout
+    private unowned let workout: WorkoutX
 }
