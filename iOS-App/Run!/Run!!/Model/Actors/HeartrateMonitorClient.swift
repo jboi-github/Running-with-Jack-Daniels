@@ -23,6 +23,7 @@ final class HeartrateMonitorClient: ClientDelegate {
     private var bleClient: BleClient?
     private unowned let queue: DispatchQueue
     private unowned let heartrateTimeseries: TimeSeries<HeartrateEvent>
+    private unowned let intensityTimeseries: TimeSeries<IntensityEvent>
     private unowned let batteryLevelTimeseries: TimeSeries<BatteryLevelEvent>
     private unowned let bodySensorLocationTimeseries: TimeSeries<BodySensorLocationEvent>
     private unowned let peripheralTimeseries: TimeSeries<PeripheralEvent>
@@ -30,12 +31,14 @@ final class HeartrateMonitorClient: ClientDelegate {
     init(
         queue: DispatchQueue,
         heartrateTimeseries: TimeSeries<HeartrateEvent>,
+        intensityTimeseries: TimeSeries<IntensityEvent>,
         batteryLevelTimeseries: TimeSeries<BatteryLevelEvent>,
         bodySensorLocationTimeseries: TimeSeries<BodySensorLocationEvent>,
         peripheralTimeseries: TimeSeries<PeripheralEvent>)
     {
         self.queue = queue
         self.heartrateTimeseries = heartrateTimeseries
+        self.intensityTimeseries = intensityTimeseries
         self.batteryLevelTimeseries = batteryLevelTimeseries
         self.bodySensorLocationTimeseries = bodySensorLocationTimeseries
         self.peripheralTimeseries = peripheralTimeseries
@@ -93,6 +96,9 @@ final class HeartrateMonitorClient: ClientDelegate {
         log(peripheralUuid, timestamp)
         queue.async { [self] in
             guard let heartrate = heartrateTimeseries.parse(timestamp, data) else {return}
+            if let intensities = intensityTimeseries.parse(heartrate, heartrateTimeseries.elements.last) {
+                intensities.forEach {intensityTimeseries.insert($0)}
+            }
             heartrateTimeseries.insert(heartrate)
         }
     }

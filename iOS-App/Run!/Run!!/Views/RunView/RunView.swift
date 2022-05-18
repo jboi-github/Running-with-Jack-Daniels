@@ -228,40 +228,83 @@ struct RunView: View {
     @Binding var selection: Int
     
     @ObservedObject private var workoutClient = AppTwin.shared.workoutClient
-    @ObservedObject private var locationClient = AppTwin.shared.locationClient
-    @ObservedObject private var pedometerDataClient = AppTwin.shared.pedometerDataClient
-    @ObservedObject private var pedometerEventClient = AppTwin.shared.pedometerEventClient
-    @ObservedObject private var motionActivityClient = AppTwin.shared.motionActivityClient
     
     var body: some View {
         VStack {
-            Group {
-                HStack {
-                    Text("Locations:")
-                    Spacer()
-                    Text("\(locationClient.counter)")
-                    Text(Image(systemName: locationClient.status.systemName))
-                }
-                HStack {
-                    Text("Pedometer Data:")
-                    Spacer()
-                    Text("\(pedometerDataClient.counter)")
-                    Text(Image(systemName: pedometerDataClient.status.systemName))
-                }
-                HStack {
-                    Text("Pedometer Events:")
-                    Spacer()
-                    Text("\(pedometerEventClient.counter)")
-                    Text(Image(systemName: pedometerEventClient.status.systemName))
-                }
-                HStack {
-                    Text("Motion Activities:")
-                    Spacer()
-                    Text("\(motionActivityClient.counter)")
-                    Text(Image(systemName: motionActivityClient.status.systemName))
+            Spacer()
+            TimelineView(.periodic(from: .now, by: 1.0)) {timeline in
+                VStack(spacing: 0) {
+                    Text("\(timeline.date.ISO8601Format(.iso8601))").padding()
+                    Group {
+                        HStack {
+                            Text(Image(systemName: AppTwin.shared.pedometerDataClient.status.systemName))
+                            Text("Pedometer Data:")
+                            Spacer()
+                            Text("\(AppTwin.shared.pedometerDataTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text(Image(systemName: AppTwin.shared.pedometerEventClient.status.systemName))
+                            Text("Pedometer Events:")
+                            Spacer()
+                            Text("\(AppTwin.shared.pedometerEventTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text(Image(systemName: AppTwin.shared.motionActivityClient.status.systemName))
+                            Text("Motion Activities:")
+                            Spacer()
+                            Text("\(AppTwin.shared.motionActivityTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text(Image(systemName: AppTwin.shared.locationClient.status.systemName))
+                            Text("Locations:")
+                            Spacer()
+                            Text("\(AppTwin.shared.locationTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text(Image(systemName: AppTwin.shared.locationClient.status.systemName))
+                           Text("Heartrate Measures:")
+                            Spacer()
+                            Text("\(AppTwin.shared.pedometerDataTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text(Image(systemName: AppTwin.shared.workoutClient.status.systemName))
+                            Text("Workout Events:")
+                            Spacer()
+                            Text("\(AppTwin.shared.workoutTimeseries.elements.count)")
+                        }
+                    }
+                    Group {
+                        HStack {
+                            Text("Distance Events:")
+                            Spacer()
+                            Text("\(AppTwin.shared.distanceTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text("Intensity Events:")
+                            Spacer()
+                            Text("\(AppTwin.shared.intensityTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text("Battery Levels:")
+                            Spacer()
+                            Text("\(AppTwin.shared.batteryLevelTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text("Body Sensor Location Events:")
+                            Spacer()
+                            Text("\(AppTwin.shared.bodySensorLocationTimeseries.elements.count)")
+                        }
+                        HStack {
+                            Text("Peripherals:")
+                            Spacer()
+                            Text("\(AppTwin.shared.peripheralTimeseries.elements.count)")
+                        }
+                    }
                 }
             }
             .font(.headline)
+            .padding()
+            .padding()
             Spacer()
             Button {
                 if workoutIsStarted {

@@ -206,7 +206,7 @@ class Heartrates {
     }
     
     func load(asOf: Date) {
-        guard let heartrates = Files.read(Array<HeartrateX>.self, from: "heartrates.json") else {return}
+        guard let heartrates: Array<HeartrateX> = Files.read(from: "heartrates.json") else {return}
         
         self.heartrates = heartrates.filter {$0.date.distance(to: asOf) <= signalTimeout}
         latestOriginal = self.heartrates.last(where: {$0.isOriginal})

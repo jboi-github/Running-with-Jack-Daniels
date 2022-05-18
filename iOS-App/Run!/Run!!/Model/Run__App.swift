@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UserNotifications
+import Combine
 
 @main
 struct Run__App: App {
@@ -51,7 +52,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
-class AppTwin {
+class AppTwin: ObservableObject {
     static let shared = AppTwin()
     private init() {
         Files.initDirectory()
@@ -64,6 +65,7 @@ class AppTwin {
         locationTimeseries = TimeSeries<LocationEvent>()
         distanceTimeseries = TimeSeries<DistanceEvent>()
         heartrateTimeseries = TimeSeries<HeartrateEvent>()
+        intensityTimeseries = TimeSeries<IntensityEvent>()
         batteryLevelTimeseries = TimeSeries<BatteryLevelEvent>()
         bodySensorLocationTimeseries = TimeSeries<BodySensorLocationEvent>()
         peripheralTimeseries = TimeSeries<PeripheralEvent>()
@@ -91,6 +93,7 @@ class AppTwin {
             delegate: HeartrateMonitorClient(
                 queue: queue,
                 heartrateTimeseries: heartrateTimeseries,
+                intensityTimeseries: intensityTimeseries,
                 batteryLevelTimeseries: batteryLevelTimeseries,
                 bodySensorLocationTimeseries: bodySensorLocationTimeseries,
                 peripheralTimeseries: peripheralTimeseries))
@@ -102,10 +105,39 @@ class AppTwin {
                 pedometerEventTimeseries: pedometerEventTimeseries,
                 motionActivityTimeseries: motionActivityTimeseries,
                 locationTimeseries: locationTimeseries,
+                distanceTimeseries: distanceTimeseries,
                 heartrateTimeseries: heartrateTimeseries,
+                intensityTimeseries: intensityTimeseries,
                 batteryLevelTimeseries: batteryLevelTimeseries,
                 bodySensorLocationTimeseries: bodySensorLocationTimeseries,
                 peripheralTimeseries: peripheralTimeseries))
+        
+        $runAppStatus
+            .sink { [self] runAppStatus in
+                let oldValue = self.runAppStatus
+                let asOf = Date.now
+                log(asOf, oldValue, runAppStatus)
+
+                if case .activeRunView = runAppStatus {
+                    Profile.onAppear()
+                    pedometerDataClient.start(asOf: asOf)
+                    pedometerEventClient.start(asOf: asOf)
+                    motionActivityClient.start(asOf: asOf)
+                    locationClient.start(asOf: asOf)
+                    heartrateMonitorClient.start(asOf: asOf)
+                }
+                if case .activeRunView = oldValue, case .stopped = workoutClient.status {
+                    pedometerDataClient.stop(asOf: asOf)
+                    pedometerEventClient.stop(asOf: asOf)
+                    motionActivityClient.stop(asOf: asOf)
+                    locationClient.stop(asOf: asOf)
+                    heartrateMonitorClient.stop(asOf: asOf)
+                }
+                if case .background = runAppStatus, case .started = workoutClient.status {
+                    AppTwin.userReturn()
+                }
+            }
+            .store(in: &subscribers)
     }
     
     func launchedByBle(_ at: Date, restoreIds: [String]) {
@@ -145,32 +177,8 @@ class AppTwin {
         }
     }
     
-    private(set) var runAppStatus: RunAppStatus = .terminated {
-        didSet {
-            let asOf = Date.now
-            log(asOf, oldValue, runAppStatus)
-
-            if case .activeRunView = runAppStatus {
-                Profile.onAppear()
-                pedometerDataClient.start(asOf: asOf)
-                pedometerEventClient.start(asOf: asOf)
-                motionActivityClient.start(asOf: asOf)
-                locationClient.start(asOf: asOf)
-                heartrateMonitorClient.start(asOf: asOf)
-            }
-            if case .activeRunView = oldValue, case .stopped = workoutClient.status {
-                pedometerDataClient.stop(asOf: asOf)
-                pedometerEventClient.stop(asOf: asOf)
-                motionActivityClient.stop(asOf: asOf)
-                locationClient.stop(asOf: asOf)
-                heartrateMonitorClient.stop(asOf: asOf)
-            }
-            if case .background = runAppStatus, case .started = workoutClient.status {
-                AppTwin.userReturn()
-            }
-        }
-    }
-
+    @Published private(set) var runAppStatus: RunAppStatus = .terminated
+    
     let queue: DispatchQueue
     
     // Clients
@@ -188,6 +196,7 @@ class AppTwin {
     let locationTimeseries: TimeSeries<LocationEvent>
     let distanceTimeseries: TimeSeries<DistanceEvent>
     let heartrateTimeseries: TimeSeries<HeartrateEvent>
+    let intensityTimeseries: TimeSeries<IntensityEvent>
     let batteryLevelTimeseries: TimeSeries<BatteryLevelEvent>
     let bodySensorLocationTimeseries: TimeSeries<BodySensorLocationEvent>
     let peripheralTimeseries: TimeSeries<PeripheralEvent>
@@ -212,6 +221,8 @@ class AppTwin {
             UNUserNotificationCenter.current().add(request)
         }
     }
+    
+    private var subscribers = Set<AnyCancellable>()
 }
 
 enum RunAppStatus  {

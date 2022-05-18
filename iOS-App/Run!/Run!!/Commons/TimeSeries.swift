@@ -13,7 +13,7 @@ import SwiftUI
 // Done: Create HeartrateMonitorClient
 // Done: Connect clients to timeseries
 // Done: Create Workout-Timeseries with archiving
-// TODO: Build derived timeseries
+// Done: Build derived timeseries
 // TODO: Build CalulationEngine
 // TODO: Local user defaults and archives to icloud
 

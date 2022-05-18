@@ -22,12 +22,6 @@ extension DistanceEvent: Equatable {
     }
 }
 
-extension IntensityEvent: Equatable {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.vector == rhs.vector
-    }
-}
-
 class DerivedEventTests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -195,50 +189,50 @@ class DerivedEventTests: XCTestCase {
         ])
         XCTAssertEqual(Run.Intensity.Long.getHrBuckets(for: hrLimits), [
             Run.Intensity.Cold: 0 ..< 130,
-            .Easy: 0 ..< 160,
-            .Marathon: 0 ..< 180,
-            .Threshold: 0 ..< 196,
-            .Interval: 0 ..< 200,
+            .Easy: 130 ..< 160,
+            .Marathon: 160 ..< 180,
+            .Threshold: 180 ..< 196,
+            .Interval: 196 ..< 200,
             .Repetition: 200 ..< Int.max
         ])
         XCTAssertEqual(Run.Intensity.Marathon.getHrBuckets(for: hrLimits), [
             Run.Intensity.Cold: 0 ..< 130,
-            .Easy: 0 ..< 160,
-            .Marathon: 0 ..< 180,
-            .Threshold: 0 ..< 196,
-            .Interval: 0 ..< 200,
+            .Easy: 130 ..< 160,
+            .Marathon: 160 ..< 180,
+            .Threshold: 180 ..< 196,
+            .Interval: 196 ..< 200,
             .Repetition: 200 ..< Int.max
         ])
         XCTAssertEqual(Run.Intensity.Threshold.getHrBuckets(for: hrLimits), [
             Run.Intensity.Cold: 0 ..< 130,
-            .Easy: 0 ..< 160,
-            .Marathon: 0 ..< 176,
-            .Threshold: 0 ..< 196,
-            .Interval: 0 ..< 200,
+            .Easy: 130 ..< 160,
+            .Marathon: 160 ..< 176,
+            .Threshold: 176 ..< 196,
+            .Interval: 196 ..< 200,
             .Repetition: 200 ..< Int.max
         ])
         XCTAssertEqual(Run.Intensity.Interval.getHrBuckets(for: hrLimits), [
             Run.Intensity.Cold: 0 ..< 130,
-            .Easy: 0 ..< 160,
-            .Marathon: 0 ..< 176,
-            .Threshold: 0 ..< 184,
-            .Interval: 0 ..< 200,
+            .Easy: 130 ..< 160,
+            .Marathon: 160 ..< 176,
+            .Threshold: 176 ..< 184,
+            .Interval: 184 ..< 200,
             .Repetition: 200 ..< Int.max
         ])
         XCTAssertEqual(Run.Intensity.Repetition.getHrBuckets(for: hrLimits), [
             Run.Intensity.Cold: 0 ..< 130,
-            .Easy: 0 ..< 160,
-            .Marathon: 0 ..< 176,
-            .Threshold: 0 ..< 184,
-            .Interval: 0 ..< 200,
+            .Easy: 130 ..< 160,
+            .Marathon: 160 ..< 176,
+            .Threshold: 176 ..< 184,
+            .Interval: 184 ..< 200,
             .Repetition: 200 ..< Int.max
         ])
         XCTAssertEqual(Run.Intensity.Race.getHrBuckets(for: hrLimits), [
             Run.Intensity.Cold: 0 ..< 130,
-            .Easy: 0 ..< 160,
-            .Marathon: 0 ..< 176,
-            .Threshold: 0 ..< 184,
-            .Interval: 0 ..< 200,
+            .Easy: 130 ..< 160,
+            .Marathon: 160 ..< 176,
+            .Threshold: 176 ..< 184,
+            .Interval: 184 ..< 200,
             .Repetition: 200 ..< Int.max
         ])
     }
@@ -249,87 +243,166 @@ class DerivedEventTests: XCTestCase {
         
         let ts = TimeSeries<IntensityEvent>()
         ts.reset()
-        let actual = ts.parse(
-            HeartrateEvent(date: makeDt(1000), heartrate: 150, skinIsContacted: nil, energyExpended: nil),
-            nil)
-        let expected = [IntensityEvent(date: makeDt(1000), intensity: .Easy)]
-        XCTAssertEqual(actual, expected)
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(1000), heartrate: 180, skinIsContacted: nil, energyExpended: nil),
+                nil))
+        XCTAssertEqual(actual, [IntensityEvent(date: makeDt(1000), intensity: .Threshold)])
     }
     
-    func testIntensityFirstElSecondHrNoCrossing() throws {
+    // Not a real case
+    func testIntensityFirstElSecondHrNoCrossingAsc() throws {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
         let ts = TimeSeries<IntensityEvent>()
         ts.reset()
-        let actual = ts.parse(
-            HeartrateEvent(date: makeDt(1000), heartrate: 150, skinIsContacted: nil, energyExpended: nil),
-            HeartrateEvent(date: makeDt(500), heartrate: 140, skinIsContacted: nil, energyExpended: nil))
-        let actualU = try XCTUnwrap(actual)
-        XCTAssertTrue(actualU.isEmpty)
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(2000), heartrate: 190, skinIsContacted: nil, energyExpended: nil),
+                HeartrateEvent(date: makeDt(1000), heartrate: 180, skinIsContacted: nil, energyExpended: nil)))
+        XCTAssertEqual(actual, [IntensityEvent(date: makeDt(1000), intensity: .Threshold)])
     }
     
-    func testIntensityFirstElSecondHrCrossing() throws {
+    // Not a real case
+    func testIntensityFirstElSecondHrNoCrossingDesc() throws {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
         let ts = TimeSeries<IntensityEvent>()
         ts.reset()
-        let actual = ts.parse(
-            HeartrateEvent(date: makeDt(170), heartrate: 170, skinIsContacted: nil, energyExpended: nil),
-            HeartrateEvent(date: makeDt(80), heartrate: 80, skinIsContacted: nil, energyExpended: nil))
-        let expected = [IntensityEvent(date: makeDt(1000), intensity: .Easy)]
-        XCTAssertEqual(actual, expected)
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(2000), heartrate: 180, skinIsContacted: nil, energyExpended: nil),
+                HeartrateEvent(date: makeDt(1000), heartrate: 190, skinIsContacted: nil, energyExpended: nil)))
+        XCTAssertEqual(actual, [IntensityEvent(date: makeDt(1000), intensity: .Threshold)])
     }
 
+    // Not a real case
+    func testIntensityFirstElSecondHrCrossingAsc() throws {
+        Profile.onAppear()
+        Profile.hrMax.onChange(to: 200)
+        
+        let ts = TimeSeries<IntensityEvent>()
+        ts.reset()
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(190), heartrate: 190, skinIsContacted: nil, energyExpended: nil),
+                HeartrateEvent(date: makeDt(150), heartrate: 150, skinIsContacted: nil, energyExpended: nil)))
+        XCTAssertEqual(actual, [
+            IntensityEvent(date: makeDt(150), intensity: .Easy),
+            IntensityEvent(date: makeDt(160), intensity: .Marathon),
+            IntensityEvent(date: makeDt(180), intensity: .Threshold)
+        ])
+    }
+
+    // Not a real case
+    func testIntensityFirstElSecondHrCrossingDesc() throws {
+        Profile.onAppear()
+        Profile.hrMax.onChange(to: 200)
+        
+        let ts = TimeSeries<IntensityEvent>()
+        ts.reset()
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(190), heartrate: 150, skinIsContacted: nil, energyExpended: nil),
+                HeartrateEvent(date: makeDt(150), heartrate: 190, skinIsContacted: nil, energyExpended: nil)))
+        XCTAssertEqual(actual, [
+            IntensityEvent(date: makeDt(150), intensity: .Threshold),
+            IntensityEvent(date: makeDt(160), intensity: .Marathon),
+            IntensityEvent(date: makeDt(180), intensity: .Easy)
+        ])
+    }
+
+    // Not a real case
     func testIntensitySecondElFirstHrNoCrossing() throws {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
         let ts = TimeSeries<IntensityEvent>()
         ts.reset()
-        ts.insert(IntensityEvent(date: makeDt(500), intensity: .Interval))
-        let actual = ts.parse(
-            HeartrateEvent(date: makeDt(1000), heartrate: 190, skinIsContacted: nil, energyExpended: nil),
-            nil)
-        let actualU = try XCTUnwrap(actual)
-        XCTAssertTrue(actualU.isEmpty)
+        ts.insert(IntensityEvent(date: makeDt(1000), intensity: .Threshold))
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(2000), heartrate: 180, skinIsContacted: nil, energyExpended: nil),
+                nil))
+        XCTAssertEqual(actual, [IntensityEvent(date: makeDt(2000), intensity: .Threshold)])
     }
 
+    // Not a real case
     func testIntensitySecondElFirstHrCrossing() throws {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
         let ts = TimeSeries<IntensityEvent>()
         ts.reset()
-        ts.insert(IntensityEvent(date: makeDt(500), intensity: .Interval))
-        let actual = ts.parse(
-            HeartrateEvent(date: makeDt(1000), heartrate: 180, skinIsContacted: nil, energyExpended: nil),
-            nil)
-        let actualU = try XCTUnwrap(actual)
-        XCTAssertEqual(actualU, [IntensityEvent(date: makeDt(1000), intensity: .Threshold)])
+        ts.insert(IntensityEvent(date: makeDt(0), intensity: .Threshold))
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(170), heartrate: 170, skinIsContacted: nil, energyExpended: nil),
+                nil))
+        XCTAssertEqual(actual, [IntensityEvent(date: makeDt(170), intensity: .Marathon)])
     }
 
-    func testIntensitySecondElSecondHrNoCrossing() throws {
+    func testIntensitySecondElSecondHrNoCrossingAsc() throws {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
         let ts = TimeSeries<IntensityEvent>()
         ts.reset()
-        ts.insert(IntensityEvent(date: makeDt(500), intensity: .Interval))
-        let actual = ts.parse(
-            HeartrateEvent(date: makeDt(1000), heartrate: 190, skinIsContacted: nil, energyExpended: nil),
-            HeartrateEvent(date: makeDt(500), heartrate: 185, skinIsContacted: nil, energyExpended: nil))
-        let actualU = try XCTUnwrap(actual)
-        XCTAssertTrue(actualU.isEmpty)
+        ts.insert(IntensityEvent(date: makeDt(190), intensity: .Threshold))
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(195), heartrate: 195, skinIsContacted: nil, energyExpended: nil),
+                HeartrateEvent(date: makeDt(190), heartrate: 190, skinIsContacted: nil, energyExpended: nil)))
+        XCTAssertEqual(actual, [])
+    }
+
+    func testIntensitySecondElSecondHrNoCrossingDesc() throws {
+        Profile.onAppear()
+        Profile.hrMax.onChange(to: 200)
+        
+        let ts = TimeSeries<IntensityEvent>()
+        ts.reset()
+        ts.insert(IntensityEvent(date: makeDt(190), intensity: .Threshold))
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(195), heartrate: 176, skinIsContacted: nil, energyExpended: nil),
+                HeartrateEvent(date: makeDt(190), heartrate: 190, skinIsContacted: nil, energyExpended: nil)))
+        XCTAssertEqual(actual, [])
+    }
+
+    func testIntensitySecondElSecondHrCrossingAsc() throws {
+        Profile.onAppear()
+        Profile.hrMax.onChange(to: 200)
+        
+        let ts = TimeSeries<IntensityEvent>()
+        ts.reset()
+        ts.insert(IntensityEvent(date: makeDt(190), intensity: .Threshold))
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(205), heartrate: 205, skinIsContacted: nil, energyExpended: nil),
+                HeartrateEvent(date: makeDt(190), heartrate: 190, skinIsContacted: nil, energyExpended: nil)))
+        XCTAssertEqual(actual, [
+            IntensityEvent(date: makeDt(196), intensity: .Interval),
+            IntensityEvent(date: makeDt(200), intensity: .Repetition)
+        ])
     }
     
-    func testIntensitySecondElSecondHrCrossing() throws {
+    func testIntensitySecondElSecondHrCrossingDesc() throws {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
         let ts = TimeSeries<IntensityEvent>()
         ts.reset()
+        ts.insert(IntensityEvent(date: makeDt(0), intensity: .Threshold))
+        let actual = try XCTUnwrap(
+            ts.parse(
+                HeartrateEvent(date: makeDt(30), heartrate: 160, skinIsContacted: nil, energyExpended: nil),
+                HeartrateEvent(date: makeDt(0), heartrate: 190, skinIsContacted: nil, energyExpended: nil)))
+        XCTAssertEqual(actual, [
+            IntensityEvent(date: makeDt(14), intensity: .Marathon)
+        ])
     }
 
     private func makeDt(_ x: Double) -> Date {

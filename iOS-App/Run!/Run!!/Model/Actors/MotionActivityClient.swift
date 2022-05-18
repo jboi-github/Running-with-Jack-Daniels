@@ -45,9 +45,9 @@ final class MotionActivityClient: ClientDelegate {
             guard let activities = $0 else {return}
             
             self.queue.async { [self] in
+                log(from, asOf, activities.count)
                 activities.forEach { motionActivity in
                     motionActivityTimeseries.insert(motionActivityTimeseries.parse(motionActivity))
-                    DispatchQueue.main.async {self.client?.counter += 1}
                 }
             }
         }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 enum Store {
     private struct KeyValueData<Value: Codable>: Codable {
@@ -44,11 +45,19 @@ enum Store {
     
     let key: String
     let defaultValue: Value
+    private var chachedValue: Value?
 
     var wrappedValue: Value {
-        get {Store.read(for: key)?.value ?? defaultValue}
-        set {Store.write(newValue, at: .now, for: key)}
+        mutating get {
+            if let chachedValue = chachedValue {return chachedValue}
+            chachedValue = Store.read(for: key)?.value ?? defaultValue
+            return chachedValue!
+        }
+        set {
+            Store.write(newValue, at: .now, for: key)
+            chachedValue = newValue
+        }
     }
     
-    var projectedValue: Persistent<Value> {self}
+    var projectedValue: Self {self}
 }

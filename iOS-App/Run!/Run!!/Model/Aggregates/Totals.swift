@@ -164,7 +164,7 @@ class Totals {
     }
     
     func load() {
-        guard let totals = Files.read([Key: Value].self, from: "totals.json") else {return}
+        guard let totals: [Key: Value] = Files.read(from: "totals.json") else {return}
         self.totals = totals
     }
 

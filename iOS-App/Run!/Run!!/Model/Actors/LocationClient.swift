@@ -36,7 +36,6 @@ final class LocationClient: ClientDelegate {
                     distanceTimeseries
                         .parse(location, locationTimeseries.elements.last?.clLocation)
                         .forEach {distanceTimeseries.insert($0)}
-                    DispatchQueue.main.async {self.client?.counter += 1}
                 }
             },
             status: { status in DispatchQueue.main.async {self.client?.statusChanged(to: status)}},

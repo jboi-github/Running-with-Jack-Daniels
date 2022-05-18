@@ -100,7 +100,7 @@ class Locations {
     }
     
     func load(asOf: Date) {
-        guard let locations = Files.read(Array<LocationX>.self, from: "locations.json") else {return}
+        guard let locations: Array<LocationX> = Files.read(from: "locations.json") else {return}
         
         self.locations = locations.filter {$0.date.distance(to: asOf) <= signalTimeout}
         isDirty = false

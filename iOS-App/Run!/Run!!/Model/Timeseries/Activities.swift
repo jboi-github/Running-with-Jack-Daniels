@@ -97,7 +97,7 @@ class Activities: ObservableObject {
     }
     
     func load(asOf: Date) {
-        guard let activities = Files.read(Array<ActivityX>.self, from: "activities.json") else {return}
+        guard let activities: Array<ActivityX> = Files.read(from: "activities.json") else {return}
         
         self.activities = activities.filter {$0.asOf.distance(to: asOf) <= signalTimeout}
         latestOriginal = self.activities.last(where: {$0.isOriginal})

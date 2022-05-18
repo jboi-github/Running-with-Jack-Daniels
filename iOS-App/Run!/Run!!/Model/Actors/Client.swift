@@ -37,7 +37,6 @@ class Client<Delegate: ClientDelegate>: ObservableObject {
         self.delegate.client = self
     }
 
-    @Published var counter: Int = 0
     @Published private(set) var status: ClientStatus
     private let delegate: Delegate
 

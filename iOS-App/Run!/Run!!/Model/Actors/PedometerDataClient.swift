@@ -49,7 +49,6 @@ final class PedometerDataClient: ClientDelegate {
                 pedometerDataTimeseries
                     .newElements(pedometerData.startDate, pedometerDataEvent)
                     .forEach {pedometerDataTimeseries.insert($0)}
-                DispatchQueue.main.async {self.client?.counter += 1}
             }
         }
     }

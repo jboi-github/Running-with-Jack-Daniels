@@ -232,7 +232,7 @@ class WorkoutX: ObservableObject {
     }
     
     func load(asOf: Date) {
-        guard let info = Files.read(Info.self, from: "workout.json") else {return}
+        guard let info: Info = Files.read(from: "workout.json") else {return}
         totalsCollector.load()
         switch info.status {
         case .stopped(since: let since):

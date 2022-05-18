@@ -169,7 +169,7 @@ class Steps: ObservableObject {
     
     /// Load and keep only last 10 minutes
     func load(asOf: Date) {
-        guard let steps = Files.read(Array<StepX>.self, from: "steps.json") else {return}
+        guard let steps: Array<StepX> = Files.read(from: "steps.json") else {return}
         
         self.steps = steps.filter {$0.asOf.distance(to: asOf) <= signalTimeout}
         latestOriginal = self.steps.last(where: {$0.isOriginal})

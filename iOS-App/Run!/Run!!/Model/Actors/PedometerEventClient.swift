@@ -30,7 +30,6 @@ final class PedometerEventClient: ClientDelegate {
             
             self.queue.async { [self] in
                 pedometerEventTimeseries.insert(pedometerEventTimeseries.parse(pedometerEvent))
-                DispatchQueue.main.async {self.client?.counter += 1}
             }
         }
         return .started(since: asOf)

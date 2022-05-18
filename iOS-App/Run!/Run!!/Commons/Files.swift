@@ -92,13 +92,13 @@ enum Files {
         }
     }
     
-    static func read<D: Decodable>(_ decodable: D.Type, from fileName: String) -> D? {
+    static func read<D: Decodable>(from fileName: String) -> D? {
         queue.sync {
             guard let url = url(for: fileName) else {return nil}
             
             do {
                 let data = try Data(contentsOf: url) // TODO: (Data(contentsOf: url) as NSData).decompressed(using: .zlib)
-                return try decoder.decode(decodable, from: data)
+                return try decoder.decode(D.self, from: data)
             } catch {
                 check(error)
                 return nil
@@ -130,4 +130,38 @@ enum Files {
             return nil
         }
     }
+}
+
+// MARK: Syncable Property Wrapper
+
+/// For larger amounts of data, that needs to be persistent across App restarts. The wrapper offers an additional `sync` function
+/// to synchronize when entering background mode and when changing data while in background mode.
+/// - The `wrappedValue` has a lazy iniitialiser, meaning that the corresponding file is read on first access.
+/// - The corresponding file is stored with `Files` which is locally in users documents folder.
+@propertyWrapper struct Syncable<Value> where Value: Codable {
+    init(wrappedValue defaultValue: Value, fileName: String) {
+        self.fileName = fileName
+        self.defaultValue = defaultValue
+    }
+    
+    let fileName: String
+    let defaultValue: Value
+    private var chachedValue: Value?
+
+    var wrappedValue: Value {
+        mutating get {
+            if let chachedValue = chachedValue {return chachedValue}
+            chachedValue = Files.read(from: fileName) ?? defaultValue
+            return chachedValue!
+        }
+        set {
+            chachedValue = newValue
+        }
+    }
+    
+    func sync() {
+        Files.write(chachedValue, to: fileName)
+    }
+    
+    var projectedValue: Self {self}
 }
