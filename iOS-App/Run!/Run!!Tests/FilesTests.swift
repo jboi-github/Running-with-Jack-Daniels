@@ -28,7 +28,7 @@ class FilesTests: XCTestCase {
         Files.initDirectory()
         let x = X(x: 123)
         Files.write(x, to: "X")
-        let x2 = Files.read(X.self, from: "X")
+        let x2: X? = Files.read(from: "X")
         XCTAssertEqual(x, x2)
     }
     
@@ -38,11 +38,11 @@ class FilesTests: XCTestCase {
         let y = X(x: 2)
         
         Files.write(x, to: "X")
-        let x2 = Files.read(X.self, from: "X")
+        let x2: X? = Files.read(from: "X")
         XCTAssertEqual(x, x2)
 
         Files.write(y, to: "X")
-        let y2 = Files.read(X.self, from: "X")
+        let y2: X? = Files.read(from: "X")
         XCTAssertEqual(y, y2)
     }
     
@@ -66,7 +66,7 @@ class FilesTests: XCTestCase {
             stringNil: nil)
         
         Files.write(expectedVar, to: "testFileHandling.json")
-        let x = Files.read(FH.self, from: "testFileHandling.json")
+        let x: FH? = Files.read(from: "testFileHandling.json")
         
         XCTAssertNotNil(x)
         
@@ -81,5 +81,83 @@ class FilesTests: XCTestCase {
         XCTAssertEqual(x.stringEmpty, expectedVar.stringEmpty)
         XCTAssertEqual(x.stringEmpty, expectedVar.stringEmpty)
         XCTAssertEqual(x.stringNil, expectedVar.stringNil)
+    }
+    
+    // MARK: Test property wrapper `Synced`
+
+    enum Enumerated: Int, Codable, Equatable {
+        case X, Y, Z
+    }
+    
+    struct Info: Codable, Equatable {
+        let string: String
+        let double: Double
+        let bool: Bool
+        let int: Int
+        let enumerated: Enumerated
+        let date: Date
+    }
+    
+    func testSyncedGet() throws {
+        let fName = UUID().uuidString
+        @Synced(fileName: fName, isInBackground: false) var x: Info = Info(
+            string: "DEFAULT", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4711))
+
+        // Should not be saved by now
+        @Synced(fileName: fName, isInBackground: false) var y: Info = Info(
+            string: "DEFAULT-Y", double: .infinity, bool: true, int: 10, enumerated: .X, date: Date(timeIntervalSinceReferenceDate: 1000))
+        
+        XCTAssertEqual(
+            x,
+            Info(string: "DEFAULT", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4711)))
+        XCTAssertEqual(
+            y,
+            Info(string: "DEFAULT-Y", double: .infinity, bool: true, int: 10, enumerated: .X, date: Date(timeIntervalSinceReferenceDate: 1000)))
+    }
+
+    func testSyncedSetForeground() throws {
+        let fName = UUID().uuidString
+        @Synced(fileName: fName, isInBackground: false) var x: Info = Info(
+            string: "DEFAULT", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4711))
+        x = Info(string: "CHANGED", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4712))
+        
+        @Synced(fileName: fName, isInBackground: false) var y: Info = Info(
+            string: "DEFAULT-Y", double: .infinity, bool: true, int: 10, enumerated: .X, date: Date(timeIntervalSinceReferenceDate: 1000))
+        
+        XCTAssertEqual(x,
+            Info(string: "CHANGED", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4712)))
+        XCTAssertEqual(
+            y,
+            Info(string: "DEFAULT-Y", double: .infinity, bool: true, int: 10, enumerated: .X, date: Date(timeIntervalSinceReferenceDate: 1000)))
+    }
+
+    func testSyncedSetForegroundMoveBack() throws {
+        let fName = UUID().uuidString
+        @Synced(fileName: fName, isInBackground: false) var x: Info = Info(
+            string: "DEFAULT", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4711))
+        x = Info(string: "CHANGED", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4712))
+        
+        $x.isInBackground = true // Should save here
+        @Synced(fileName: fName, isInBackground: false) var y: Info = Info(
+            string: "DEFAULT-Y", double: .infinity, bool: true, int: 10, enumerated: .X, date: Date(timeIntervalSinceReferenceDate: 1000))
+        
+        
+        XCTAssertEqual(x, Info(string: "CHANGED", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4712)))
+        XCTAssertEqual(y, Info(string: "CHANGED", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4712)))
+    }
+
+    func testSyncedSetWhileBackground() throws {
+        let fName = UUID().uuidString
+        @Synced(fileName: fName, isInBackground: false) var x: Info = Info(
+            string: "DEFAULT", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4711))
+
+        $x.isInBackground = true // Should save here and again, on each further change
+        x = Info(string: "CHANGED", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4712))
+        
+        @Synced(fileName: fName, isInBackground: false) var y: Info = Info(
+            string: "DEFAULT-Y", double: .infinity, bool: true, int: 10, enumerated: .X, date: Date(timeIntervalSinceReferenceDate: 1000))
+        
+        XCTAssertEqual(x, Info(string: "CHANGED", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4712)))
+        XCTAssertEqual(y, Info(string: "CHANGED", double: 1.0, bool: false, int: 13, enumerated: .Y, date: Date(timeIntervalSinceReferenceDate: 4712)))
     }
 }

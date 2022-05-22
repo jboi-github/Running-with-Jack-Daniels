@@ -10,8 +10,13 @@ import Foundation
 protocol ClientDelegate: AnyObject {
     func start(asOf: Date) -> ClientStatus
     func stop(asOf: Date)
+    func trigger(asOf: Date)
     
-    var client: Client<Self>? {get set}
+    func setStatusCallback(_ callback: @escaping (ClientStatus) -> Void)
+}
+
+extension ClientDelegate {
+    func trigger(asOf: Date) {} // Optional function
 }
 
 enum ClientStatus {
@@ -30,15 +35,15 @@ enum ClientStatus {
     }
 }
 
-class Client<Delegate: ClientDelegate>: ObservableObject {
-    init(delegate: Delegate) {
+class Client: ObservableObject {
+    init<Delegate: ClientDelegate>(delegate: Delegate) {
         self.status = .stopped(since: .distantPast)
         self.delegate = delegate
-        self.delegate.client = self
+        self.delegate.setStatusCallback({self.statusChanged(to: $0)})
     }
 
     @Published private(set) var status: ClientStatus
-    private let delegate: Delegate
+    private let delegate: ClientDelegate
 
     @discardableResult func start(asOf: Date) -> ClientStatus {
         status = delegate.start(asOf: asOf)
@@ -57,4 +62,6 @@ class Client<Delegate: ClientDelegate>: ObservableObject {
         if status.isStopped {check("Expected any started status, but found \(status)")}
         self.status = status
     }
+    
+    func trigger(asOf: Date) {delegate.trigger(asOf: asOf)}
 }

@@ -10,7 +10,7 @@ import CoreMotion
 
 struct MotionActivityEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.MotionActivityEvent"
+    static let key: String = "MotionActivityEvent"
     let vector: VectorElement<Info>
     init(_ vector: VectorElement<Info>) {self.vector = vector}
 
@@ -37,7 +37,7 @@ struct MotionActivityEvent: GenericTimeseriesElement {
 }
 
 extension TimeSeries where Element == MotionActivityEvent {
-    func parse(_ motionActivity: CMMotionActivity) -> Element {
+    func parse(_ motionActivity: CMMotionActivity) -> Element? {
         var confidence: MotionActivityEvent.Confidence {
             MotionActivityEvent.Confidence(rawValue: motionActivity.confidence.rawValue) ?? .low
         }
@@ -56,6 +56,8 @@ extension TimeSeries where Element == MotionActivityEvent {
             }
         }
         
+        // Any new information?
+        if let last = elements.last, last.confidence == confidence && last.motion == motion {return nil}
         return Element(date: motionActivity.startDate, confidence: confidence, motion: motion)
     }
 }

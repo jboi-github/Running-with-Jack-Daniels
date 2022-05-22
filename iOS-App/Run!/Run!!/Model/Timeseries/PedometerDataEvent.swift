@@ -11,7 +11,7 @@ import CoreMotion
 
 struct PedometerDataEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.PedometerDataEvent"
+    static let key: String = "PedometerDataEvent"
     let vector: VectorElement<None>
     init(_ vector: VectorElement<None>) {self.vector = vector}
 

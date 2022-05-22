@@ -170,6 +170,9 @@
 		D21779482819735F00A6DEED /* PedometerEventClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D21779472819735F00A6DEED /* PedometerEventClient.swift */; };
 		D217794A2819745B00A6DEED /* MotionActivityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D21779492819745B00A6DEED /* MotionActivityClient.swift */; };
 		D217794C2819907E00A6DEED /* LocationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D217794B2819907E00A6DEED /* LocationClient.swift */; };
+		D24DDE5E2836B94800923BBD /* TimerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE5D2836B94800923BBD /* TimerClient.swift */; };
+		D24DDE602837F6CE00923BBD /* TimerClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE5F2837F6CE00923BBD /* TimerClientTests.swift */; };
+		D24DDE62283A5BA900923BBD /* TimeSeriesSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE61283A5BA900923BBD /* TimeSeriesSet.swift */; };
 		D25D070628258E3E00588F0A /* WorkoutClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D070528258E3E00588F0A /* WorkoutClient.swift */; };
 		D25D07082827F94100588F0A /* TimeSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D07072827F94100588F0A /* TimeSeries.swift */; };
 		D25D070A282ACB2500588F0A /* PersistentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D0709282ACB2500588F0A /* PersistentTests.swift */; };
@@ -389,6 +392,9 @@
 		D21779472819735F00A6DEED /* PedometerEventClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PedometerEventClient.swift; sourceTree = "<group>"; };
 		D21779492819745B00A6DEED /* MotionActivityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionActivityClient.swift; sourceTree = "<group>"; };
 		D217794B2819907E00A6DEED /* LocationClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationClient.swift; sourceTree = "<group>"; };
+		D24DDE5D2836B94800923BBD /* TimerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerClient.swift; sourceTree = "<group>"; };
+		D24DDE5F2837F6CE00923BBD /* TimerClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerClientTests.swift; sourceTree = "<group>"; };
+		D24DDE61283A5BA900923BBD /* TimeSeriesSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSeriesSet.swift; sourceTree = "<group>"; };
 		D25D070528258E3E00588F0A /* WorkoutClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutClient.swift; sourceTree = "<group>"; };
 		D25D07072827F94100588F0A /* TimeSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSeries.swift; sourceTree = "<group>"; };
 		D25D0709282ACB2500588F0A /* PersistentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentTests.swift; sourceTree = "<group>"; };
@@ -735,6 +741,7 @@
 				15C36A6327F6078300FBF275 /* FormulaTests.swift */,
 				15C36A6527F609E600FBF275 /* ProfileTests.swift */,
 				15A6D36E2832494D0082EC2E /* DerivedEventTests.swift */,
+				D24DDE5F2837F6CE00923BBD /* TimerClientTests.swift */,
 			);
 			path = "Run!!Tests";
 			sourceTree = "<group>";
@@ -781,7 +788,6 @@
 				15B9FC9327E3C7E3002813D1 /* RunningFormula.swift */,
 				15B9FC9527E3C8C5002813D1 /* PlanningFormula.swift */,
 				15C36AA627F835B500FBF275 /* Gps.swift */,
-				D25D07072827F94100588F0A /* TimeSeries.swift */,
 			);
 			path = Commons;
 			sourceTree = "<group>";
@@ -809,6 +815,7 @@
 				D217794B2819907E00A6DEED /* LocationClient.swift */,
 				D25D070D282C407B00588F0A /* HeartrateMonitorClient.swift */,
 				D25D070528258E3E00588F0A /* WorkoutClient.swift */,
+				D24DDE5D2836B94800923BBD /* TimerClient.swift */,
 			);
 			path = Actors;
 			sourceTree = "<group>";
@@ -822,6 +829,8 @@
 				15B9FC7F27E24691002813D1 /* Locations.swift */,
 				15B9FC8527E37140002813D1 /* Distances.swift */,
 				15DE26922806BE2100CBF64A /* Steps.swift */,
+				D24DDE61283A5BA900923BBD /* TimeSeriesSet.swift */,
+				D25D07072827F94100588F0A /* TimeSeries.swift */,
 				D25D0711282D54E600588F0A /* PedometerDataEvent.swift */,
 				D25D0715282E719200588F0A /* PedometerEvent.swift */,
 				D25D0717282EAD4C00588F0A /* HeartrateEvent.swift */,
@@ -1246,6 +1255,7 @@
 				D25D0712282D54E600588F0A /* PedometerDataEvent.swift in Sources */,
 				1592606728073EEE0042D54C /* ChartCommons.swift in Sources */,
 				154BB7AC28312438004E48EE /* IntensityEvent.swift in Sources */,
+				D24DDE5E2836B94800923BBD /* TimerClient.swift in Sources */,
 				15B9FC9427E3C7E3002813D1 /* RunningFormula.swift in Sources */,
 				15C36A8627F6C9C000FBF275 /* ResetButton.swift in Sources */,
 				D217794628196EE700A6DEED /* PedometerDataClient.swift in Sources */,
@@ -1259,6 +1269,7 @@
 				15C36A8527F6C9C000FBF275 /* EnumPickerView.swift in Sources */,
 				15C36AA727F835B500FBF275 /* Gps.swift in Sources */,
 				1592606528073EEE0042D54C /* ChartView.swift in Sources */,
+				D24DDE62283A5BA900923BBD /* TimeSeriesSet.swift in Sources */,
 				15C36A7127F6C62600FBF275 /* HeartrateText.swift in Sources */,
 				D25D07082827F94100588F0A /* TimeSeries.swift in Sources */,
 				15C36AA327F6C9F200FBF275 /* HrLimitsView.swift in Sources */,
@@ -1308,6 +1319,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D24DDE602837F6CE00923BBD /* TimerClientTests.swift in Sources */,
 				15B9FC3227DCE715002813D1 /* CollectionTests.swift in Sources */,
 				D25D070C282AD4AC00588F0A /* TimeSeriesTests.swift in Sources */,
 				15A6D36F2832494D0082EC2E /* DerivedEventTests.swift in Sources */,

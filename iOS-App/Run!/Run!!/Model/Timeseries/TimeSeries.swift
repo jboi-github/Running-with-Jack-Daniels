@@ -79,7 +79,7 @@ extension Optional where Wrapped == Int {
 
 // MARK: Timeseries elements
 
-protocol TimeSeriesElement: Dated, Codable {
+protocol TimeSeriesElement: Dated, Codable, Equatable {
     associatedtype Delta: Scalable
     
     /// Derived from `Stridable`
@@ -252,7 +252,7 @@ enum None: Codable, Equatable {
 /// - Travers through elements in date order
 /// - Travers through a number of different timeseries, returning a sequence of tuples or given time series by time. Missing elements are inter- oder extrapolated.
 class TimeSeries<Element> where Element: KeyedTimeSeriesElement {
-    @Persistent(key: Element.key) private(set) var elements = [Element]()
+    @Synced(fileName: "\(Element.key).json", isInBackground: true) private(set) var elements = [Element]()
     
     static func merge(_ d: [Date]...) -> [Date] {
         // TODO: Put into calculation engine
@@ -324,6 +324,12 @@ class TimeSeries<Element> where Element: KeyedTimeSeriesElement {
     
     /// For test cases only. Use `archive` instead.
     func reset() {elements.removeAll()}
+    
+    var isInBackground: Bool = true {
+        didSet {
+            $elements.isInBackground = isInBackground
+        }
+    }
 
     private func getByIdx(date: Date, before: Int?, at: Int?, after: Int?) -> Element? {
         if let at = at {

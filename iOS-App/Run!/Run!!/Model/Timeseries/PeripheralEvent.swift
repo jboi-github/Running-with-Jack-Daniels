@@ -10,7 +10,7 @@ import CoreBluetooth
 
 struct PeripheralEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.PeripheralEvent"
+    static let key: String = "PeripheralEvent"
     let vector: VectorElement<Info>
     init(_ vector: VectorElement<Info>) {self.vector = vector}
 

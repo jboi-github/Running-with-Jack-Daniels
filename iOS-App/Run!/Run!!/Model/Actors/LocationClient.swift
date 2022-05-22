@@ -9,8 +9,7 @@ import Foundation
 import CoreLocation
 
 final class LocationClient: ClientDelegate {
-    weak var client: Client<LocationClient>?
-    
+    private var statusCallback: ((ClientStatus) -> Void)?
     private var locationManager: CLLocationManager?
     private var locationManagerDelegate: LocationManagerDelegate?
     private unowned let queue: DispatchQueue
@@ -26,6 +25,10 @@ final class LocationClient: ClientDelegate {
         self.locationTimeseries = locationTimeseries
         self.distanceTimeseries = distanceTimeseries
     }
+    
+    func setStatusCallback(_ callback: @escaping (ClientStatus) -> Void) {
+        self.statusCallback = callback
+    }
 
     func start(asOf: Date) -> ClientStatus {
         locationManager = CLLocationManager()
@@ -38,7 +41,7 @@ final class LocationClient: ClientDelegate {
                         .forEach {distanceTimeseries.insert($0)}
                 }
             },
-            status: { status in DispatchQueue.main.async {self.client?.statusChanged(to: status)}},
+            status: { status in DispatchQueue.main.async {self.statusCallback?(status)}},
             asOf: asOf)
 
         guard let locationManager = locationManager, let locationManagerDelegate = locationManagerDelegate else {

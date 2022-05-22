@@ -9,7 +9,7 @@ import Foundation
 
 struct IntensityEvent: GenericTimeseriesElement, Equatable {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.IntensityEvent"
+    static let key: String = "IntensityEvent"
     let vector: VectorElement<Run.Intensity>
     init(_ vector: VectorElement<Run.Intensity>) {self.vector = vector}
 

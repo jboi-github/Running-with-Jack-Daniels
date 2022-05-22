@@ -12,7 +12,7 @@ enum Files {
         let encoder = JSONEncoder()
         encoder.dataEncodingStrategy = .base64
         encoder.dateEncodingStrategy = .millisecondsSince1970
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+        // encoder.keyEncodingStrategy = .convertToSnakeCase -> Does not work with enums and parameters
         encoder.nonConformingFloatEncodingStrategy = .convertToString(
             positiveInfinity: "+inf",
             negativeInfinity: "-inf",
@@ -25,7 +25,7 @@ enum Files {
         let decoder = JSONDecoder()
         decoder.dataDecodingStrategy = .base64
         decoder.dateDecodingStrategy = .millisecondsSince1970
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        // decoder.keyDecodingStrategy = .convertFromSnakeCase -> Does not work with enums and parameters
         decoder.nonConformingFloatDecodingStrategy = .convertFromString(
             positiveInfinity: "+inf",
             negativeInfinity: "-inf",
@@ -74,7 +74,9 @@ enum Files {
             check("iCloud directory not set up. File \(fileName) not saved")
             return nil
         }
-        return directory.appendingPathComponent(fileName)
+        let url = directory.appendingPathComponent(fileName)
+        log(url)
+        return url
     }
 
     @discardableResult static func write<E: Encodable>(_ encodable: E, to: String) -> URL? {
@@ -132,36 +134,47 @@ enum Files {
     }
 }
 
-// MARK: Syncable Property Wrapper
+// MARK: Synced Property Wrapper
 
-/// For larger amounts of data, that needs to be persistent across App restarts. The wrapper offers an additional `sync` function
+/// For larger amounts of data, that needs to be persistent across App restarts. The wrapper offers an additional `isInBackground` property
 /// to synchronize when entering background mode and when changing data while in background mode.
-/// - The `wrappedValue` has a lazy iniitialiser, meaning that the corresponding file is read on first access.
+/// - The `wrappedValue` is immediately iniitialised.
 /// - The corresponding file is stored with `Files` which is locally in users documents folder.
-@propertyWrapper struct Syncable<Value> where Value: Codable {
-    init(wrappedValue defaultValue: Value, fileName: String) {
+@propertyWrapper struct Synced<Value> where Value: Codable & Equatable {
+    init(wrappedValue defaultValue: Value, fileName: String, isInBackground: Bool) {
         self.fileName = fileName
         self.defaultValue = defaultValue
+        self.isInBackground = isInBackground
+        self.cachedValue = Files.read(from: fileName) ?? defaultValue
     }
     
     let fileName: String
     let defaultValue: Value
-    private var chachedValue: Value?
+    
+    /// When chaning to `true` current cached value is written to disk.
+    /// When `wrappedValue` is changed while this is `true`, the data is immediately written to disk.
+    var isInBackground: Bool {
+        didSet {
+            guard oldValue != isInBackground && isInBackground else {return}
+            Files.write(cachedValue, to: fileName)
+        }
+    }
+    
+    private var cachedValue: Value
 
     var wrappedValue: Value {
-        mutating get {
-            if let chachedValue = chachedValue {return chachedValue}
-            chachedValue = Files.read(from: fileName) ?? defaultValue
-            return chachedValue!
+        get {
+            cachedValue
         }
         set {
-            chachedValue = newValue
+            guard cachedValue != newValue else {return}
+            cachedValue = newValue
+            if isInBackground {Files.write(cachedValue, to: fileName)}
         }
     }
     
-    func sync() {
-        Files.write(chachedValue, to: fileName)
+    var projectedValue: Self {
+        mutating get {self}
+        set {self = newValue}
     }
-    
-    var projectedValue: Self {self}
 }

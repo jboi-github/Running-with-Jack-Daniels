@@ -107,7 +107,7 @@ struct SyncedPreview: View {
     var body: some View {
         VStack {
             Spacer()
-            Synced(ok: $ok)
+            SyncedX(ok: $ok)
             Spacer()
             Toggle(isOn: $ok, label: {
                 Text("Change from outside")
@@ -124,7 +124,7 @@ struct LockScreenView_Previews: PreviewProvider {
 }
 #endif
 
-struct Synced: View {
+struct SyncedX: View {
     @Binding var ok: Bool
     
     @State private var x: String = "X"

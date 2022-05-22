@@ -9,7 +9,7 @@ import Foundation
 import CoreMotion
 
 final class MotionActivityClient: ClientDelegate {
-    weak var client: Client<MotionActivityClient>?
+    private var statusCallback: ((ClientStatus) -> Void)?
     private var motionActivityManager: CMMotionActivityManager?
     private unowned let queue: DispatchQueue
     private unowned let motionActivityTimeseries: TimeSeries<MotionActivityEvent>
@@ -18,6 +18,10 @@ final class MotionActivityClient: ClientDelegate {
     init(queue: DispatchQueue, motionActivityTimeseries: TimeSeries<MotionActivityEvent>) {
         self.queue = queue
         self.motionActivityTimeseries = motionActivityTimeseries
+    }
+    
+    func setStatusCallback(_ callback: @escaping (ClientStatus) -> Void) {
+        self.statusCallback = callback
     }
 
     func start(asOf: Date) -> ClientStatus {
@@ -34,20 +38,19 @@ final class MotionActivityClient: ClientDelegate {
         motionActivityManager = nil
     }
     
-    // TODO: Call eversy full second while in workout
     func trigger(asOf: Date) {
         guard let motionActivityManager = motionActivityManager else {return}
         let from = max(lastRun, asOf.addingTimeInterval(-workoutTimeout))
-        lastRun = from
+        lastRun = asOf
         
         motionActivityManager.queryActivityStarting(from: from, to: asOf, to: .current ?? .main) {
             check($1)
             guard let activities = $0 else {return}
             
             self.queue.async { [self] in
-                log(from, asOf, activities.count)
                 activities.forEach { motionActivity in
-                    motionActivityTimeseries.insert(motionActivityTimeseries.parse(motionActivity))
+                    guard let motionActivityEvent = motionActivityTimeseries.parse(motionActivity) else {return}
+                    motionActivityTimeseries.insert(motionActivityEvent)
                 }
             }
         }

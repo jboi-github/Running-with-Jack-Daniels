@@ -9,7 +9,7 @@ import Foundation
 import CoreMotion
 
 final class PedometerEventClient: ClientDelegate {
-    weak var client: Client<PedometerEventClient>?
+    private var statusCallback: ((ClientStatus) -> Void)?
     private var pedometer: CMPedometer?
     private unowned let queue: DispatchQueue
     private unowned let pedometerEventTimeseries: TimeSeries<PedometerEvent>
@@ -17,6 +17,10 @@ final class PedometerEventClient: ClientDelegate {
     init(queue: DispatchQueue, pedometerEventTimeseries: TimeSeries<PedometerEvent>) {
         self.queue = queue
         self.pedometerEventTimeseries = pedometerEventTimeseries
+    }
+    
+    func setStatusCallback(_ callback: @escaping (ClientStatus) -> Void) {
+        self.statusCallback = callback
     }
 
     func start(asOf: Date) -> ClientStatus {

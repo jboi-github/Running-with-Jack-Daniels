@@ -59,59 +59,43 @@ class AppTwin: ObservableObject {
         queue = DispatchQueue(label: "run-processing", qos: .userInitiated)
 
         // Timeseries
-        pedometerDataTimeseries = TimeSeries<PedometerDataEvent>()
-        pedometerEventTimeseries = TimeSeries<PedometerEvent>()
-        motionActivityTimeseries = TimeSeries<MotionActivityEvent>()
-        locationTimeseries = TimeSeries<LocationEvent>()
-        distanceTimeseries = TimeSeries<DistanceEvent>()
-        heartrateTimeseries = TimeSeries<HeartrateEvent>()
-        intensityTimeseries = TimeSeries<IntensityEvent>()
-        batteryLevelTimeseries = TimeSeries<BatteryLevelEvent>()
-        bodySensorLocationTimeseries = TimeSeries<BodySensorLocationEvent>()
-        peripheralTimeseries = TimeSeries<PeripheralEvent>()
-        workoutTimeseries = TimeSeries<WorkoutEvent>()
+        timeseriesSet = TimeSeriesSet()
 
         // Clients
-        pedometerDataClient = Client(
-            delegate: PedometerDataClient(
-                queue: queue,
-                pedometerDataTimeseries: pedometerDataTimeseries))
-        pedometerEventClient = Client(
-            delegate: PedometerEventClient(
-                queue: queue,
-                pedometerEventTimeseries: pedometerEventTimeseries))
-        motionActivityClient = Client(
-            delegate: MotionActivityClient(
-                queue: queue,
-                motionActivityTimeseries: motionActivityTimeseries))
-        locationClient = Client(
-            delegate: LocationClient(
-                queue: queue,
-                locationTimeseries: locationTimeseries,
-                distanceTimeseries: distanceTimeseries))
-        heartrateMonitorClient = Client(
-            delegate: HeartrateMonitorClient(
-                queue: queue,
-                heartrateTimeseries: heartrateTimeseries,
-                intensityTimeseries: intensityTimeseries,
-                batteryLevelTimeseries: batteryLevelTimeseries,
-                bodySensorLocationTimeseries: bodySensorLocationTimeseries,
-                peripheralTimeseries: peripheralTimeseries))
+        sensorClients = [
+            Client(
+                delegate: PedometerDataClient(
+                    queue: queue,
+                    pedometerDataTimeseries: timeseriesSet.pedometerDataTimeseries)),
+            Client(
+                delegate: PedometerEventClient(
+                    queue: queue,
+                    pedometerEventTimeseries: timeseriesSet.pedometerEventTimeseries)),
+            Client(
+                delegate: MotionActivityClient(
+                    queue: queue,
+                    motionActivityTimeseries: timeseriesSet.motionActivityTimeseries)),
+            Client(
+                delegate: LocationClient(
+                    queue: queue,
+                    locationTimeseries: timeseriesSet.locationTimeseries,
+                    distanceTimeseries: timeseriesSet.distanceTimeseries)),
+            Client(
+                delegate: HeartrateMonitorClient(
+                    queue: queue,
+                    heartrateTimeseries: timeseriesSet.heartrateTimeseries,
+                    intensityTimeseries: timeseriesSet.intensityTimeseries,
+                    batteryLevelTimeseries: timeseriesSet.batteryLevelTimeseries,
+                    bodySensorLocationTimeseries: timeseriesSet.bodySensorLocationTimeseries,
+                    peripheralTimeseries: timeseriesSet.peripheralTimeseries))
+        ]
         workoutClient = Client(
             delegate: WorkoutClient(
                 queue: queue,
-                workoutTimeseries: workoutTimeseries,
-                pedometerDataTimeseries: pedometerDataTimeseries,
-                pedometerEventTimeseries: pedometerEventTimeseries,
-                motionActivityTimeseries: motionActivityTimeseries,
-                locationTimeseries: locationTimeseries,
-                distanceTimeseries: distanceTimeseries,
-                heartrateTimeseries: heartrateTimeseries,
-                intensityTimeseries: intensityTimeseries,
-                batteryLevelTimeseries: batteryLevelTimeseries,
-                bodySensorLocationTimeseries: bodySensorLocationTimeseries,
-                peripheralTimeseries: peripheralTimeseries))
-        
+                workoutTimeseries: timeseriesSet.workoutTimeseries,
+                archive: timeseriesSet.archive))
+        timerClient = Client(delegate: TimerClient(sensorClients + [workoutClient]))
+
         $runAppStatus
             .sink { [self] runAppStatus in
                 let oldValue = self.runAppStatus
@@ -119,22 +103,29 @@ class AppTwin: ObservableObject {
                 log(asOf, oldValue, runAppStatus)
 
                 if case .activeRunView = runAppStatus {
+                    log("User did move to RunView")
                     Profile.onAppear()
-                    pedometerDataClient.start(asOf: asOf)
-                    pedometerEventClient.start(asOf: asOf)
-                    motionActivityClient.start(asOf: asOf)
-                    locationClient.start(asOf: asOf)
-                    heartrateMonitorClient.start(asOf: asOf)
+                    sensorClients.forEach {$0.start(asOf: asOf)}
+                    timerClient.start(asOf: asOf)
+                }
+                if case .activeRunView = oldValue {
+                    log("User left RunView")
+                    timerClient.stop(asOf: asOf)
                 }
                 if case .activeRunView = oldValue, case .stopped = workoutClient.status {
-                    pedometerDataClient.stop(asOf: asOf)
-                    pedometerEventClient.stop(asOf: asOf)
-                    motionActivityClient.stop(asOf: asOf)
-                    locationClient.stop(asOf: asOf)
-                    heartrateMonitorClient.stop(asOf: asOf)
+                    log("User left RunView without working out")
+                    sensorClients.forEach {$0.stop(asOf: asOf)}
                 }
                 if case .background = runAppStatus, case .started = workoutClient.status {
+                    log("User left RunView while still in Workout")
                     AppTwin.userReturn()
+                }
+                if case .background = runAppStatus {
+                    log("App moved to background")
+                    timeseriesSet.isInBackground = true
+                } else {
+                    log("User moved to foreground")
+                    timeseriesSet.isInBackground = false
                 }
             }
             .store(in: &subscribers)
@@ -182,25 +173,12 @@ class AppTwin: ObservableObject {
     let queue: DispatchQueue
     
     // Clients
-    let pedometerDataClient: Client<PedometerDataClient>
-    let pedometerEventClient: Client<PedometerEventClient>
-    let motionActivityClient: Client<MotionActivityClient>
-    let locationClient: Client<LocationClient>
-    let heartrateMonitorClient: Client<HeartrateMonitorClient>
-    let workoutClient: Client<WorkoutClient>
+    let sensorClients: [Client]
+    let workoutClient: Client
+    let timerClient: Client
     
     // Timeseries
-    let pedometerDataTimeseries: TimeSeries<PedometerDataEvent>
-    let pedometerEventTimeseries: TimeSeries<PedometerEvent>
-    let motionActivityTimeseries: TimeSeries<MotionActivityEvent>
-    let locationTimeseries: TimeSeries<LocationEvent>
-    let distanceTimeseries: TimeSeries<DistanceEvent>
-    let heartrateTimeseries: TimeSeries<HeartrateEvent>
-    let intensityTimeseries: TimeSeries<IntensityEvent>
-    let batteryLevelTimeseries: TimeSeries<BatteryLevelEvent>
-    let bodySensorLocationTimeseries: TimeSeries<BodySensorLocationEvent>
-    let peripheralTimeseries: TimeSeries<PeripheralEvent>
-    let workoutTimeseries: TimeSeries<WorkoutEvent>
+    let timeseriesSet: TimeSeriesSet
 
     private static func userReturn() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { success, error in

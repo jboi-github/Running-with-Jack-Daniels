@@ -9,7 +9,7 @@ import Foundation
 
 struct WorkoutEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.WorkoutEvent"
+    static let key: String = "WorkoutEvent"
     let vector: VectorElement<Bool>
     init(_ vector: VectorElement<Bool>) {self.vector = vector}
 

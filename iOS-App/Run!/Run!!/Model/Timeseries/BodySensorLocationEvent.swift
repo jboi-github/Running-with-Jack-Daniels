@@ -9,7 +9,7 @@ import Foundation
 
 struct BodySensorLocationEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.BodySensorLocationEvent"
+    static let key: String = "BodySensorLocationEvent"
     let vector: VectorElement<SensorLocation>
     init(_ vector: VectorElement<SensorLocation>) {self.vector = vector}
 

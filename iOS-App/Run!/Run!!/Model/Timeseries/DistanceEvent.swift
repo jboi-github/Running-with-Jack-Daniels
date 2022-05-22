@@ -10,7 +10,7 @@ import CoreLocation
 
 struct DistanceEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.DistanceEvent"
+    static let key: String = "DistanceEvent"
     let vector: VectorElement<None>
     init(_ vector: VectorElement<None>) {self.vector = vector}
 

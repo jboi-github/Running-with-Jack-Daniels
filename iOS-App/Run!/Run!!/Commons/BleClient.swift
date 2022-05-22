@@ -82,15 +82,17 @@ class BleClient {
             rssiTimer?.invalidate()
         }
 
-        if let restoreId = config.restoreId {
-            centralManager = CBCentralManager(
-                delegate: centralManagerDelegate,
-                queue: .global(qos: .userInitiated),
-                options: [CBCentralManagerOptionRestoreIdentifierKey: restoreId])
-        } else {
-            centralManager = CBCentralManager(
-                delegate: centralManagerDelegate,
-                queue: .global(qos: .userInitiated))
+        if centralManager == nil {
+            if let restoreId = config.restoreId {
+                centralManager = CBCentralManager(
+                    delegate: centralManagerDelegate,
+                    queue: .global(qos: .userInitiated),
+                    options: [CBCentralManagerOptionRestoreIdentifierKey: restoreId])
+            } else {
+                centralManager = CBCentralManager(
+                    delegate: centralManagerDelegate,
+                    queue: .global(qos: .userInitiated))
+            }
         }
 
         status = .started(since: asOf)

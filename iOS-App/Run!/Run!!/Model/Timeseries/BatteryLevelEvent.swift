@@ -9,7 +9,7 @@ import Foundation
 
 struct BatteryLevelEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
-    static let key: String = "com.apps4live.Run!!.BatteryLevelEvent"
+    static let key: String = "BatteryLevelEvent"
     let vector: VectorElement<None>
     init(_ vector: VectorElement<None>) {self.vector = vector}
 

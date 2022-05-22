@@ -18,67 +18,63 @@ class PersistentTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
+    enum Enumerated: Codable, Equatable {
+        case XX, YY, ZZ, AA(date: Date)
+    }
+    
     func testGetSet() throws {
-        @Persistent(key: "KEY") var X: String = "DEFAULT"
+        let key = UUID().uuidString
+        let key2 = UUID().uuidString
+        
+        @Persistent(key: key) var X: String = "DEFAULT"
         XCTAssertEqual(X, "DEFAULT")
 
         X = "NON-DEFAULT"
         XCTAssertEqual(X, "NON-DEFAULT")
         
-        @Persistent(key: "KEY") var Y: String = "DEFAULT"
+        @Persistent(key: key) var Y: String = "DEFAULT"
         XCTAssertEqual(Y, "NON-DEFAULT")
         
-        @Persistent(key: "KEY2") var Y2: String = "DEFAULT2"
+        @Persistent(key: key2) var Y2: String = "DEFAULT2"
         XCTAssertEqual(Y2, "DEFAULT2")
 
         X = $X.defaultValue
         XCTAssertEqual(X, "DEFAULT")
     }
+    
+    func testGetSetEnum() throws {
+        let key = UUID().uuidString
+        let key2 = UUID().uuidString
+        
+        @Persistent(key: key) var X: Enumerated = .XX
+        XCTAssertEqual(X, .XX)
 
-    enum Enumerated: Codable {
-        case X, Y, Z(time: Date)
+        X = .YY
+        XCTAssertEqual(X, .YY)
+        
+        @Persistent(key: key) var Y: Enumerated = .XX
+        XCTAssertEqual(Y, .YY)
+        
+        @Persistent(key: key2) var Y2: Enumerated = .ZZ
+        XCTAssertEqual(Y2, .ZZ)
+
+        X = $X.defaultValue
+        XCTAssertEqual(X, .XX)
     }
     
-    struct Info: Codable {
-        let string: String
-        let double: Double
-        let bool: Bool
-        let int: Int
-        let enumerated: Enumerated
-        let date: Date
+    func testCodableEnum0() throws {
+        let x = Enumerated.XX
+        let data = try JSONEncoder().encode(x)
+        log("**", String(data: data, encoding: .utf8) ?? "EMPTY")
+        let y = try JSONDecoder().decode(Enumerated.self, from: data)
+        XCTAssertEqual(x, y)
     }
     
-    func testGetPerformance() throws {
-        @Persistent(key: "KEY_GET_PERFORMANCE") var X = [Info]()
-        let N = 100
-        (0 ..< N).forEach {
-            X.append(
-                Info(
-                    string: "Test text: \($0)",
-                    double: Double($0) / 3.0,
-                    bool: $0 % 2 == 0,
-                    int: $0,
-                    enumerated: .X, date: Date(timeIntervalSinceReferenceDate: TimeInterval($0))))
-        }
-
-        self.measure {
-            (0 ..< N).shuffled().forEach {let _ = X[$0]}
-        }
+    func testCodableEnum1() throws {
+        let x = Enumerated.XX
+        let data = try Files.encoder.encode(x)
+        log("**", String(data: data, encoding: .utf8) ?? "EMPTY")
+        let y = try Files.decoder.decode(Enumerated.self, from: data)
+        XCTAssertEqual(x, y)
     }
-
-    func testSetPerformance() throws {
-        self.measure {
-            
-            // Put the code you want to measure the time of here.
-        }
-    }
-    
-    func testSetx1Getx5Performance() throws {
-        // Test with 5 get per 1 set
-        self.measure {
-            
-            // Put the code you want to measure the time of here.
-        }
-    }
-
 }

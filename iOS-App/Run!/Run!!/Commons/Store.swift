@@ -45,17 +45,17 @@ enum Store {
     
     let key: String
     let defaultValue: Value
-    private var chachedValue: Value?
+    private var cachedValue: Value?
 
     var wrappedValue: Value {
         mutating get {
-            if let chachedValue = chachedValue {return chachedValue}
-            chachedValue = Store.read(for: key)?.value ?? defaultValue
-            return chachedValue!
+            if let chachedValue = cachedValue {return chachedValue}
+            cachedValue = Store.read(for: key)?.value ?? defaultValue
+            return cachedValue!
         }
         set {
             Store.write(newValue, at: .now, for: key)
-            chachedValue = newValue
+            cachedValue = newValue
         }
     }
     
