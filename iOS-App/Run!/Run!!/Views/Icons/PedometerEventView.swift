@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ActivityView: View {
+struct PedometerEventView: View {
     let isActive: Bool?
     let intensity: Run.Intensity?
 
@@ -36,14 +36,14 @@ struct MotionSymbolsView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
             HStack {
-                ActivityView(isActive: true, intensity: .Cold)
-                ActivityView(isActive: false, intensity: .Cold)
+                PedometerEventView(isActive: true, intensity: .Cold)
+                PedometerEventView(isActive: false, intensity: .Cold)
             }
             HStack {
-                ActivityView(isActive: true, intensity: .Cold)
-                ActivityView(isActive: true, intensity: .Easy)
-                ActivityView(isActive: true, intensity: .Long)
-                ActivityView(isActive: true, intensity: .Marathon)
+                PedometerEventView(isActive: true, intensity: .Cold)
+                PedometerEventView(isActive: true, intensity: .Easy)
+                PedometerEventView(isActive: true, intensity: .Long)
+                PedometerEventView(isActive: true, intensity: .Marathon)
             }
         }
     }

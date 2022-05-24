@@ -82,17 +82,15 @@ class BleClient {
             rssiTimer?.invalidate()
         }
 
-        if centralManager == nil {
-            if let restoreId = config.restoreId {
-                centralManager = CBCentralManager(
-                    delegate: centralManagerDelegate,
-                    queue: .global(qos: .userInitiated),
-                    options: [CBCentralManagerOptionRestoreIdentifierKey: restoreId])
-            } else {
-                centralManager = CBCentralManager(
-                    delegate: centralManagerDelegate,
-                    queue: .global(qos: .userInitiated))
-            }
+        if let restoreId = config.restoreId {
+            centralManager = CBCentralManager(
+                delegate: centralManagerDelegate,
+                queue: .global(qos: .userInitiated),
+                options: [CBCentralManagerOptionRestoreIdentifierKey: restoreId])
+        } else {
+            centralManager = CBCentralManager(
+                delegate: centralManagerDelegate,
+                queue: .global(qos: .userInitiated))
         }
 
         status = .started(since: asOf)
@@ -274,6 +272,7 @@ private class CentralManagerDelegate : NSObject, CBCentralManagerDelegate {
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         log(peripheral.name ?? "no-name")
+        discoveredPeripheral(.now, peripheral)
         peripheral.discoverServices(serviceUuids)
     }
     
@@ -376,7 +375,7 @@ private class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         didUpdateValueFor characteristic: CBCharacteristic,
         error: Error?)
     {
-        log(peripheral.name ?? "no-name")
+        log(peripheral.name ?? "no-name", characteristic.uuid)
         guard check(error) else {return}
 
         readers[characteristic.uuid]?(peripheral.identifier, characteristic.value, Date())

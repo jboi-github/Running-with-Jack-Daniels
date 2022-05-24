@@ -9,42 +9,42 @@ import SwiftUI
 import HealthKit
 
 struct BodysensorLocationView: View {
-    let sensorLocation: BodySensorLocationX?
+    let sensorLocation: BodySensorLocationEvent.SensorLocation?
     
     var imageName: String? {
         switch sensorLocation {
-        case .Other, .none:
+        case .other, .none:
             return nil
-        case .Chest:
+        case .chest:
             return "location chest"
-        case .Wrist:
+        case .wrist:
             return "location wrist"
-        case .Finger:
+        case .finger:
             return "location finger"
-        case .Hand:
+        case .hand:
             return "location hand"
-        case .EarLobe:
+        case .earLobe:
             return "location ear"
-        case .Foot:
+        case .foot:
             return "location foot"
         }
     }
     
     var locationName: String {
         switch sensorLocation {
-        case .Other, .none:
+        case .other, .none:
             return "Other"
-        case .Chest:
+        case .chest:
             return "Chest"
-        case .Wrist:
+        case .wrist:
             return "Wrist"
-        case .Finger:
+        case .finger:
             return "Finger"
-        case .Hand:
+        case .hand:
             return "Hand"
-        case .EarLobe:
+        case .earLobe:
             return "Earlobe"
-        case .Foot:
+        case .foot:
             return "Foot"
         }
     }
@@ -67,13 +67,13 @@ struct BodysensorLocationView: View {
 struct BodysensorLocationView_Previews: PreviewProvider {
     static var previews: some View {
         HStack {
-            BodysensorLocationView(sensorLocation: .Chest)
-            BodysensorLocationView(sensorLocation: .Wrist)
-            BodysensorLocationView(sensorLocation: .Finger)
-            BodysensorLocationView(sensorLocation: .Hand)
-            BodysensorLocationView(sensorLocation: .EarLobe)
-            BodysensorLocationView(sensorLocation: .Foot)
-            BodysensorLocationView(sensorLocation: .Other)
+            BodysensorLocationView(sensorLocation: .chest)
+            BodysensorLocationView(sensorLocation: .wrist)
+            BodysensorLocationView(sensorLocation: .finger)
+            BodysensorLocationView(sensorLocation: .hand)
+            BodysensorLocationView(sensorLocation: .earLobe)
+            BodysensorLocationView(sensorLocation: .foot)
+            BodysensorLocationView(sensorLocation: .other)
         }
     }
 }

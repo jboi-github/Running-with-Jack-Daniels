@@ -19,7 +19,7 @@ enum BodySensorLocationX: UInt8 {
 }
 final class HeartrateMonitorClient: ClientDelegate {
     private var statusCallback: ((ClientStatus) -> Void)?
-    private var bleClient = BleClient()
+    private let bleClient = BleClient()
     private unowned let queue: DispatchQueue
     private unowned let heartrateTimeseries: TimeSeries<HeartrateEvent>
     private unowned let intensityTimeseries: TimeSeries<IntensityEvent>

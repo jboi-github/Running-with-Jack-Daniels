@@ -317,8 +317,11 @@ class TimeSeries<Element> where Element: KeyedTimeSeriesElement {
             return nil
         }()
 
-        guard let truncationIdx = truncationIdx, truncationIdx > elements.startIndex else {return}
-        Files.write(elements.prefix(upTo: truncationIdx).array(), to: "\(Element.key)-\(Date.now).json")
+        guard let truncationIdx = truncationIdx, truncationIdx > elements.startIndex else {
+            Files.write([Element](), to: "\(Element.key)-\(date).json")
+            return
+        }
+        Files.write(elements.prefix(upTo: truncationIdx).array(), to: "\(Element.key)-\(date).json")
         elements = elements.suffix(from: truncationIdx).array()
     }
     

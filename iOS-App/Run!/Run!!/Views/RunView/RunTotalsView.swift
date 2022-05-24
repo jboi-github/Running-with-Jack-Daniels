@@ -23,7 +23,7 @@ extension Totals.KeyValue: ChartDataPoint {
     -> some View
     {
         VStack {
-            ActivityView(isActive: key.isActive, intensity: key.intensity)
+            PedometerEventView(isActive: key.isActive, intensity: key.intensity)
             VdotText(vdot: value.vdot)
         }
         .font(.caption)

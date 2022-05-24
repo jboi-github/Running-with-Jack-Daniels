@@ -71,7 +71,7 @@
 		1592605A28073E6F0042D54C /* GpsStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592604F28073E6E0042D54C /* GpsStatusView.swift */; };
 		1592605B28073E6F0042D54C /* PeripheralRssiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605028073E6E0042D54C /* PeripheralRssiView.swift */; };
 		1592605C28073E6F0042D54C /* SkinContactedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605128073E6E0042D54C /* SkinContactedView.swift */; };
-		1592605D28073E6F0042D54C /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605228073E6E0042D54C /* ActivityView.swift */; };
+		1592605D28073E6F0042D54C /* PedometerEventView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605228073E6E0042D54C /* PedometerEventView.swift */; };
 		1592605E28073E6F0042D54C /* SourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605328073E6E0042D54C /* SourceView.swift */; };
 		1592605F28073E6F0042D54C /* BatteryStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605428073E6E0042D54C /* BatteryStatusView.swift */; };
 		1592606028073E6F0042D54C /* BleHrStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592605528073E6E0042D54C /* BleHrStatusView.swift */; };
@@ -173,6 +173,7 @@
 		D24DDE5E2836B94800923BBD /* TimerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE5D2836B94800923BBD /* TimerClient.swift */; };
 		D24DDE602837F6CE00923BBD /* TimerClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE5F2837F6CE00923BBD /* TimerClientTests.swift */; };
 		D24DDE62283A5BA900923BBD /* TimeSeriesSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE61283A5BA900923BBD /* TimeSeriesSet.swift */; };
+		D24DDE64283B9EA400923BBD /* MotionActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE63283B9EA400923BBD /* MotionActivityView.swift */; };
 		D25D070628258E3E00588F0A /* WorkoutClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D070528258E3E00588F0A /* WorkoutClient.swift */; };
 		D25D07082827F94100588F0A /* TimeSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D07072827F94100588F0A /* TimeSeries.swift */; };
 		D25D070A282ACB2500588F0A /* PersistentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D0709282ACB2500588F0A /* PersistentTests.swift */; };
@@ -286,7 +287,7 @@
 		1592604F28073E6E0042D54C /* GpsStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GpsStatusView.swift; sourceTree = "<group>"; };
 		1592605028073E6E0042D54C /* PeripheralRssiView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeripheralRssiView.swift; sourceTree = "<group>"; };
 		1592605128073E6E0042D54C /* SkinContactedView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SkinContactedView.swift; sourceTree = "<group>"; };
-		1592605228073E6E0042D54C /* ActivityView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		1592605228073E6E0042D54C /* PedometerEventView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PedometerEventView.swift; sourceTree = "<group>"; };
 		1592605328073E6E0042D54C /* SourceView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SourceView.swift; sourceTree = "<group>"; };
 		1592605428073E6E0042D54C /* BatteryStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BatteryStatusView.swift; sourceTree = "<group>"; };
 		1592605528073E6E0042D54C /* BleHrStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BleHrStatusView.swift; sourceTree = "<group>"; };
@@ -395,6 +396,7 @@
 		D24DDE5D2836B94800923BBD /* TimerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerClient.swift; sourceTree = "<group>"; };
 		D24DDE5F2837F6CE00923BBD /* TimerClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerClientTests.swift; sourceTree = "<group>"; };
 		D24DDE61283A5BA900923BBD /* TimeSeriesSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSeriesSet.swift; sourceTree = "<group>"; };
+		D24DDE63283B9EA400923BBD /* MotionActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionActivityView.swift; sourceTree = "<group>"; };
 		D25D070528258E3E00588F0A /* WorkoutClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutClient.swift; sourceTree = "<group>"; };
 		D25D07072827F94100588F0A /* TimeSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSeries.swift; sourceTree = "<group>"; };
 		D25D0709282ACB2500588F0A /* PersistentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentTests.swift; sourceTree = "<group>"; };
@@ -635,11 +637,12 @@
 				1592604F28073E6E0042D54C /* GpsStatusView.swift */,
 				1592604C28073E6D0042D54C /* IntensityColors.swift */,
 				1592604E28073E6E0042D54C /* StcStatusView.swift */,
-				1592605228073E6E0042D54C /* ActivityView.swift */,
+				1592605228073E6E0042D54C /* PedometerEventView.swift */,
 				1592605028073E6E0042D54C /* PeripheralRssiView.swift */,
 				1592604B28073E6D0042D54C /* PeripheralStatusView.swift */,
 				1592605128073E6E0042D54C /* SkinContactedView.swift */,
 				1592605328073E6E0042D54C /* SourceView.swift */,
+				D24DDE63283B9EA400923BBD /* MotionActivityView.swift */,
 			);
 			path = Icons;
 			sourceTree = "<group>";
@@ -1258,6 +1261,7 @@
 				D24DDE5E2836B94800923BBD /* TimerClient.swift in Sources */,
 				15B9FC9427E3C7E3002813D1 /* RunningFormula.swift in Sources */,
 				15C36A8627F6C9C000FBF275 /* ResetButton.swift in Sources */,
+				D24DDE64283B9EA400923BBD /* MotionActivityView.swift in Sources */,
 				D217794628196EE700A6DEED /* PedometerDataClient.swift in Sources */,
 				15C36A7327F6C68500FBF275 /* DistanceText.swift in Sources */,
 				15C36A8727F6C9C000FBF275 /* LockScreenView.swift in Sources */,
@@ -1278,7 +1282,7 @@
 				15B9FCA427F0E91E002813D1 /* Totals.swift in Sources */,
 				15C36A8827F6C9C000FBF275 /* DatePickerView.swift in Sources */,
 				154BB7A4282FE0A6004E48EE /* MotionActivityEvent.swift in Sources */,
-				1592605D28073E6F0042D54C /* ActivityView.swift in Sources */,
+				1592605D28073E6F0042D54C /* PedometerEventView.swift in Sources */,
 				D2E735A7280B07FB005C5187 /* Activities.swift in Sources */,
 				15C36A5C27F300A800FBF275 /* Arrays.swift in Sources */,
 				15B9FC9627E3C8C5002813D1 /* PlanningFormula.swift in Sources */,

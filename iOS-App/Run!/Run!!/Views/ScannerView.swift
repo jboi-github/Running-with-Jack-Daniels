@@ -74,7 +74,7 @@ private struct ScannerPeripheralView: View {
                     HStack {
                         PeripheralRssiView(rssi: peripheral.rssi)
                         Spacer()
-                        PeripheralStatusView(state: peripheral.peripheral?.state)
+                        PeripheralStatusView(state: PeripheralEvent.State(rawValue: peripheral.peripheral?.state.rawValue ?? 0) ?? .disconnected)
                         Spacer()
                         BatteryStatusView(status: peripheral.batteryLevel)
                     }

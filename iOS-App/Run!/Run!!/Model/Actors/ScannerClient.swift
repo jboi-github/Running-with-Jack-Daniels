@@ -21,7 +21,7 @@ class ScannerClient {
         var peripheral: CBPeripheral? = nil
         var rssi: Double = .nan
         var heartrate: HeartrateX? = nil
-        var bodySensorLocation: BodySensorLocationX?
+        var bodySensorLocation: BodySensorLocationEvent.SensorLocation?
         var batteryLevel: Int? = nil
         var error: Error? = nil
     }
@@ -143,7 +143,9 @@ class ScannerClient {
 
     private func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        peripherals[peripheralUuid]?.bodySensorLocation = BodySensorLocationX.parse(data)
+        guard let data = data, !data.isEmpty else {return}
+
+        peripherals[peripheralUuid]?.bodySensorLocation = BodySensorLocationEvent.SensorLocation(rawValue: [UInt8](data)[0]) ?? .other
     }
 
     private func parseBatteryLevel(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {

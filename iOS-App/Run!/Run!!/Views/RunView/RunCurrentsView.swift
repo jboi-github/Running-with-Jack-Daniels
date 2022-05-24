@@ -65,7 +65,7 @@ struct RunCurrentsView: View {
             }
             VStack {
                 HStack(alignment: .lastTextBaseline, spacing: 0) {
-                    ActivityView(isActive: isActive, intensity: intensity)
+                    PedometerEventView(isActive: isActive, intensity: intensity)
                         .font(.subheadline)
                         .foregroundColor(Color(uiColor: (isActive ?? false) ? .systemRed : .systemBlue))
                     TimeText(time: duration)

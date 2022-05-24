@@ -35,10 +35,10 @@ final class LocationClient: ClientDelegate {
         locationManagerDelegate = LocationManagerDelegate(
             value: { location in
                 self.queue.async { [self] in
-                    locationTimeseries.insert(locationTimeseries.parse(location))
                     distanceTimeseries
                         .parse(location, locationTimeseries.elements.last?.clLocation)
                         .forEach {distanceTimeseries.insert($0)}
+                    locationTimeseries.insert(locationTimeseries.parse(location))
                 }
             },
             status: { status in DispatchQueue.main.async {self.statusCallback?(status)}},

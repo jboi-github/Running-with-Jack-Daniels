@@ -9,7 +9,7 @@ import SwiftUI
 import CoreBluetooth
 
 struct PeripheralStatusView: View {
-    let state: CBPeripheralState?
+    let state: PeripheralEvent.State?
     
     private let animation = Animation.easeInOut.repeatForever(autoreverses: true)
     @State private var showBoth: Bool = false
@@ -26,7 +26,7 @@ struct PeripheralStatusView: View {
     }
 }
 
-private extension CBPeripheralState {
+private extension PeripheralEvent.State {
     var firstImageName: String {
         switch self {
         case .disconnected:
@@ -37,8 +37,6 @@ private extension CBPeripheralState {
             return "heart.fill"
         case .disconnecting:
             return "heart"
-        @unknown default:
-            return "nosign"
         }
     }
     
@@ -52,8 +50,6 @@ private extension CBPeripheralState {
             return "heart.fill"
         case .disconnecting:
             return "heart.slash"
-        @unknown default:
-            return "nosign"
         }
     }
 }
