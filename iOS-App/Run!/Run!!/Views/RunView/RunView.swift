@@ -232,7 +232,21 @@ struct RunView: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1.0)) {timeline in
             List {
-                Section("\(timeline.date.ISO8601Format(.iso8601))") {
+                Section("Currents as of \(timeline.date.formatted())") {
+                    VStack {
+                        Text("Steps: ")
+                        Text("Active Duration")
+                        Text("Stepped Distance")
+                        Text("Duration")
+                        Text("GPS Distance")
+                        Text("Heartrate")
+                        Text("Intensity")
+                        Text("Motion Activity")
+                        Text("is active")
+                        Text("Location")
+                    }
+                }
+                Section("\(timeline.date.formatted())") {
                     VStack(spacing: 0) {
                         Group {
                             HStack {

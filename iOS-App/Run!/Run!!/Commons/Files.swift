@@ -140,7 +140,7 @@ enum Files {
 /// to synchronize when entering background mode and when changing data while in background mode.
 /// - The `wrappedValue` is immediately iniitialised.
 /// - The corresponding file is stored with `Files` which is locally in users documents folder.
-@propertyWrapper struct Synced<Value> where Value: Codable & Equatable {
+@propertyWrapper struct Synced<Value> where Value: Codable {
     init(wrappedValue defaultValue: Value, fileName: String, isInBackground: Bool) {
         self.fileName = fileName
         self.defaultValue = defaultValue
@@ -167,7 +167,6 @@ enum Files {
             cachedValue
         }
         set {
-            guard cachedValue != newValue else {return}
             cachedValue = newValue
             if isInBackground {Files.write(cachedValue, to: fileName)}
         }

@@ -33,7 +33,8 @@ final class PedometerEventClient: ClientDelegate {
             guard let pedometerEvent = $0 else {return}
             
             self.queue.async { [self] in
-                pedometerEventTimeseries.insert(pedometerEventTimeseries.parse(pedometerEvent))
+                guard let event = pedometerEventTimeseries.parse(pedometerEvent) else {return}
+                pedometerEventTimeseries.insert(event)
             }
         }
         return .started(since: asOf)

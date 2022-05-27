@@ -799,15 +799,15 @@
 			isa = PBXGroup;
 			children = (
 				15B9FC2027DCE712002813D1 /* Run__App.swift */,
-				15B9FC9F27EC992B002813D1 /* Actors */,
-				15B9FCA027EC9948002813D1 /* Timeseries */,
+				15B9FC9F27EC992B002813D1 /* Clients */,
+				15B9FCA027EC9948002813D1 /* TimeSeries */,
 				15C36A6727F60B0200FBF275 /* Aggregates */,
 				15B9FC8B27E3C1B9002813D1 /* Profile.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
 		};
-		15B9FC9F27EC992B002813D1 /* Actors */ = {
+		15B9FC9F27EC992B002813D1 /* Clients */ = {
 			isa = PBXGroup;
 			children = (
 				15C2C59A27FCCF8F002156D0 /* ScannerClient.swift */,
@@ -820,10 +820,10 @@
 				D25D070528258E3E00588F0A /* WorkoutClient.swift */,
 				D24DDE5D2836B94800923BBD /* TimerClient.swift */,
 			);
-			path = Actors;
+			path = Clients;
 			sourceTree = "<group>";
 		};
-		15B9FCA027EC9948002813D1 /* Timeseries */ = {
+		15B9FCA027EC9948002813D1 /* TimeSeries */ = {
 			isa = PBXGroup;
 			children = (
 				D2E735A6280B07FB005C5187 /* Activities.swift */,
@@ -846,7 +846,7 @@
 				154BB7A928300D39004E48EE /* DistanceEvent.swift */,
 				154BB7AB28312438004E48EE /* IntensityEvent.swift */,
 			);
-			path = Timeseries;
+			path = TimeSeries;
 			sourceTree = "<group>";
 		};
 		15C2C59927FCCECE002156D0 /* UiElements */ = {

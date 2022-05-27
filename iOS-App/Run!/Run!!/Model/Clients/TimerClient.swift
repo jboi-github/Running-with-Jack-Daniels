@@ -6,10 +6,13 @@
 //
 
 import Foundation
+import SwiftUI
 
 final class TimerClient: ClientDelegate {
     private var statusCallback: ((ClientStatus) -> Void)?
-    init(_ clients: [Client]) {self.clients = clients}
+    init(_ clients: [Client]) {
+        self.clients = clients
+    }
     
     func setStatusCallback(_ callback: @escaping (ClientStatus) -> Void) {self.statusCallback = callback}
 
@@ -30,5 +33,7 @@ final class TimerClient: ClientDelegate {
         timer = nil
     }
     
-    func trigger(asOf: Date) {clients.forEach {$0.trigger(asOf: asOf)}}
+    func trigger(asOf: Date) {
+        clients.forEach {$0.trigger(asOf: asOf)}
+    }
 }

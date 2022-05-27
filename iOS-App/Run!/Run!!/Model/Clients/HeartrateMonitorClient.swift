@@ -63,7 +63,8 @@ final class HeartrateMonitorClient: ClientDelegate {
                 },
                 discoveredPeripheral: { date, peripheral in
                     self.queue.async{ [self] in
-                        peripheralTimeseries.insert(peripheralTimeseries.parse(date, peripheral))
+                        guard let event = peripheralTimeseries.parse(date, peripheral) else {return}
+                        peripheralTimeseries.insert(event)
                     }
                 },
                 failedPeripheral: nil,
