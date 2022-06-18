@@ -1,0 +1,23 @@
+#
+# Preferences are necessary to understand your constraines on a weekly and seasonal level.
+# How often can you do workouts? How much time can you spend?
+# Provide this file to planSeason to get the best possible schedule.
+#
+preferences:
+  weekly:
+    # The hours reflect the pure workout-time.
+    # Add your preperation (e.g. change clothes) and recorvery times (e.g. take a shower) as approrpiate.
+    duration: 4 # sum of hours over the week, 3 hours might be split into 3x40 min + 1x60mins.
+    distance: 40 # sum of km over the week, e.g. 40 km can be splitted into 4x10km workouts.
+    weekdays: # String [Mo, Tu, We, Th, Fr, Sa, Su] also indicates how often in the week you can do workouts.
+      - Tu
+      - Th
+      - Sa
+      - Su
+  # Each entry represents times out, e.g. for vacation or other planned breaks.
+  # The system will additionally detect gaps in workouts with the given tracking data.
+  breaks:
+    - start: 2021-07-08 # date [yyyy-mm-dd]
+      end: 2021-07-16 # date [yyyy-mm-dd]
+    - start: 2021-07-02 # date [yyyy-mm-dd]
+      end: 2021-07-04 # date [yyyy-mm-dd]

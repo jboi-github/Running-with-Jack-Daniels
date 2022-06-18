@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "closure #1 in closure #2 in planWeek(phase:goal:sumTime:days:):PlanningFormulas.swift">
+      </ContextState>
+      <ContextState
+         contextName = "closure #3 in optimalQ(_:sumTime:optimalPercent:):PlanningFormulas.swift">
+      </ContextState>
+      <ContextState
+         contextName = "optimalQ(_:sumTime:optimalPercent:):PlanningFormulas.swift">
+      </ContextState>
+      <ContextState
+         contextName = "planWeek(phase:goal:sumTime:days:):PlanningFormulas.swift">
+      </ContextState>
+      <ContextState
+         contextName = "GpsLocationReceiver.getSmoothedPace():GpsLocationReceiver.swift">
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>

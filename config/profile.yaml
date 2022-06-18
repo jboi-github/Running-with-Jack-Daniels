@@ -1,0 +1,9 @@
+# 
+# The runners profile containing all information about you.
+# Provide this file to the planning functions planSeason to ensure correct planning.
+#
+profile:
+  gender: M # M(ale) or F(emale)
+  weight: 90 # in kg
+  height: 184 # cm
+  age: 52 # in ful years
