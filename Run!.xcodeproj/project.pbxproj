@@ -92,6 +92,7 @@
 		15DE268B27FF61A300CBF64A /* RunMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15DE268A27FF61A300CBF64A /* RunMapView.swift */; };
 		15DE268D27FF795F00CBF64A /* RunCurrentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15DE268C27FF795F00CBF64A /* RunCurrentsView.swift */; };
 		15DE268F27FF83CF00CBF64A /* RunTotalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15DE268E27FF83CF00CBF64A /* RunTotalsView.swift */; };
+		15F85BF0285E5F02003AFA91 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 15F85BEF285E5F02003AFA91 /* .swiftlint.yml */; };
 		D21779442819632F00A6DEED /* Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = D21779432819632E00A6DEED /* Client.swift */; };
 		D217794628196EE700A6DEED /* PedometerDataClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D217794528196EE700A6DEED /* PedometerDataClient.swift */; };
 		D21779482819735F00A6DEED /* PedometerEventClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D21779472819735F00A6DEED /* PedometerEventClient.swift */; };
@@ -210,6 +211,7 @@
 		15DE268A27FF61A300CBF64A /* RunMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunMapView.swift; sourceTree = "<group>"; };
 		15DE268C27FF795F00CBF64A /* RunCurrentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunCurrentsView.swift; sourceTree = "<group>"; };
 		15DE268E27FF83CF00CBF64A /* RunTotalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunTotalsView.swift; sourceTree = "<group>"; };
+		15F85BEF285E5F02003AFA91 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		D21779432819632E00A6DEED /* Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Client.swift; sourceTree = "<group>"; };
 		D217794528196EE700A6DEED /* PedometerDataClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PedometerDataClient.swift; sourceTree = "<group>"; };
 		D21779472819735F00A6DEED /* PedometerEventClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PedometerEventClient.swift; sourceTree = "<group>"; };
@@ -230,7 +232,6 @@
 		D25D0717282EAD4C00588F0A /* HeartrateEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartrateEvent.swift; sourceTree = "<group>"; };
 		D25D0719282EB04600588F0A /* BatteryLevelEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryLevelEvent.swift; sourceTree = "<group>"; };
 		D2792A8D2843C7960011055E /* HeartrateSecondsEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartrateSecondsEvent.swift; sourceTree = "<group>"; };
-		D284B80D285B352E002467E5 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		D284B810285B3D47002467E5 /* IntensityEventTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityEventTests.swift; sourceTree = "<group>"; };
 		D28E15B828577A0C00EBDE34 /* TotalEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalEvent.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -264,7 +265,7 @@
 		155D26912731A580007125CB = {
 			isa = PBXGroup;
 			children = (
-				D284B80D285B352E002467E5 /* .swiftlint.yml */,
+				15F85BEF285E5F02003AFA91 /* .swiftlint.yml */,
 				15B9FC1F27DCE712002813D1 /* Run!! */,
 				15B9FC3027DCE715002813D1 /* Run!!Tests */,
 				15B9FC3A27DCE715002813D1 /* Run!!UITests */,
@@ -611,6 +612,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				15F85BF0285E5F02003AFA91 /* .swiftlint.yml in Resources */,
 				15B9FC2827DCE715002813D1 /* Preview Assets.xcassets in Resources */,
 				15B9FC2527DCE714002813D1 /* Assets.xcassets in Resources */,
 			);
