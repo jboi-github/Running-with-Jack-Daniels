@@ -8,138 +8,175 @@
 import SwiftUI
 import CoreLocation
 
-//private let intensityOrder: [Run.Intensity] = [.cold, .easy, .long, .marathon, .threshold, .interval, .repetition]
-//
-//extension Totals.KeyValue: ChartDataPoint {
-//    var classifier: String {(key.intensity ?? .cold).rawValue.capitalized}
-//    var x: Double {value.sumDuration ?? 0}
-//    var y: Double {Double(value.avgHeartrate ?? 0)}
-//
-//    func makeBody(
-//        _ canvas: CGRect,
-//        _ pos: CGPoint,
-//        _ prevPos: CGPoint,
-//        _ nearestPos: CGPoint)
-//    -> some View
-//    {
-//        VStack {
-//            PedometerEventView(isActive: key.isActive, intensity: key.intensity)
-//            VdotText(vdot: value.vdot)
-//        }
-//        .font(.caption)
-//        .foregroundColor((key.intensity ?? .cold).textColor)
-//        .padding(4)
-//        .background(Capsule().foregroundColor((key.intensity ?? .cold).color))
-//        .offset(x: pos.x, y: pos.y)
-//    }
-//}
-//
-///**
-// Shows totals by motion type except paused.
-// Two ways for visualisation within each motion type are possible:
-// - table form: Show a line of table for each intensity containing (in this order):
-//   - duration, distance, speed, vdot, heartrate.
-//   - Background is a capsule with the intensity-color.
-// - graphical form: Show bubbles with intensity color and vdot as numbers on the bubbles.
-//   - Position the bubbles along duration (x-axes) and distance (y-axes)
-// */
-//struct RunTotalsView: View {
-//    let graphical: Bool
-//    let totals: [Totals.KeyValue]
-//
-//    var body: some View {
-//        if graphical {
-//            RunTotalGraphicalView(totals: totals)
-//        } else if !totals.isEmpty {
-//            RunTotalTableView(totals: totals)
-//        }
-//    }
-//}
-//
-//private struct RunTotalTableView: View {
-//    let totals: [Totals.KeyValue]
-//
-//    @State private var widthDuration: CGFloat = 0
-//    @State private var widthDistance: CGFloat = 0
-//    @State private var widthSpeed: CGFloat = 0
-//    @State private var widthVdot: CGFloat = 0
-//    @State private var widthHeartrate: CGFloat = 0
-//
-//    var body: some View {
-//        VStack(spacing: 0) {
-//            // Body lines
-//            ForEach(intensityOrder) { intensity in
-//                if let total = totals.first(where: {$0.key.intensity == intensity}) {
-//                    ZStack {
-//                        Capsule().foregroundColor((total.key.intensity ?? .cold).color)
-//                        HStack {
-//                            TimeText(time: total.value.sumDuration).alignedView(width: $widthDuration)
-//                            DistanceText(distance: total.value.sumDistance).alignedView(width: $widthDistance)
-//                            HeartrateText(heartrate: total.value.avgHeartrate).alignedView(width: $widthHeartrate)
-//                            SpeedText(speed: total.value.avgSpeed).alignedView(width: $widthSpeed)
-//                            VdotText(vdot: total.value.vdot).alignedView(width: $widthVdot)
-//                        }
-//                        .font(.callout)
-//                        .lineLimit(1)
-//                        .minimumScaleFactor(0.5)
-//                        .foregroundColor((total.key.intensity ?? .cold).textColor)
-//                        .padding(4)
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//private struct RunTotalGraphicalView: View {
-//    let totals: Array<Totals.KeyValue>.Prepared
-//
-//    init(totals: [Totals.KeyValue]) {
-//        self.totals = totals.prepared(nx: 10, ny: 5)
-//    }
-//
-//    @State private var size: CGSize = .zero
-//
-//    var body: some View {
-//        // Chart for bubbles
-//        RunStandardChart(data: totals, xLabel: "Duration", yLabel: "Heartrate")
-//    }
-//}
-//
-//#if DEBUG
-//struct RunTotalsView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        RunTotalsView(graphical: true, totals: [])
-//        RunTotalsView(graphical: false, totals: [
-//            Totals.KeyValue(
-//                key: Totals.Key(isActive: false, intensity: .cold),
-//                value: Totals.Value(sumHeartrate: 100 * 100, sumDuration: 100, sumDistance: 0, sumCadence: 35)),
-//            Totals.KeyValue(
-//                key: Totals.Key(isActive: true, intensity: .easy),
-//                value: Totals.Value(sumHeartrate: 150 * 500, sumDuration: 500, sumDistance: 1400, sumCadence: 250)),
-//            Totals.KeyValue(
-//                key: Totals.Key(isActive: true, intensity: .marathon),
-//                value: Totals.Value(sumHeartrate: 160 * 400, sumDuration: 400, sumDistance: 1300, sumCadence: 150))
-//        ])
-//        RunTotalsView(graphical: true, totals: [
-//            Totals.KeyValue(
-//                key: Totals.Key(isActive: false, intensity: .cold),
-//                value: Totals.Value(sumHeartrate: 100 * 100, sumDuration: 100, sumDistance: 0, sumCadence: 30)),
-//            Totals.KeyValue(
-//                key: Totals.Key(isActive: true, intensity: .easy),
-//                value: Totals.Value(sumHeartrate: 150 * 500, sumDuration: 500, sumDistance: 1400, sumCadence: 200)),
-//            Totals.KeyValue(
-//                key: Totals.Key(isActive: true, intensity: .marathon),
-//                value: Totals.Value(sumHeartrate: 160 * 1200, sumDuration: 1200, sumDistance: 1400, sumCadence: 100))
-//        ])
-//    }
-//}
-//#endif
+private let intensityOrder: [Run.Intensity] = [.cold, .easy, .long, .marathon, .threshold, .interval, .repetition]
 
-struct RunTotalsView: View {
-    let graphical: Bool
+extension TimeSeriesSet.Total: ChartDataPoint {
+    var classifier: String {(intensity ?? .cold).rawValue.capitalized}
+    var x: Double { duration }
+    var y: Double { avgHeartrate ?? 0 }
 
-    var body: some View {
-        Text("\(graphical ? "Y":"N")")
+    func makeBody(
+        _ canvas: CGRect,
+        _ pos: CGPoint,
+        _ prevPos: CGPoint,
+        _ nearestPos: CGPoint)
+    -> some View
+    {
+        VStack {
+            PedometerEventView(isActive: isActive, intensity: intensity)
+            VdotText(vdot: vdot)
+        }
+        .font(.caption)
+        .foregroundColor((intensity ?? .cold).textColor)
+        .padding(4)
+        .background(Capsule().foregroundColor((intensity ?? .cold).color))
+        .offset(x: pos.x, y: pos.y)
     }
 }
+
+/**
+ Shows totals by motion type except paused.
+ Two ways for visualisation within each motion type are possible:
+ - table form: Show a line of table for each intensity containing (in this order):
+   - duration, distance, speed, vdot, heartrate.
+   - Background is a capsule with the intensity-color.
+ - graphical form: Show bubbles with intensity color and vdot as numbers on the bubbles.
+   - Position the bubbles along duration (x-axes) and distance (y-axes)
+ */
+struct RunTotalsView: View {
+    let graphical: Bool
+    let totals: [TimeSeriesSet.Total]
+
+    var body: some View {
+        if graphical {
+            RunTotalGraphicalView(totals: totals)
+        } else if !totals.isEmpty {
+            RunTotalTableView(totals: totals)
+        }
+    }
+}
+
+// FIXME: Should show motion indication at beginning of line
+private struct RunTotalTableView: View {
+    let totals: [TimeSeriesSet.Total]
+
+    @State private var widthMotion: CGFloat = 0
+    @State private var widthDuration: CGFloat = 0
+    @State private var widthDistance: CGFloat = 0
+    @State private var widthSpeed: CGFloat = 0
+    @State private var widthVdot: CGFloat = 0
+    @State private var widthHeartrate: CGFloat = 0
+
+    var body: some View {
+        List {
+            // Body lines
+            ForEach(totals) { total in
+                ZStack {
+                    Capsule().foregroundColor((total.intensity ?? .cold).color)
+                    HStack {
+                        MotionActivityView(
+                            motion: total.motionActivity,
+                            confidence: .high)
+                            .alignedView(width: $widthMotion)
+                        TimeText(time: total.duration)
+                            .alignedView(width: $widthDuration)
+                        DistanceText(distance: total.distance)
+                            .alignedView(width: $widthDistance)
+                        HeartrateText(heartrate: Int((total.avgHeartrate ?? 0) + 0.5))
+                            .alignedView(width: $widthHeartrate)
+                        SpeedText(speed: total.avgSpeed)
+                            .alignedView(width: $widthSpeed)
+                        VdotText(vdot: total.vdot)
+                            .alignedView(width: $widthVdot)
+                    }
+                    .font(.callout)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .foregroundColor((total.intensity ?? .cold).textColor)
+                    .padding(4)
+                }
+            }
+        }
+    }
+}
+
+private struct RunTotalGraphicalView: View {
+    let totals: Array<TimeSeriesSet.Total>.Prepared
+
+    init(totals: [TimeSeriesSet.Total]) {
+        self.totals = totals.prepared(nx: 10, ny: 5)
+    }
+
+    @State private var size: CGSize = .zero
+
+    var body: some View {
+        // Chart for bubbles
+        RunStandardChart(data: totals, xLabel: "Duration", yLabel: "Heartrate")
+    }
+}
+
+#if DEBUG
+struct RunTotalsView_Previews: PreviewProvider {
+    static var previews: some View {
+        RunTotalsView(graphical: true, totals: [])
+        RunTotalsView(graphical: false, totals: [
+            TimeSeriesSet.Total(
+                asOf: .now,
+                motionActivity: .stationary,
+                workoutDate: .now,
+                isWorkingOut: true,
+                intensity: .cold,
+                duration: 100,
+                gpsDistance: 0,
+                heartrateSeconds: 100 * 100),
+            TimeSeriesSet.Total(
+                asOf: .now,
+                motionActivity: .walking,
+                workoutDate: .now,
+                isWorkingOut: true,
+                intensity: .easy,
+                duration: 500,
+                gpsDistance: 1400,
+                heartrateSeconds: 150 * 500),
+            TimeSeriesSet.Total(
+                asOf: .now,
+                motionActivity: .running,
+                workoutDate: .now,
+                isWorkingOut: true,
+                intensity: .marathon,
+                duration: 400,
+                gpsDistance: 1300,
+                heartrateSeconds: 160 * 400)
+        ])
+        RunTotalsView(graphical: true, totals: [
+            TimeSeriesSet.Total(
+                asOf: .now,
+                motionActivity: .stationary,
+                workoutDate: .now,
+                isWorkingOut: true,
+                intensity: .cold,
+                duration: 100,
+                gpsDistance: 0,
+                heartrateSeconds: 100 * 100),
+            TimeSeriesSet.Total(
+                asOf: .now,
+                motionActivity: .walking,
+                workoutDate: .now,
+                isWorkingOut: true,
+                intensity: .easy,
+                duration: 500,
+                gpsDistance: 1400,
+                heartrateSeconds: 150 * 500),
+            TimeSeriesSet.Total(
+                asOf: .now,
+                motionActivity: .running,
+                workoutDate: .now,
+                isWorkingOut: true,
+                intensity: .marathon,
+                duration: 400,
+                gpsDistance: 1300,
+                heartrateSeconds: 160 * 400)
+        ])
+    }
+}
+#endif

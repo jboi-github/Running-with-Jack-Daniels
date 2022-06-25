@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+// TODO: Add numbers
 struct ChartAxisView<Line: View, Label: View>: View {
     let line: Line
     let label: Label

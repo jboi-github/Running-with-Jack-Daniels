@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct RunStatusView: View {
+struct RunClientStatusView: View {
     let stcStatus: ClientStatus
     let hrmStatus: ClientStatus
     let gpsStatus: ClientStatus
@@ -21,8 +21,7 @@ struct RunStatusView: View {
             BleHrStatusView(status: hrmStatus, graphHasLength: heartratesNotEmpty)
             GpsStatusView(status: gpsStatus, pathHasLength: locationsNotEmpty)
         }
-        .font(.caption)
-        .scaleEffect(0.75)
+        .font(.callout)
         .onTapGesture {
             guard let url = URL(string: UIApplication.openSettingsURLString) else {return}
             UIApplication.shared.open(url)
@@ -33,7 +32,7 @@ struct RunStatusView: View {
 #if DEBUG
 struct RunStatusView_Previews: PreviewProvider {
     static var previews: some View {
-        RunStatusView(
+        RunClientStatusView(
             stcStatus: .stopped(since: .now),
             hrmStatus: .stopped(since: .now),
             gpsStatus: .stopped(since: .now),

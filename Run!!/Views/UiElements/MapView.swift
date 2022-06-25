@@ -9,8 +9,8 @@ import SwiftUI
 import MapKit
 
 struct MapView: View {
-    let path: [LocationEvent]
-    let intensityGetter: (Date) -> Run.Intensity?
+    let size: CGSize
+    let path: [PathEvent]
     @Binding var region: MKCoordinateRegion
     @Binding var userTrackingMode: MapUserTrackingMode
 
@@ -21,25 +21,31 @@ struct MapView: View {
             showsUserLocation: true,
             userTrackingMode: $userTrackingMode,
             annotationItems: path)
-        {
-            MapAnnotation(
-                coordinate: CLLocationCoordinate2D(
-                    latitude: $0.latitude,
-                    longitude: $0.longitude))
-            {
-                // TODO: Colored by intensity, make use of speed, course, accuracies.
-                Circle()
-                    .foregroundColor(Color(UIColor.systemRed))
-                    .frame(width: 10, height: 10)
+        {  pathEvent in
+            MapAnnotation(coordinate: pathEvent.midPoint) {
+                MapAnnotationView(
+                    accuracyRadius: pathEvent.accuracyRadius * factor,
+                    speedMinRadius: pathEvent.speedMinRadius * factor,
+                    speedMaxRadius: pathEvent.speedMaxRadius * factor,
+                    courseMinAngle: pathEvent.courseMinAngle,
+                    courseMaxAngle: pathEvent.courseMaxAngle,
+                    color: (pathEvent.intensity ?? .cold).color,
+                    textColor: (pathEvent.intensity ?? .cold).textColor)
             }
         }
     }
+    
+    var factor: CGFloat {size.width / region.span.latitudeDelta}
 }
 
 #if DEBUG
 struct MapView_Previews: PreviewProvider {
     static var previews: some View {
-        MapView(path: [], intensityGetter: {print($0); return nil}, region: .constant(MKCoordinateRegion()), userTrackingMode: .constant(.follow))
+        MapView(
+            size: CGSize(),
+            path: [],
+            region: .constant(MKCoordinateRegion()),
+            userTrackingMode: .constant(.follow))
     }
 }
 #endif

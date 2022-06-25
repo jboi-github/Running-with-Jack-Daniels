@@ -39,13 +39,14 @@ enum Files {
                 return FileManager
                     .default
                     .url(forUbiquityContainerIdentifier: nil)?
-                    .appendingPathComponent("Run", isDirectory: true)
+                    .appendingPathComponent("Documents", isDirectory: true)
+                    .appendingPathComponent("Run!!", isDirectory: true)
             } else {
                 return FileManager
                     .default
                     .urls(for: .documentDirectory, in: .userDomainMask)
                     .first?
-                    .appendingPathComponent("Run", isDirectory: true)
+                    .appendingPathComponent("Run!!", isDirectory: true)
             }
         }
         
@@ -121,6 +122,82 @@ enum Files {
         } catch {
             log(to)
             check(error)
+        }
+    }
+    
+    static func list() {
+        guard let url = directory else {return}
+        log(url)
+        
+        let resourceKeys = Set<URLResourceKey>([
+            .nameKey,
+            .isDirectoryKey,
+            .isUbiquitousItemKey,
+            .ubiquitousItemDownloadRequestedKey,
+            .ubiquitousItemIsDownloadingKey,
+            .ubiquitousItemDownloadingErrorKey,
+            .ubiquitousItemDownloadingStatusKey,
+            .ubiquitousItemIsUploadedKey,
+            .ubiquitousItemIsUploadingKey,
+            .ubiquitousItemUploadingErrorKey,
+            .ubiquitousItemHasUnresolvedConflictsKey,
+            .ubiquitousItemContainerDisplayNameKey
+        ])
+        guard let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: resourceKeys.array()) else {return}
+        
+        do {
+            try enumerator.forEach {
+                guard let url = $0 as? URL else {return}
+                let values = try url.resourceValues(forKeys: resourceKeys)
+                guard
+                    let name = values.name,
+                    let isDirectory = values.isDirectory,
+                    let isUbiquitousItem = values.isUbiquitousItem,
+                    let ubiquitousItemDownloadRequested = values.ubiquitousItemDownloadRequested,
+                    let ubiquitousItemIsDownloading = values.ubiquitousItemIsDownloading,
+                    let ubiquitousItemDownloadingError = values.ubiquitousItemDownloadingError,
+                    let ubiquitousItemDownloadingStatus = values.ubiquitousItemDownloadingStatus,
+                    let ubiquitousItemIsUploaded = values.ubiquitousItemIsUploaded,
+                    let ubiquitousItemIsUploading = values.ubiquitousItemIsUploading,
+                    let ubiquitousItemUploadingError = values.ubiquitousItemUploadingError,
+                    let ubiquitousItemHasUnresolvedConflicts = values.ubiquitousItemHasUnresolvedConflicts,
+                    let ubiquitousItemContainerDisplayName = values.ubiquitousItemContainerDisplayName
+                else {
+                    log(
+                        values.name as Any,
+                        values.isDirectory as Any,
+                        values.isUbiquitousItem as Any,
+                        values.ubiquitousItemDownloadRequested as Any,
+                        values.ubiquitousItemIsDownloading as Any,
+                        values.ubiquitousItemDownloadingError as Any,
+                        values.ubiquitousItemDownloadingStatus as Any,
+                        values.ubiquitousItemIsUploaded as Any,
+                        values.ubiquitousItemIsUploading as Any,
+                        values.ubiquitousItemUploadingError as Any,
+                        values.ubiquitousItemHasUnresolvedConflicts as Any,
+                        values.ubiquitousItemContainerDisplayName as Any)
+                    return
+                }
+                
+                log(
+                    name,
+                    isDirectory,
+                    isUbiquitousItem,
+                    ubiquitousItemDownloadRequested,
+                    ubiquitousItemIsDownloading,
+                    ubiquitousItemDownloadingError,
+                    ubiquitousItemDownloadingStatus,
+                    ubiquitousItemIsUploaded,
+                    ubiquitousItemIsUploading,
+                    ubiquitousItemUploadingError,
+                    ubiquitousItemHasUnresolvedConflicts,
+                    ubiquitousItemContainerDisplayName)
+            }
+        } catch {
+            check(error)
+            return
         }
     }
 }

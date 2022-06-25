@@ -68,6 +68,7 @@ struct HrLimitsView: View {
 
                 // Value
                 if let heartrate = heartrate, let intensity = intensity {
+                    // FIXME: Should not contain 'bpm' if text overlaps circle
                     HeartrateText(heartrate: heartrate)
                         .font(.largeTitle)
                         .lineLimit(2)

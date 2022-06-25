@@ -18,7 +18,7 @@ struct BleHrStatusView: View {
     private func getSystemName() -> String {
         switch status {
         case .started:
-            return graphHasLength ? "antenna.radiowaves.left.and.right.circle.fill" : "antenna.radiowaves.left.and.right.circle"
+            return "antenna.radiowaves.left.and.right\(graphHasLength ? ".circle.fill":"")"
         case .stopped:
             return "stop.fill"
         case .notAvailable:

@@ -12,8 +12,8 @@ struct RunCurrentsView: View {
     let heartrate: Int?
     let intensity: Run.Intensity?
     let hrLimits: [Run.Intensity: Range<Int>]?
-    let duration: TimeInterval
-    let distance: CLLocationDistance
+    let duration: TimeInterval?
+    let distance: CLLocationDistance?
     let speed: CLLocationSpeed?
     let vdot: Double?
     let cadence: Double?

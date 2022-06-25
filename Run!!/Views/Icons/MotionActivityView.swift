@@ -12,7 +12,7 @@ struct MotionActivityView: View {
     let confidence: MotionActivityEvent.Confidence?
 
     var body: some View {
-        Text(Image(systemName: systemName)).foregroundColor(color)
+        Text(Image(systemName: systemName))
     }
     
     var systemName: String {

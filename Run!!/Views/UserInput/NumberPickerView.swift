@@ -33,8 +33,8 @@ struct NumberPickerView<Value: Equatable>: View {
                 ResetButton(attribute: attribute)
                 Stepper(
                     value: $selection,
-                    in: range, step: step,
-                    onEditingChanged: {_ in})
+                    in: range,
+                    step: step)
                 {
                     Text("\(selection, specifier: specifier)")
                         .font(.callout)
@@ -47,7 +47,6 @@ struct NumberPickerView<Value: Equatable>: View {
             Slider(
                 value: $selection,
                 in: range, step: step,
-                onEditingChanged: {_ in},
                 minimumValueLabel:
                     Text("\(range.lowerBound, specifier: specifier)")
                         .font(.caption)

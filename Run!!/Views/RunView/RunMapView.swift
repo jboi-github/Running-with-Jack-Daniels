@@ -9,8 +9,8 @@ import SwiftUI
 import MapKit
 
 struct RunMapView: View {
-    let path: [LocationEvent]
-    let intensityGetter: (Date) -> Run.Intensity?
+    let size: CGSize
+    let path: [PathEvent]
     let gpsStatus: ClientStatus
     
     @State private var region = MKCoordinateRegion()
@@ -19,8 +19,8 @@ struct RunMapView: View {
     var body: some View {
         ZStack {
             MapView(
+                size: size,
                 path: path,
-                intensityGetter: intensityGetter,
                 region: $region,
                 userTrackingMode: $userTrackingMode)
             if userTrackingMode != .follow {
@@ -69,7 +69,11 @@ struct RunMapView: View {
 struct RunMapView_Previews: PreviewProvider {
     static var previews: some View {
         List {
-            RunMapView(path: [], intensityGetter: {_ in nil}, gpsStatus: .started(since: .now)).frame(height: 400)
+            RunMapView(
+                size: CGSize(width: 600, height: 400),
+                path: [],
+                gpsStatus: .started(since: .now))
+                .frame(height: 400)
         }
     }
 }

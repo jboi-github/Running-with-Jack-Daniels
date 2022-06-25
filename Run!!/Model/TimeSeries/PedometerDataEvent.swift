@@ -12,12 +12,27 @@ import CoreMotion
 struct PedometerDataEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
     static let key: String = "PedometerDataEvent"
-    let vector: VectorElement<None>
-    init(_ vector: VectorElement<None>) {self.vector = vector}
+    let vector: VectorElement<Speed>
+    init(_ vector: VectorElement<Speed>) {self.vector = vector}
 
     // MARK: Implement specifics
-    init(date: Date, numberOfSteps: Int, distance: CLLocationDistance?, activeDuration: TimeInterval?) {
-        vector = VectorElement(date: date, ints: [numberOfSteps], optionalDoubles: [distance, activeDuration])
+    
+    struct Speed: Codable, Equatable {
+        let speed: CLLocationSpeed?
+    }
+    
+    init(
+        date: Date,
+        numberOfSteps: Int,
+        distance: CLLocationDistance?,
+        activeDuration: TimeInterval?,
+        speed: CLLocationSpeed? = nil)
+    {
+        vector = VectorElement(
+            date: date,
+            ints: [numberOfSteps],
+            optionalDoubles: [distance, activeDuration],
+            categorical: Speed(speed: speed))
     }
     
     /// Total number of steps since beginning of time
@@ -28,6 +43,9 @@ struct PedometerDataEvent: GenericTimeseriesElement {
     
     /// Total active time recognized by pedometer since beginning of time
     var activeDuration: TimeInterval? {vector.optionalDoubles![1]}
+    
+    /// Average speed up to date
+    var speed: CLLocationSpeed? {vector.categorical?.speed}
 }
 
 extension TimeSeries where Element == PedometerDataEvent {
@@ -43,7 +61,8 @@ extension TimeSeries where Element == PedometerDataEvent {
             date: pedometerData.endDate,
             numberOfSteps: pedometerData.numberOfSteps.intValue + (elements.last?.numberOfSteps ?? 0),
             distance: pedometerData.distance?.doubleValue + (elements.last?.distance ?? 0),
-            activeDuration: activeDuration + (elements.last?.activeDuration ?? 0))
+            activeDuration: activeDuration + (elements.last?.activeDuration ?? 0),
+            speed: pedometerData.averageActivePace?.doubleValue)
     }
     
     func newElements(_ startDate: Date, _ pedometerDataEvent: Element) -> [Element] {

@@ -17,6 +17,12 @@ extension Sequence {
     }
 }
 
+extension BidirectionalCollection {
+    func suffix(where predicate: (Element) throws -> Bool) rethrows -> [Element] {
+        try reversed().prefix(while: predicate).reversed()
+    }
+}
+
 extension Array {
     static func * (lhs: [Element], rhs: Int) -> [Element] {
         [[Element]](repeating: lhs, count: rhs).flatMap {$0}
