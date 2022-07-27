@@ -35,19 +35,19 @@ enum ClientStatus {
     }
 }
 
-class Client {
+class Client: ObservableObject {
     init<Delegate: ClientDelegate>(delegate: Delegate) {
         self.status = .stopped(since: .distantPast)
         self.delegate = delegate
         self.delegate.setStatusCallback({self.statusChanged(to: $0)})
     }
 
-    private(set) var status: ClientStatus
+    @Published private(set) var status: ClientStatus
     private let delegate: ClientDelegate
 
     @discardableResult func start(asOf: Date) -> ClientStatus {
+        guard status.isStopped else {return status}
         status = delegate.start(asOf: asOf)
-
         if status.isStopped {check("Expected any started status, but found \(status)")}
         return status
     }
@@ -58,7 +58,7 @@ class Client {
         status = .stopped(since: asOf)
     }
     
-    func statusChanged(to status: ClientStatus) {self.status = status}
+    func statusChanged(to status: ClientStatus) { self.status = status }
     
     func trigger(asOf: Date) {delegate.trigger(asOf: asOf)}
 }

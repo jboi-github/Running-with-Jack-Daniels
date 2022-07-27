@@ -12,12 +12,12 @@ final class LocationClient: ClientDelegate {
     private var statusCallback: ((ClientStatus) -> Void)?
     private var locationManager: CLLocationManager?
     private var locationManagerDelegate: LocationManagerDelegate?
-    private unowned let queue: DispatchQueue
+    private unowned let queue: SerialQueue
     private unowned let timeseriesSet: TimeSeriesSet
     private unowned let locationTimeseries: TimeSeries<LocationEvent, None>
 
     init(
-        queue: DispatchQueue,
+        queue: SerialQueue,
         timeseriesSet: TimeSeriesSet,
         locationTimeseries: TimeSeries<LocationEvent, None>)
     {
@@ -38,7 +38,7 @@ final class LocationClient: ClientDelegate {
                     timeseriesSet.reflect(locationTimeseries.parse(gpsLocation))
                 }
             },
-            status: { status in DispatchQueue.main.async {self.statusCallback?(status)}},
+            status: { self.statusCallback?($0) },
             asOf: asOf)
 
         guard let locationManager = locationManager, let locationManagerDelegate = locationManagerDelegate else {
@@ -60,7 +60,7 @@ final class LocationClient: ClientDelegate {
         locationManager = nil
         locationManagerDelegate = nil
     }
-
+    
     // MARK: CLLocationManagerDelegate implementation
     private class LocationManagerDelegate: NSObject, CLLocationManagerDelegate {
         private let value: (CLLocation) -> Void

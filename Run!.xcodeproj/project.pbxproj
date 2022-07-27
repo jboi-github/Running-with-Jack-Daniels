@@ -21,11 +21,17 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		1503EC58289179FE00498078 /* TimeSeriesMaintenanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1503EC57289179FE00498078 /* TimeSeriesMaintenanceTests.swift */; };
+		150E28CF287AFC1D000DD4D8 /* SerialQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150E28CE287AFC1D000DD4D8 /* SerialQueue.swift */; };
+		153B918E28709A3700967876 /* ToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153B918D28709A3700967876 /* ToolbarButton.swift */; };
+		153B919228734F0400967876 /* AppTwinTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153B919128734F0300967876 /* AppTwinTests.swift */; };
+		153B9194287414A000967876 /* ClientsSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153B9193287414A000967876 /* ClientsSet.swift */; };
+		153B91962874C47100967876 /* Hrm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153B91952874C47100967876 /* Hrm.swift */; };
 		154BB7A0282FD9CD004E48EE /* BodySensorLocationEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154BB79F282FD9CD004E48EE /* BodySensorLocationEvent.swift */; };
 		154BB7A2282FDE97004E48EE /* PeripheralEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154BB7A1282FDE97004E48EE /* PeripheralEvent.swift */; };
 		154BB7A4282FE0A6004E48EE /* MotionActivityEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154BB7A3282FE0A6004E48EE /* MotionActivityEvent.swift */; };
 		154BB7A6282FE42C004E48EE /* LocationEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154BB7A5282FE42C004E48EE /* LocationEvent.swift */; };
-		154BB7A8282FEA1E004E48EE /* WorkoutEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154BB7A7282FEA1E004E48EE /* WorkoutEvent.swift */; };
+		154BB7A8282FEA1E004E48EE /* ResetEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154BB7A7282FEA1E004E48EE /* ResetEvent.swift */; };
 		154BB7AA28300D39004E48EE /* DistanceEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154BB7A928300D39004E48EE /* DistanceEvent.swift */; };
 		154BB7AC28312438004E48EE /* IntensityEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154BB7AB28312438004E48EE /* IntensityEvent.swift */; };
 		1592605628073E6F0042D54C /* PeripheralStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1592604B28073E6D0042D54C /* PeripheralStatusView.swift */; };
@@ -101,11 +107,9 @@
 		D21779482819735F00A6DEED /* PedometerEventClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D21779472819735F00A6DEED /* PedometerEventClient.swift */; };
 		D217794A2819745B00A6DEED /* MotionActivityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D21779492819745B00A6DEED /* MotionActivityClient.swift */; };
 		D217794C2819907E00A6DEED /* LocationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D217794B2819907E00A6DEED /* LocationClient.swift */; };
-		D24DDE5E2836B94800923BBD /* TimerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE5D2836B94800923BBD /* TimerClient.swift */; };
 		D24DDE602837F6CE00923BBD /* AnyMoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE5F2837F6CE00923BBD /* AnyMoreTests.swift */; };
 		D24DDE62283A5BA900923BBD /* TimeSeriesSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE61283A5BA900923BBD /* TimeSeriesSet.swift */; };
 		D24DDE64283B9EA400923BBD /* MotionActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24DDE63283B9EA400923BBD /* MotionActivityView.swift */; };
-		D25D070628258E3E00588F0A /* WorkoutClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D070528258E3E00588F0A /* WorkoutClient.swift */; };
 		D25D07082827F94100588F0A /* TimeSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D07072827F94100588F0A /* TimeSeries.swift */; };
 		D25D070A282ACB2500588F0A /* PersistentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D0709282ACB2500588F0A /* PersistentTests.swift */; };
 		D25D070C282AD4AC00588F0A /* TimeSeriesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25D070B282AD4AC00588F0A /* TimeSeriesTests.swift */; };
@@ -138,11 +142,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1503EC57289179FE00498078 /* TimeSeriesMaintenanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSeriesMaintenanceTests.swift; sourceTree = "<group>"; };
+		150E28CE287AFC1D000DD4D8 /* SerialQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerialQueue.swift; sourceTree = "<group>"; };
+		153B918D28709A3700967876 /* ToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarButton.swift; sourceTree = "<group>"; };
+		153B919128734F0300967876 /* AppTwinTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTwinTests.swift; sourceTree = "<group>"; };
+		153B9193287414A000967876 /* ClientsSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientsSet.swift; sourceTree = "<group>"; };
+		153B91952874C47100967876 /* Hrm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hrm.swift; sourceTree = "<group>"; };
 		154BB79F282FD9CD004E48EE /* BodySensorLocationEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodySensorLocationEvent.swift; sourceTree = "<group>"; };
 		154BB7A1282FDE97004E48EE /* PeripheralEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralEvent.swift; sourceTree = "<group>"; };
 		154BB7A3282FE0A6004E48EE /* MotionActivityEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionActivityEvent.swift; sourceTree = "<group>"; };
 		154BB7A5282FE42C004E48EE /* LocationEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationEvent.swift; sourceTree = "<group>"; };
-		154BB7A7282FEA1E004E48EE /* WorkoutEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutEvent.swift; sourceTree = "<group>"; };
+		154BB7A7282FEA1E004E48EE /* ResetEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetEvent.swift; sourceTree = "<group>"; };
 		154BB7A928300D39004E48EE /* DistanceEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceEvent.swift; sourceTree = "<group>"; };
 		154BB7AB28312438004E48EE /* IntensityEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityEvent.swift; sourceTree = "<group>"; };
 		1592604B28073E6D0042D54C /* PeripheralStatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeripheralStatusView.swift; sourceTree = "<group>"; };
@@ -223,11 +233,9 @@
 		D21779472819735F00A6DEED /* PedometerEventClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PedometerEventClient.swift; sourceTree = "<group>"; };
 		D21779492819745B00A6DEED /* MotionActivityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionActivityClient.swift; sourceTree = "<group>"; };
 		D217794B2819907E00A6DEED /* LocationClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationClient.swift; sourceTree = "<group>"; };
-		D24DDE5D2836B94800923BBD /* TimerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerClient.swift; sourceTree = "<group>"; };
 		D24DDE5F2837F6CE00923BBD /* AnyMoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyMoreTests.swift; sourceTree = "<group>"; };
 		D24DDE61283A5BA900923BBD /* TimeSeriesSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSeriesSet.swift; sourceTree = "<group>"; };
 		D24DDE63283B9EA400923BBD /* MotionActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionActivityView.swift; sourceTree = "<group>"; };
-		D25D070528258E3E00588F0A /* WorkoutClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutClient.swift; sourceTree = "<group>"; };
 		D25D07072827F94100588F0A /* TimeSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSeries.swift; sourceTree = "<group>"; };
 		D25D0709282ACB2500588F0A /* PersistentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentTests.swift; sourceTree = "<group>"; };
 		D25D070B282AD4AC00588F0A /* TimeSeriesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSeriesTests.swift; sourceTree = "<group>"; };
@@ -355,8 +363,10 @@
 		15B9FC3027DCE715002813D1 /* Run!!Tests */ = {
 			isa = PBXGroup;
 			children = (
+				153B919128734F0300967876 /* AppTwinTests.swift */,
 				D25D0713282E589D00588F0A /* TimeSeriesElementTests.swift */,
 				D25D070B282AD4AC00588F0A /* TimeSeriesTests.swift */,
+				1503EC57289179FE00498078 /* TimeSeriesMaintenanceTests.swift */,
 				D25D0709282ACB2500588F0A /* PersistentTests.swift */,
 				15C36A6127F5B99F00FBF275 /* TotalsTests.swift */,
 				15B9FC9927EA54F8002813D1 /* FilesTests.swift */,
@@ -412,6 +422,8 @@
 				15B9FC9327E3C7E3002813D1 /* RunningFormula.swift */,
 				15B9FC9527E3C8C5002813D1 /* PlanningFormula.swift */,
 				15C36AA627F835B500FBF275 /* Gps.swift */,
+				153B91952874C47100967876 /* Hrm.swift */,
+				150E28CE287AFC1D000DD4D8 /* SerialQueue.swift */,
 			);
 			path = Commons;
 			sourceTree = "<group>";
@@ -430,15 +442,14 @@
 		15B9FC9F27EC992B002813D1 /* Clients */ = {
 			isa = PBXGroup;
 			children = (
-				15C2C59A27FCCF8F002156D0 /* ScannerClient.swift */,
 				D21779432819632E00A6DEED /* Client.swift */,
+				15C2C59A27FCCF8F002156D0 /* ScannerClient.swift */,
 				D217794528196EE700A6DEED /* PedometerDataClient.swift */,
 				D21779472819735F00A6DEED /* PedometerEventClient.swift */,
 				D21779492819745B00A6DEED /* MotionActivityClient.swift */,
 				D217794B2819907E00A6DEED /* LocationClient.swift */,
 				D25D070D282C407B00588F0A /* HeartrateMonitorClient.swift */,
-				D25D070528258E3E00588F0A /* WorkoutClient.swift */,
-				D24DDE5D2836B94800923BBD /* TimerClient.swift */,
+				153B9193287414A000967876 /* ClientsSet.swift */,
 			);
 			path = Clients;
 			sourceTree = "<group>";
@@ -456,7 +467,7 @@
 				154BB7A1282FDE97004E48EE /* PeripheralEvent.swift */,
 				154BB7A3282FE0A6004E48EE /* MotionActivityEvent.swift */,
 				154BB7A5282FE42C004E48EE /* LocationEvent.swift */,
-				154BB7A7282FEA1E004E48EE /* WorkoutEvent.swift */,
+				154BB7A7282FEA1E004E48EE /* ResetEvent.swift */,
 				154BB7A928300D39004E48EE /* DistanceEvent.swift */,
 				154BB7AB28312438004E48EE /* IntensityEvent.swift */,
 				D2792A8D2843C7960011055E /* HeartrateSecondsEvent.swift */,
@@ -497,6 +508,7 @@
 				15C36A8427F6C9C000FBF275 /* NumberPickerView.swift */,
 				15C36A8227F6C9C000FBF275 /* PrimaryIgnoredToggle.swift */,
 				15C36A7F27F6C9BF00FBF275 /* ResetButton.swift */,
+				153B918D28709A3700967876 /* ToolbarButton.swift */,
 			);
 			path = UserInput;
 			sourceTree = "<group>";
@@ -689,8 +701,10 @@
 				15DE268927FF5F9400CBF64A /* RunClientStatusView.swift in Sources */,
 				15C2C59B27FCCF8F002156D0 /* ScannerClient.swift in Sources */,
 				154BB7A0282FD9CD004E48EE /* BodySensorLocationEvent.swift in Sources */,
+				150E28CF287AFC1D000DD4D8 /* SerialQueue.swift in Sources */,
 				1592605928073E6F0042D54C /* StcStatusView.swift in Sources */,
 				154BB7AA28300D39004E48EE /* DistanceEvent.swift in Sources */,
+				153B9194287414A000967876 /* ClientsSet.swift in Sources */,
 				D28E15B928577A0C00EBDE34 /* TotalEvent.swift in Sources */,
 				15C36A5E27F30A5200FBF275 /* Optionals.swift in Sources */,
 				15C36A6D27F6C43400FBF275 /* SpeedText.swift in Sources */,
@@ -701,14 +715,12 @@
 				1592605F28073E6F0042D54C /* BatteryStatusView.swift in Sources */,
 				15B9FC8427E253CC002813D1 /* Ranges.swift in Sources */,
 				15B9FC9027E3C26E002813D1 /* Files.swift in Sources */,
-				154BB7A8282FEA1E004E48EE /* WorkoutEvent.swift in Sources */,
+				154BB7A8282FEA1E004E48EE /* ResetEvent.swift in Sources */,
 				15DE268D27FF795F00CBF64A /* RunCurrentsView.swift in Sources */,
 				154BB7A2282FDE97004E48EE /* PeripheralEvent.swift in Sources */,
-				D25D070628258E3E00588F0A /* WorkoutClient.swift in Sources */,
 				D25D0712282D54E600588F0A /* PedometerDataEvent.swift in Sources */,
 				1592606728073EEE0042D54C /* ChartCommons.swift in Sources */,
 				154BB7AC28312438004E48EE /* IntensityEvent.swift in Sources */,
-				D24DDE5E2836B94800923BBD /* TimerClient.swift in Sources */,
 				15B9FC9427E3C7E3002813D1 /* RunningFormula.swift in Sources */,
 				D2792A8E2843C7960011055E /* HeartrateSecondsEvent.swift in Sources */,
 				15C36A8627F6C9C000FBF275 /* ResetButton.swift in Sources */,
@@ -730,6 +742,7 @@
 				D25D07082827F94100588F0A /* TimeSeries.swift in Sources */,
 				15C36AA327F6C9F200FBF275 /* HrLimitsView.swift in Sources */,
 				1592606628073EEE0042D54C /* ChartAxisView.swift in Sources */,
+				153B91962874C47100967876 /* Hrm.swift in Sources */,
 				15C36A8927F6C9C000FBF275 /* PrimaryIgnoredToggle.swift in Sources */,
 				15C36A8827F6C9C000FBF275 /* DatePickerView.swift in Sources */,
 				154BB7A4282FE0A6004E48EE /* MotionActivityEvent.swift in Sources */,
@@ -748,6 +761,7 @@
 				15B9FC9227E3C35D002813D1 /* Health.swift in Sources */,
 				15C36AA227F6C9F200FBF275 /* MapView.swift in Sources */,
 				15C36A8B27F6C9C000FBF275 /* NumberPickerView.swift in Sources */,
+				153B918E28709A3700967876 /* ToolbarButton.swift in Sources */,
 				1592606028073E6F0042D54C /* BleHrStatusView.swift in Sources */,
 				15B9FC6F27DD1CFD002813D1 /* ImproveView.swift in Sources */,
 				15B9FC6527DCF223002813D1 /* Logging.swift in Sources */,
@@ -775,6 +789,8 @@
 				D24DDE602837F6CE00923BBD /* AnyMoreTests.swift in Sources */,
 				D25D070C282AD4AC00588F0A /* TimeSeriesTests.swift in Sources */,
 				15A6D36F2832494D0082EC2E /* DerivedEventTests.swift in Sources */,
+				1503EC58289179FE00498078 /* TimeSeriesMaintenanceTests.swift in Sources */,
+				153B919228734F0400967876 /* AppTwinTests.swift in Sources */,
 				D284B811285B3D47002467E5 /* IntensityEventTests.swift in Sources */,
 				15B9FC9A27EA54F8002813D1 /* FilesTests.swift in Sources */,
 				15C36A6227F5B99F00FBF275 /* TotalsTests.swift in Sources */,

@@ -14,11 +14,11 @@ import Combine
 class TotalsTests: XCTestCase {
 
     var tsSet: TimeSeriesSet! = nil
-    var queue: DispatchQueue! = nil
+    var queue: SerialQueue! = nil
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
-        queue = AppTwin.shared.queue
+        queue = SerialQueue("X")
         Files.initDirectory()
         tsSet = TimeSeriesSet(queue: queue)
         tsSet.pedometerDataTimeseries.reset()
@@ -32,7 +32,7 @@ class TotalsTests: XCTestCase {
         tsSet.batteryLevelTimeseries.reset()
         tsSet.bodySensorLocationTimeseries.reset()
         tsSet.peripheralTimeseries.reset()
-        tsSet.workoutTimeseries.reset()
+        tsSet.resetTimeseries.reset()
         tsSet.totalsTimeseries.reset()
     }
 
@@ -60,25 +60,30 @@ class TotalsTests: XCTestCase {
         tsSet.$totals.dropFirst().sink {
             XCTAssertEqual($0, [
                 TimeSeriesSet.Total(
-                    asOf: self.makeDt(100),
-                    motionActivity: .running,
-                    workoutDate: nil,
-                    isWorkingOut: nil,
-                    intensity: nil,
-                    duration: 900, // 100 ..< 1000,
+                    endAt: self.makeDt(1000),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .easy,
+                    duration: 1000, // 0 ..< 1000,
                     numberOfSteps: nil,
-                    pdmDistance: nil,
                     activeDuration: nil,
-                    gpsDistance: nil,
-                    heartrateSeconds: nil)])
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil)
+            ])
             expectation.fulfill()
         }
         .store(in: &cancellables)
         
         // Do something
-        let motionActivity = MotionActivityEvent(date: makeDt(100), confidence: .high, motion: .running)
-        tsSet.motionActivityTimeseries.insert(motionActivity)
-        tsSet.totalsTimeseries.reflect(motionActivityEvent: motionActivity)
+        tsSet.reflect(ResetEvent(date: makeDt(0)))
+        
+        let intensityEvent = IntensityEvent(date: makeDt(100), intensity: .easy)
+        tsSet.intensityTimeseries.insert(intensityEvent)
+        tsSet.totalsTimeseries.reflect(intensityEvent: intensityEvent)
 
         // Check total
         tsSet.refreshTotals(upTo: makeDt(1000))
@@ -91,45 +96,52 @@ class TotalsTests: XCTestCase {
         tsSet.$totals.dropFirst().sink {
             let expected = [
                 TimeSeriesSet.Total(
-                    asOf: self.makeDt(200),
-                    motionActivity: .cycling,
-                    workoutDate: nil,
-                    isWorkingOut: nil,
-                    intensity: nil,
+                    endAt: self.makeDt(1000),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .marathon,
                     duration: 800, // 200 ..< 1000,
                     numberOfSteps: nil,
-                    pdmDistance: nil,
                     activeDuration: nil,
-                    gpsDistance: nil,
-                    heartrateSeconds: nil),
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil),
                 TimeSeriesSet.Total(
-                    asOf: self.makeDt(100),
-                    motionActivity: .running,
-                    workoutDate: nil,
-                    isWorkingOut: nil,
-                    intensity: nil,
-                    duration: 100, // 100 ..< 200,
+                    endAt: self.makeDt(200),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .easy,
+                    duration: 200, // 0 ..< 200,
                     numberOfSteps: nil,
-                    pdmDistance: nil,
                     activeDuration: nil,
-                    gpsDistance: nil,
-                    heartrateSeconds: nil)
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil)
             ]
 
             XCTAssertEqual($0.map {$0.date}, expected.map {$0.date})
+            XCTAssertEqual($0.map {$0.duration}, expected.map {$0.duration})
             XCTAssertEqual($0, expected)
             expectation.fulfill()
         }
         .store(in: &cancellables)
         
         // Do something
-        let m1 = MotionActivityEvent(date: makeDt(100), confidence: .high, motion: .running)
-        tsSet.motionActivityTimeseries.insert(m1)
-        tsSet.totalsTimeseries.reflect(motionActivityEvent: m1)
+        tsSet.reflect(ResetEvent(date: makeDt(0)))
 
-        let m2 = MotionActivityEvent(date: makeDt(200), confidence: .high, motion: .cycling)
-        tsSet.motionActivityTimeseries.insert(m2)
-        tsSet.totalsTimeseries.reflect(motionActivityEvent: m2)
+        let i1 = IntensityEvent(date: makeDt(100), intensity: .easy)
+        tsSet.intensityTimeseries.insert(i1)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i1)
+        
+        let i2 = IntensityEvent(date: makeDt(200), intensity: .marathon)
+        tsSet.intensityTimeseries.insert(i2)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i2)
 
         // Check total
         tsSet.refreshTotals(upTo: makeDt(1000))
@@ -142,29 +154,33 @@ class TotalsTests: XCTestCase {
         tsSet.$totals.dropFirst().sink {
             let expected = [
                 TimeSeriesSet.Total(
-                    asOf: self.makeDt(300),
-                    motionActivity: .cycling,
-                    workoutDate: nil,
-                    isWorkingOut: nil,
-                    intensity: nil,
+                    endAt: self.makeDt(1000),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .marathon,
                     duration: 700, // 300 ..< 1000,
                     numberOfSteps: nil,
-                    pdmDistance: nil,
                     activeDuration: nil,
-                    gpsDistance: nil,
-                    heartrateSeconds: nil),
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil),
                 TimeSeriesSet.Total(
-                    asOf: self.makeDt(100),
-                    motionActivity: .running,
-                    workoutDate: nil,
-                    isWorkingOut: nil,
-                    intensity: nil,
-                    duration: 200, // 100 ..< 300,
+                    endAt: self.makeDt(300),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .easy,
+                    duration: 300, // 0 ..< 300,
                     numberOfSteps: nil,
-                    pdmDistance: nil,
                     activeDuration: nil,
-                    gpsDistance: nil,
-                    heartrateSeconds: nil)
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil)
             ]
 
             XCTAssertEqual($0.map {$0.date}, expected.map {$0.date})
@@ -174,23 +190,225 @@ class TotalsTests: XCTestCase {
         .store(in: &cancellables)
         
         // Do something
-        let m1 = MotionActivityEvent(date: makeDt(100), confidence: .high, motion: .running)
-        tsSet.motionActivityTimeseries.insert(m1)
-        tsSet.totalsTimeseries.reflect(motionActivityEvent: m1)
+        tsSet.reflect(ResetEvent(date: makeDt(0)))
 
-        let m2 = MotionActivityEvent(date: makeDt(200), confidence: .high, motion: .running)
-        tsSet.motionActivityTimeseries.insert(m2)
-        tsSet.totalsTimeseries.reflect(motionActivityEvent: m2)
+        let i1 = IntensityEvent(date: makeDt(100), intensity: .easy)
+        tsSet.intensityTimeseries.insert(i1)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i1)
+        
+        let i2 = IntensityEvent(date: makeDt(200), intensity: .easy)
+        tsSet.intensityTimeseries.insert(i2)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i2)
 
-        let m3 = MotionActivityEvent(date: makeDt(300), confidence: .high, motion: .cycling)
-        tsSet.motionActivityTimeseries.insert(m3)
-        tsSet.totalsTimeseries.reflect(motionActivityEvent: m3)
+        let i3 = IntensityEvent(date: makeDt(300), intensity: .marathon)
+        tsSet.intensityTimeseries.insert(i3)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i3)
 
         // Check total
         tsSet.refreshTotals(upTo: makeDt(1000))
         wait(for: [expectation], timeout: 10)
     }
 
+    func testCombinedRestings() throws {
+        // Prepare to check total
+        let expectation = XCTestExpectation()
+        tsSet.$totals.dropFirst().sink {
+            let expected = [
+                TimeSeriesSet.Total(
+                    endAt: self.makeDt(1000),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .cold,
+                    duration: 600, // 300 ..< 400 + 500 ..< 1000,
+                    numberOfSteps: nil,
+                    activeDuration: nil,
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil),
+                TimeSeriesSet.Total(
+                    endAt: self.makeDt(500),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .threshold,
+                    duration: 100, // 400 ..< 500
+                    numberOfSteps: nil,
+                    activeDuration: nil,
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil),
+                TimeSeriesSet.Total(
+                    endAt: self.makeDt(300),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .marathon,
+                    duration: 100, // 200 ..< 300
+                    numberOfSteps: nil,
+                    activeDuration: nil,
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil),
+                TimeSeriesSet.Total(
+                    endAt: self.makeDt(200),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(0),
+                    intensity: .easy,
+                    duration: 200, // 0 ..< 200
+                    numberOfSteps: nil,
+                    activeDuration: nil,
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil)
+            ]
+
+            XCTAssertEqual($0.map {$0.date}, expected.map {$0.date})
+            XCTAssertEqual($0.map {$0.duration}, expected.map {$0.duration})
+            XCTAssertEqual($0.map {$0.motionActivity}, expected.map {$0.motionActivity})
+            XCTAssertEqual($0, expected)
+            expectation.fulfill()
+        }
+        .store(in: &cancellables)
+        
+        // Do something
+        tsSet.reflect(ResetEvent(date: makeDt(0)))
+
+        let i1 = IntensityEvent(date: makeDt(100), intensity: .easy)
+        tsSet.intensityTimeseries.insert(i1)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i1)
+        
+        let i2 = IntensityEvent(date: makeDt(200), intensity: .marathon)
+        tsSet.intensityTimeseries.insert(i2)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i2)
+
+        let i3 = IntensityEvent(date: makeDt(300), intensity: .cold)
+        tsSet.intensityTimeseries.insert(i3)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i3)
+        
+        let i4 = IntensityEvent(date: makeDt(400), intensity: .threshold)
+        tsSet.intensityTimeseries.insert(i4)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i4)
+        
+        let i5 = IntensityEvent(date: makeDt(500), intensity: .cold)
+        tsSet.intensityTimeseries.insert(i5)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i5)
+
+        // Check total
+        tsSet.refreshTotals(upTo: makeDt(1000))
+        wait(for: [expectation], timeout: 10)
+    }
+    
+    func testCombinedResetted() throws {
+        // Prepare to check total
+        let expectation = XCTestExpectation()
+        tsSet.$totals.dropFirst().sink {
+            let expected = [
+                TimeSeriesSet.Total(
+                    endAt: self.makeDt(1000),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(150),
+                    intensity: .cold,
+                    duration: 600, // 300 ..< 400 + 500 ..< 1000,
+                    numberOfSteps: nil,
+                    activeDuration: nil,
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil),
+                TimeSeriesSet.Total(
+                    endAt: self.makeDt(500),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(150),
+                    intensity: .threshold,
+                    duration: 100, // 400 ..< 500
+                    numberOfSteps: nil,
+                    activeDuration: nil,
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil),
+                TimeSeriesSet.Total(
+                    endAt: self.makeDt(300),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(150),
+                    intensity: .marathon,
+                    duration: 100, // 200 ..< 300
+                    numberOfSteps: nil,
+                    activeDuration: nil,
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil),
+                TimeSeriesSet.Total(
+                    endAt: self.makeDt(200),
+                    motionActivity: nil,
+                    resetDate: self.makeDt(150),
+                    intensity: .easy,
+                    duration: 50, // 150 ..< 200
+                    numberOfSteps: nil,
+                    activeDuration: nil,
+                    energyExpended: nil,
+                    distance: nil,
+                    speed: nil,
+                    cadence: nil,
+                    avgHeartrate: nil,
+                    vdot: nil)
+            ]
+
+            XCTAssertEqual($0.map {$0.date}, expected.map {$0.date})
+            XCTAssertEqual($0.map {$0.duration}, expected.map {$0.duration})
+            XCTAssertEqual($0.map {$0.motionActivity}, expected.map {$0.motionActivity})
+            XCTAssertEqual($0, expected)
+            expectation.fulfill()
+        }
+        .store(in: &cancellables)
+        
+        // Do something
+        tsSet.reflect(ResetEvent(date: makeDt(0)))
+
+        let i1 = IntensityEvent(date: makeDt(100), intensity: .easy)
+        tsSet.intensityTimeseries.insert(i1)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i1)
+        
+        tsSet.reflect(ResetEvent(date: makeDt(150)))
+
+        let i2 = IntensityEvent(date: makeDt(200), intensity: .marathon)
+        tsSet.intensityTimeseries.insert(i2)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i2)
+
+        let i3 = IntensityEvent(date: makeDt(300), intensity: .cold)
+        tsSet.intensityTimeseries.insert(i3)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i3)
+        
+        let i4 = IntensityEvent(date: makeDt(400), intensity: .threshold)
+        tsSet.intensityTimeseries.insert(i4)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i4)
+        
+        let i5 = IntensityEvent(date: makeDt(500), intensity: .cold)
+        tsSet.intensityTimeseries.insert(i5)
+        tsSet.totalsTimeseries.reflect(intensityEvent: i5)
+
+        // Check total
+        tsSet.refreshTotals(upTo: makeDt(1000))
+        wait(for: [expectation], timeout: 10)
+    }
+    
     private func makeDt(_ x: Double) -> Date {
         Date(timeIntervalSinceReferenceDate: x)
     }
@@ -271,7 +489,9 @@ class TotalsTests: XCTestCase {
         } else if r < 0.99 {
             heartrateSeconds += Double.random(in: 1000 ..< 2000)
             
-            let event = HeartrateSecondsEvent(date: date, heartrateSeconds: heartrateSeconds)
+            let event = HeartrateSecondsEvent(
+                date: date,
+                heartrateSeconds: heartrateSeconds)
             if let date = tsSet.heartrateSecondsTimeseries.elements.last?.date {
                 tsSet.totalsTimeseries.reflect(dirtyAfter: date)
             }
@@ -289,7 +509,7 @@ class TotalsTests: XCTestCase {
             tsSet.intensityTimeseries.insert(event)
             tsSet.totalsTimeseries.reflect(intensityEvent: event)
         } else {
-            let event = WorkoutEvent(date: date, isWorkingOut: Bool.random())
+            let event = ResetEvent(date: date)
             tsSet.reflect(event)
         }
     }

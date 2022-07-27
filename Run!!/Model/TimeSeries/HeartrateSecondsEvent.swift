@@ -18,8 +18,8 @@ struct HeartrateSecondsEvent: GenericTimeseriesElement {
         vector = VectorElement(date: date, doubles: [heartrateSeconds])
     }
     
-    /// Total distance since beginning of time in meter
     var heartrateSeconds: Double {vector.doubles![0]}
+    static func heartrateSeconds(_ delta: VectorElementDelta?) -> Double? { delta?.doubles![0] }
 }
 
 extension TimeSeries where Element == HeartrateSecondsEvent {
@@ -27,7 +27,11 @@ extension TimeSeries where Element == HeartrateSecondsEvent {
         guard let prevHr = prevHr else {return nil}
         
         // Satz von Rolle!
-        let heartrateSeconds = Double(currHr.heartrate + prevHr.heartrate) / 2.0 * prevHr.date.distance(to: currHr.date)
-        return Element(date: currHr.date, heartrateSeconds: heartrateSeconds + (elements.last?.heartrateSeconds ?? 0))
+        let duration = prevHr.date.distance(to: currHr.date)
+        let heartrateSeconds = Double(currHr.heartrate + prevHr.heartrate) / 2.0 * duration
+        
+        return Element(
+            date: currHr.date,
+            heartrateSeconds: heartrateSeconds + (elements.last?.heartrateSeconds ?? 0))
     }
 }

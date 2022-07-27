@@ -9,6 +9,7 @@ import SwiftUI
 import CoreBluetooth
 
 struct ScannerView: View {
+    let queue: SerialQueue
     @State private var scanner = ScannerClient()
     
     var body: some View {
@@ -22,13 +23,13 @@ struct ScannerView: View {
                     .refreshable {
                         log("restart scanner")
                         scanner.stop(asOf: .now)
-                        scanner.start(asOf: .now)
+                        scanner.start(asOf: .now, queue: queue)
                     }
             }
         }
         .onAppear {
             log("start scanner")
-            scanner.start(asOf: .now)
+            scanner.start(asOf: .now, queue: queue)
         }
         .onDisappear {
             log("stop scanner")
@@ -78,24 +79,21 @@ private struct ScannerPeripheralView: View {
                         Spacer()
                         BatteryStatusView(status: peripheral.batteryLevel)
                     }
-//                    if let heartrate = peripheral.heartrate {
-//                        HStack(spacing: 0) {
-//                            Image(systemName: "heart")
-//                            HeartrateText(heartrate: heartrate.heartrate)
-//                            Text(" bpm")
-//                            Spacer()
-//                            Image(systemName: "flame")
-//                            if let energyExpended = heartrate.energyExpended {
-//                                Text("\(energyExpended, specifier: "%4d") kJ")
-//                            } else {
-//                                Image(systemName: "questionmark")
-//                            }
-//                            Spacer()
-//                            SkinContactedView(skinIsContacted: peripheral.heartrate?.skinIsContacted)
-//                            Spacer()
-//                            Text(heartrate.timestamp, style: .time)
-//                        }
-//                    }
+                    if let heartrate = peripheral.heartrate {
+                        HStack(spacing: 0) {
+                            Image(systemName: "heart")
+                            HeartrateText(heartrate: heartrate)
+                            Spacer()
+                            Image(systemName: "flame")
+                            if let energyExpended = peripheral.energyExpended {
+                                Text("\(energyExpended, specifier: "%4d") kJ")
+                            } else {
+                                Image(systemName: "questionmark")
+                            }
+                            Spacer()
+                            SkinContactedView(skinIsContacted: peripheral.skinIsContacted)
+                        }
+                    }
                     Divider()
                     PrimaryIgnoredToggle(selection: $selection)
                 }
@@ -164,31 +162,7 @@ private struct ScannerToolbarView: View {
 #if DEBUG
 struct ScannerView_Previews: PreviewProvider {
     static var previews: some View {
-        ScannerView()
+        ScannerView(queue: SerialQueue("X"))
     }
 }
 #endif
-
-/*
- * name -> none, text
- * bodySensorLocation: BodySensorLocation = .Other -> other, chest, etc.
- * rssi -> .nan, value, good - bad
- * Connection state -> unknown, disconnected, connecting, contected, disconnecting
- * Battery Level -> unknown, %
- * heartrate -> unknonw, value
- * timestamp -> unknonw, seconds since last
- * skinIsContacted -> unknonw, contacted, not contacted
- * energyExpended -> not available, energy in KJ
- * isPrimary -> Yes/no
- * isIgnored -> Yes/no
- * id -> text
- * error: no error, error description
-
- var peripheral: CBPeripheral? = nil
-    Services
-        isPrimary
-        Characteristics
- 
- var heartrate: Heartrate? = nil
- rr = nil
- */

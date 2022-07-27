@@ -11,13 +11,13 @@ import CoreMotion
 final class MotionActivityClient: ClientDelegate {
     private var statusCallback: ((ClientStatus) -> Void)?
     private var motionActivityManager: CMMotionActivityManager?
-    private unowned let queue: DispatchQueue
+    private unowned let queue: SerialQueue
     private unowned let timeseriesSet: TimeSeriesSet
     private unowned let motionActivityTimeseries: TimeSeries<MotionActivityEvent, None>
     @Persistent(key: "com.apps4live.Run!!.MotionActivityClient.lastRun") private var lastRun: Date = .distantPast
 
     init(
-        queue: DispatchQueue,
+        queue: SerialQueue,
         timeseriesSet: TimeSeriesSet,
         motionActivityTimeseries: TimeSeries<MotionActivityEvent, None>)
     {

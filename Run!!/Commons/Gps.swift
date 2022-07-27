@@ -17,3 +17,5 @@ extension MKCoordinateRegion: Equatable {
         return true
     }
 }
+
+let londonGps = CLLocationCoordinate2D(latitude: 51.50596554957191, longitude: -0.07491224413290111)

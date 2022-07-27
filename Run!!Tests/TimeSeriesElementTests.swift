@@ -12,7 +12,6 @@ class TimeSeriesElementTests: XCTestCase {
 
     private struct TestTimeSeries: GenericTimeseriesElement, Equatable {
         static var key: String = ""
-
         let vector: VectorElement<Bool>
         init(_ vector: VectorElement<Bool>) {self.vector = vector}
 
@@ -25,6 +24,19 @@ class TimeSeriesElementTests: XCTestCase {
                 optionalInts: [optInt],
                 categorical: categorical,
                 withClamping: withClamping)
+        }
+        
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            if lhs.vector == rhs.vector {return true}
+            
+            guard lhs.vector.date == rhs.vector.date else {return false}
+            guard lhs.vector.doubles == rhs.vector.doubles else {return false}
+            guard lhs.vector.ints == rhs.vector.ints else {return false}
+            guard lhs.vector.optionalDoubles == rhs.vector.optionalDoubles else {return false}
+            guard lhs.vector.optionalInts == rhs.vector.optionalInts else {return false}
+            guard lhs.vector.categorical == rhs.vector.categorical else {return false}
+            guard lhs.vector.withClamping == rhs.vector.withClamping else {return false}
+            return true
         }
     }
 
@@ -55,6 +67,7 @@ class TimeSeriesElementTests: XCTestCase {
         let y = TestTimeSeries(date: makeDt(1500), int: 2, double: 4, optInt: 6, optDouble: 8, categorical: true)
         let expected = VectorElementDelta(
             duration: 1.0,
+            originalDuration: 1.0,
             doubles: [2.0 / 1000.0],
             ints: [1.0 / 1000.0],
             optionalDoubles: [4.0 / 1000.0],
@@ -67,6 +80,7 @@ class TimeSeriesElementTests: XCTestCase {
         let y = TestTimeSeries(date: makeDt(1500), int: 2, double: 4, optInt: 6, optDouble: 8, categorical: true)
         let expected = VectorElementDelta(
             duration: 1.0,
+            originalDuration: 1.0,
             doubles: [2.0 / 1000.0],
             ints: [1.0 / 1000.0],
             optionalDoubles: [nil],
@@ -79,6 +93,7 @@ class TimeSeriesElementTests: XCTestCase {
         let y = TestTimeSeries(date: makeDt(1500), int: 2, double: 4, optInt: nil, optDouble: nil, categorical: true)
         let expected = VectorElementDelta(
             duration: 1.0,
+            originalDuration: 1.0,
             doubles: [2.0 / 1000.0],
             ints: [1.0 / 1000.0],
             optionalDoubles: [nil],
@@ -91,6 +106,7 @@ class TimeSeriesElementTests: XCTestCase {
         let y = TestTimeSeries(date: makeDt(1500), int: 2, double: 4, optInt: nil, optDouble: nil, categorical: true)
         let expected = VectorElementDelta(
             duration: 1.0,
+            originalDuration: 1.0,
             doubles: [2.0 / 1000.0],
             ints: [1.0 / 1000.0],
             optionalDoubles: [nil],

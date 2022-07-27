@@ -11,176 +11,142 @@ import Combine
 
 @main
 struct Run__App: App {
-    @Environment(\.scenePhase) private var scenePhase
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    @State private var isRunViewActive: Bool = true
-    
+    @Environment(\.scenePhase) var scenePhase
+    @StateObject private var appStatus = AppStatus()
+    @StateObject private var timeseriesSet = TimeSeriesSet(queue: queue)
+    @StateObject private var clientsSet = ClientsSet(queue: queue)
+
     var body: some Scene {
         WindowGroup {
-            RunAppView(isRunViewActive: $isRunViewActive)
-                .onChange(of: scenePhase) {
-                    AppTwin.shared.scenePhaseChanged(at: .now, prev: scenePhase, curr: $0, isRunViewActive)
+            RunAppView(queue: queue)
+                .onAppear {
+                    clientsSet.connect(timeseriesSet: timeseriesSet)
+                    appStatus.delegate = AppStatusDelegate(timeseriesSet, clientsSet)
                 }
-                .onChange(of: isRunViewActive) {
-                    AppTwin.shared.runViewActiveChanged(at: .now, $0)
+                .onChange(of: scenePhase) { newPhase in
+                    if newPhase == .inactive {
+                        appStatus.isAppOnForeground = true
+                    } else if newPhase == .active {
+                        appStatus.isAppOnForeground = true
+                    } else if newPhase == .background {
+                        appStatus.isAppOnForeground = false
+                    }
                 }
+                .environmentObject(appStatus)
+                .environmentObject(timeseriesSet)
+                .environmentObject(clientsSet)
         }
     }
 }
 
-class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool
-    {
-        let launchedAt = Date.now
-        log("Launch with options", launchOptions?.keys ?? [])
-        if let bleOption = launchOptions?[.bluetoothCentrals] as? [String] {
-            log(bleOption)
-            AppTwin.shared.launchedByBle(launchedAt, restoreIds: bleOption)
-        }
-        if let gpsOption = launchOptions?[.location] {
-            log(gpsOption)
-            AppTwin.shared.launchedByGps(launchedAt)
-        }
-        if launchOptions?.isEmpty ?? true {
-            log("launched by user")
-            AppTwin.shared.launchedByUser(launchedAt)
-        }
-        return true
-    }
+protocol RunAppStatusDelegate: AnyObject {
+    /// App is in background or terminated. User opens it and it moves straight into RunView.
+    func enterForegroundIntoRunView(asOf: Date)
+    
+    /// App is in background or terminated. User opens it and it moves into any other View like "improve" or "profile".
+    func enterForegroundIntoOtherView(asOf: Date)
+    
+    /// App is started, in foreground and in RunView. User moves away from RunView into any other view.
+    func leaveRunViewWhileInForeground(asOf: Date)
+    
+    /// App is started, in foreground and in any other view but RunView. User moves into from RunView from any other view.
+    func enterRunViewWhileInForeground(asOf: Date)
+    
+    /// App is started, in foreground and in RunView. User closes app or moves it into ackground while RunView is open.
+    func leaveForegroundWhileInRunView(asOf: Date)
+    
+    /// App is started, in foreground and in any other view but RunView. User closes app or moves it into ackground.
+    func leaveForegroundWhileInOtherView(asOf: Date)
 }
 
-class AppTwin: ObservableObject {
-    static let shared = AppTwin()
-    private init() {
-        queue = DispatchQueue(label: "run-processing", qos: .userInitiated)
+class AppStatus: ObservableObject {
+    init() {
         Files.initDirectory()
+    }
+    
+    var delegate: AppStatusDelegate?
+    
+    var isRunViewActive: Bool = false {
+        didSet {
+            if oldValue == isRunViewActive {return}
+            let asOf = Date.now
 
-        // Timeseries
-        timeseriesSet = TimeSeriesSet(queue: queue)
+            if isRunViewActive {
+                if isAppOnForeground {
+                    delegate?.enterRunViewWhileInForeground(asOf: asOf)
+                }
+            } else {
+                if isAppOnForeground {
+                    delegate?.leaveRunViewWhileInForeground(asOf: asOf)
+                }
+            }
+        }
+    }
+    
+    var isAppOnForeground: Bool = false {
+        didSet {
+            if oldValue == isAppOnForeground {return}
+            let asOf = Date.now
 
-        // Clients
-        sensorClients = [
-            Client(
-                delegate: PedometerDataClient(
-                    queue: queue,
-                    timeseriesSet: timeseriesSet,
-                    pedometerDataTimeseries: timeseriesSet.pedometerDataTimeseries)),
-            Client(
-                delegate: PedometerEventClient(
-                    queue: queue,
-                    timeseriesSet: timeseriesSet,
-                    pedometerEventTimeseries: timeseriesSet.pedometerEventTimeseries)),
-            Client(
-                delegate: MotionActivityClient(
-                    queue: queue,
-                    timeseriesSet: timeseriesSet,
-                    motionActivityTimeseries: timeseriesSet.motionActivityTimeseries)),
-            Client(
-                delegate: LocationClient(
-                    queue: queue,
-                    timeseriesSet: timeseriesSet,
-                    locationTimeseries: timeseriesSet.locationTimeseries)),
-            Client(
-                delegate: HeartrateMonitorClient(
-                    queue: queue,
-                    timeseriesSet: timeseriesSet,
-                    heartrateTimeseries: timeseriesSet.heartrateTimeseries,
-                    batteryLevelTimeseries: timeseriesSet.batteryLevelTimeseries,
-                    bodySensorLocationTimeseries: timeseriesSet.bodySensorLocationTimeseries,
-                    peripheralTimeseries: timeseriesSet.peripheralTimeseries))
-        ]
-        workoutClient = Client(
-            delegate: WorkoutClient(
-                queue: queue,
-                timeseriesSet: timeseriesSet))
-        timerClient = Client(delegate: TimerClient(sensorClients + [workoutClient]))
-
-        $runAppStatus
-            .sink { [self] runAppStatus in
-                let oldValue = self.runAppStatus
-                let asOf = Date.now
-                log(asOf, oldValue, runAppStatus)
-
-                if case .activeRunView = runAppStatus {
-                    log("User did move to RunView")
-                    Profile.onAppear()
-                    sensorClients.forEach {$0.start(asOf: asOf)}
-                    timerClient.start(asOf: asOf)
-                }
-                if case .activeRunView = oldValue {
-                    log("User left RunView")
-                    timerClient.stop(asOf: asOf)
-                }
-                if case .activeRunView = oldValue, case .stopped = workoutClient.status {
-                    log("User left RunView without working out")
-                    sensorClients.forEach {$0.stop(asOf: asOf)}
-                }
-                if case .background = runAppStatus, case .started = workoutClient.status {
-                    log("User left RunView while still in Workout")
-                    AppTwin.userReturn()
-                }
-                if case .background = runAppStatus {
-                    log("App moved to background")
-                    timeseriesSet.isInBackground = true
+            if isAppOnForeground {
+                if isRunViewActive {
+                    delegate?.enterForegroundIntoRunView(asOf: asOf)
                 } else {
-                    log("User moved to foreground")
-                    timeseriesSet.isInBackground = false
+                    delegate?.enterForegroundIntoOtherView(asOf: asOf)
+                }
+            } else {
+                if isRunViewActive {
+                    delegate?.leaveForegroundWhileInRunView(asOf: asOf)
+                } else {
+                    delegate?.leaveForegroundWhileInOtherView(asOf: asOf)
                 }
             }
-            .store(in: &subscribers)
-    }
-    
-    func launchedByBle(_ at: Date, restoreIds: [String]) {
-        runAppStatus = .background(since: at)
-    }
-    
-    func launchedByGps(_ at: Date) {
-        runAppStatus = .background(since: at)
-    }
-    
-    func launchedByUser(_ at: Date) {
-        runAppStatus = .background(since: at)
-    }
-    
-    func scenePhaseChanged(at: Date, prev: ScenePhase, curr: ScenePhase, _ isRunViewActive: Bool) {
-        switch curr {
-        case .active:
-            runViewActiveChanged(at: at, isRunViewActive)
-        case .inactive:
-            if prev == .active {
-                runAppStatus = .background(since: at)
-            }
-        case .background:
-            if prev == .active {
-                runAppStatus = .background(since: at)
-            }
-        @unknown default:
-            check("ScenePhase unknown!")
         }
     }
-    
-    func runViewActiveChanged(at: Date, _ isRunViewActive: Bool) {
-        if isRunViewActive {
-            runAppStatus = .activeRunView(since: at)
-        } else {
-            runAppStatus = .inactiveRunView(since: at)
-        }
+}
+
+class AppStatusDelegate: RunAppStatusDelegate {
+    init(_ timeseriesSet: TimeSeriesSet, _ clientSet: ClientsSet) {
+        self.timeseriesSet = timeseriesSet
+        self.clientSet = clientSet
+        log()
     }
     
-    @Published private(set) var runAppStatus: RunAppStatus = .terminated
+    func enterForegroundIntoRunView(asOf: Date) {
+        log()
+        timeseriesSet.isInBackground = false
+        clientSet.startSensors(asOf: asOf)
+    }
     
-    let queue: DispatchQueue
+    func enterForegroundIntoOtherView(asOf: Date) {
+        log()
+        timeseriesSet.isInBackground = false
+        clientSet.stopSensors(asOf: asOf)
+    }
     
-    // Clients
-    let sensorClients: [Client]
-    let workoutClient: Client
-    let timerClient: Client
+    func leaveRunViewWhileInForeground(asOf: Date) {
+        log()
+        clientSet.stopSensors(asOf: asOf)
+    }
     
-    // Timeseries
-    let timeseriesSet: TimeSeriesSet
+    func enterRunViewWhileInForeground(asOf: Date) {
+        log()
+        clientSet.startSensors(asOf: asOf)
+    }
+    
+    func leaveForegroundWhileInRunView(asOf: Date) {
+        log()
+        timeseriesSet.isInBackground = true
+        AppStatusDelegate.userReturn()
+    }
+    
+    func leaveForegroundWhileInOtherView(asOf: Date) {
+        log()
+        timeseriesSet.isInBackground = true
+    }
+    
+    private let timeseriesSet: TimeSeriesSet
+    private let clientSet: ClientsSet
 
     private static func userReturn() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
@@ -201,15 +167,8 @@ class AppTwin: ObservableObject {
             UNUserNotificationCenter.current().add(request)
         }
     }
-    
-    private var subscribers = Set<AnyCancellable>()
 }
 
-enum RunAppStatus  {
-    case terminated
-    case background(since: Date)
-    case activeRunView(since: Date)
-    case inactiveRunView(since: Date)
-}
-
-let workoutTimeout: TimeInterval = 12*3600
+// Very global variables
+private let queue = SerialQueue("run-processing")
+let workoutTimeout: TimeInterval = 6 * 3600

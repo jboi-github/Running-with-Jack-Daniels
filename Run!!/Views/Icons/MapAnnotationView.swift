@@ -27,7 +27,10 @@ struct MapAnnotationView: View {
                         center: .center,
                         startRadius: accuracyRadius / bitCount(accuracyRadius),
                         endRadius: accuracyRadius))
-                .frame(width: 2*accuracyRadius, height: 2*accuracyRadius, alignment: .center)
+                .frame(
+                    width: 2 * Double(accuracyRadius).ifNotFinite(1),
+                    height: 2 * Double(accuracyRadius).ifNotFinite(1),
+                    alignment: .center)
             Arc(
                 startAngle: .degrees(courseMinAngle),
                 endAngle: .degrees(courseMaxAngle))
@@ -37,7 +40,10 @@ struct MapAnnotationView: View {
                         center: .center,
                         startRadius: speedMinRadius,
                         endRadius: speedMaxRadius))
-                .frame(width: 2*speedMaxRadius, height: 2*speedMaxRadius)
+                .frame(
+                    width: 2 * Double(speedMaxRadius).ifNotFinite(1),
+                    height: 2 * Double(speedMaxRadius).ifNotFinite(1),
+                    alignment: .center)
                 .rotationEffect(.degrees(-90))
             Circle()
                 .foregroundColor(textColor)
@@ -49,7 +55,7 @@ struct MapAnnotationView: View {
     }
     
     private func bitCount(_ x: CGFloat) -> CGFloat {
-        CGFloat(max(1, UInt.bitWidth - UInt(x).leadingZeroBitCount))
+        CGFloat(max(1, UInt.bitWidth - UInt(Double(x).ifNotFinite(0)).leadingZeroBitCount))
     }
 }
 

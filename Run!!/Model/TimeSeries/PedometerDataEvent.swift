@@ -46,6 +46,10 @@ struct PedometerDataEvent: GenericTimeseriesElement {
     
     /// Average speed up to date
     var speed: CLLocationSpeed? {vector.categorical?.speed}
+    
+    static func numberOfSteps(_ delta: VectorElementDelta?) -> Double? {delta?.ints![0]}
+    static func distance(_ delta: VectorElementDelta?) -> CLLocationDistance? {delta?.optionalDoubles![0]}
+    static func activeDuration(_ delta: VectorElementDelta?) -> TimeInterval? {delta?.optionalDoubles![1]}
 }
 
 extension TimeSeries where Element == PedometerDataEvent {

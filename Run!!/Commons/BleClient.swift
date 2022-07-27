@@ -50,10 +50,11 @@ class BleClient {
         let readers: [CBUUID: (UUID, Data?, Date) -> Void]
     }
     
-    func start(config: Config, asOf: Date, transientFailedPeripheralUuid: UUID?) {
+    func start(config: Config, asOf: Date, queue: SerialQueue, transientFailedPeripheralUuid: UUID?) {
         if case .started = status {return}
         
         self.config = config
+        self.queue = queue
         let pu = transientFailedPeripheralUuid == config.primaryUuid ? nil : config.primaryUuid
         let iu = config.ignoredUuids + [transientFailedPeripheralUuid].compactMap {$0}
         
@@ -151,6 +152,7 @@ class BleClient {
     }
 
     // MARK: Implementation
+    private unowned var queue: SerialQueue?
     private var config: Config?
     private var status = ClientStatus.stopped(since: .distantPast)
     private var centralManagerDelegate: CBCentralManagerDelegate?
@@ -176,16 +178,15 @@ class BleClient {
         if peripherals.isEmpty && centralManager?.isScanning ?? false {
             // Ignore the failed peripheral in this scan.
             stop(asOf: asOf)
-            DispatchQueue
-                .global(qos: .userInteractive)
-                .asyncAfter(deadline: .now() + 10) { [self] in
-                    if let config = config {
-                        start(
-                            config: config,
-                            asOf: Date(),
-                            transientFailedPeripheralUuid: peripheralUuid)
-                    }
-                }
+            guard let config = config, let queue = queue else {return}
+
+            queue.asyncAfter(delay: 10) {
+                self.start(
+                    config: config,
+                    asOf: Date(),
+                    queue: queue,
+                    transientFailedPeripheralUuid: peripheralUuid)
+            }
         }
     }
 }
@@ -424,7 +425,7 @@ extension BleClient {
     /// Read every 5 minutes
     func poll(seconds: TimeInterval, _ peripheralUuid: UUID, _ characteristicUuid: CBUUID, _ properties: CBCharacteristicProperties) {
         read(peripheralUuid, characteristicUuid, properties)
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + seconds) {
+        queue?.asyncAfter(delay: seconds) {
             self.poll(seconds: seconds, peripheralUuid, characteristicUuid, properties)
         }
     }

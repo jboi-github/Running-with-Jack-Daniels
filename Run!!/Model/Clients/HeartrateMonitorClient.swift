@@ -11,7 +11,7 @@ import CoreBluetooth
 final class HeartrateMonitorClient: ClientDelegate {
     private var statusCallback: ((ClientStatus) -> Void)?
     private let bleClient = BleClient()
-    private unowned let queue: DispatchQueue
+    private unowned let queue: SerialQueue
     private unowned let timeseriesSet: TimeSeriesSet
     private unowned let heartrateTimeseries: TimeSeries<HeartrateEvent, None>
     private unowned let batteryLevelTimeseries: TimeSeries<BatteryLevelEvent, None>
@@ -19,7 +19,7 @@ final class HeartrateMonitorClient: ClientDelegate {
     private unowned let peripheralTimeseries: TimeSeries<PeripheralEvent, None>
 
     init(
-        queue: DispatchQueue,
+        queue: SerialQueue,
         timeseriesSet: TimeSeriesSet,
         heartrateTimeseries: TimeSeries<HeartrateEvent, None>,
         batteryLevelTimeseries: TimeSeries<BatteryLevelEvent, None>,
@@ -45,13 +45,7 @@ final class HeartrateMonitorClient: ClientDelegate {
                 ignoredUuids: Store.ignoredPeripherals,
                 stopScanningAfterFirst: true,
                 restoreId: "com.apps4live.Run!!.HeartrateMonitorClient.restoreId",
-                status: { status in
-                    log(status)
-                    if case .notAvailable = status {
-                        log()
-                    }
-                    DispatchQueue.main.async {self.statusCallback?(status)}
-                },
+                status: { self.statusCallback?($0) },
                 discoveredPeripheral: { date, peripheral in
                     self.queue.async{ [self] in
                         guard let event = peripheralTimeseries.parse(date, peripheral) else {return}
@@ -77,11 +71,11 @@ final class HeartrateMonitorClient: ClientDelegate {
                     CBUUID(string: "2A19"): {self.bleClient.poll(seconds: 300, $0, $1, $2)}
                 ],
                 readers: [
-                    CBUUID(string: "2A37"): parseHrMeasure,
+                    CBUUID(string: "2A37"): parseHeartrate,
                     CBUUID(string: "2A38"): parseBodySensorLocation,
                     CBUUID(string: "2A19"): parseBatteryLevel
                 ]),
-            asOf: asOf, transientFailedPeripheralUuid: nil)
+            asOf: asOf, queue: queue, transientFailedPeripheralUuid: nil)
         return .started(since: asOf)
     }
     
@@ -89,7 +83,7 @@ final class HeartrateMonitorClient: ClientDelegate {
         bleClient.stop(asOf: asOf)
     }
 
-    private func parseHrMeasure(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
+    private func parseHeartrate(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
         queue.async { [self] in
             guard let heartrateEvent = heartrateTimeseries.parse(timestamp, data) else {return}

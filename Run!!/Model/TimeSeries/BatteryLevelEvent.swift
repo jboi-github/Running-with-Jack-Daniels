@@ -23,8 +23,8 @@ struct BatteryLevelEvent: GenericTimeseriesElement {
 
 extension TimeSeries where Element == BatteryLevelEvent {
     func parse(_ asOf: Date, _ data: Data?) -> Element? {
-        guard let data = data, !data.isEmpty else {return nil}
-        let result = Element(date: asOf, level: Int([UInt8](data)[0]))
+        guard let level: Int = HRM.parse(data) else {return nil}
+        let result = Element(date: asOf, level: level)
         
         if let last = elements.last, last.level == result.level {return nil}
         return result

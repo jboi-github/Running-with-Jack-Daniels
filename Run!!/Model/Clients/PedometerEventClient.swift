@@ -11,12 +11,12 @@ import CoreMotion
 final class PedometerEventClient: ClientDelegate {
     private var statusCallback: ((ClientStatus) -> Void)?
     private var pedometer: CMPedometer?
-    private unowned let queue: DispatchQueue
+    private unowned let queue: SerialQueue
     private unowned let timeseriesSet: TimeSeriesSet
     private unowned let pedometerEventTimeseries: TimeSeries<PedometerEvent, None>
     
     init(
-        queue: DispatchQueue,
+        queue: SerialQueue,
         timeseriesSet: TimeSeriesSet,
         pedometerEventTimeseries: TimeSeries<PedometerEvent, None>)
     {

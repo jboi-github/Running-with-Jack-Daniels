@@ -65,6 +65,9 @@ protocol TimeSeriesElement: Dated, Codable {
     
     /// Linear inter- or extrapolation between `self` and `towards`. if `clamped` any value outside self or towards is kept constant along time axis.
     func interpolate(at: Date, _ towards: Self) -> Self
+
+    /// Migrate element after load, e.g. if an older version needs to be migrated to current version.
+    init(_ element: Self)
 }
 
 extension TimeSeriesElement {
@@ -79,8 +82,21 @@ protocol KeyedTimeSeriesElement: TimeSeriesElement {
 
 // MARK: Generic TimeseriesElement
 struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorical: Codable & Equatable {
+    /// Migrate element after load, e.g. if an older version needs to be migrated to current version.
+    init(_ element: Self) {
+        self.date = element.date
+        self.originalDate = element.originalDate
+        self.doubles = element.doubles
+        self.ints = element.ints
+        self.optionalDoubles = element.optionalDoubles
+        self.optionalInts = element.optionalInts
+        self.categorical = element.categorical
+        self.withClamping = element.withClamping
+    }
+    
     init(
         date: Date,
+        originalDate: Date = .distantFuture,
         doubles: [Double]? = nil,
         ints: [Int]? = nil,
         optionalDoubles: [Double?]? = nil,
@@ -89,6 +105,7 @@ struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorica
         withClamping: Bool = true)
     {
         self.date = date
+        self.originalDate = originalDate == .distantFuture ? date : originalDate
         self.doubles = doubles
         self.ints = ints
         self.optionalDoubles = optionalDoubles
@@ -99,6 +116,7 @@ struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorica
     
     init(
         date: Date,
+        originalDate: Date = .distantFuture,
         doubles: [Double]? = nil,
         ints: [Int]? = nil,
         optionalDoubles: [Double?]? = nil,
@@ -107,6 +125,7 @@ struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorica
     where Categorical == None
     {
         self.date = date
+        self.originalDate = originalDate == .distantFuture ? date : originalDate
         self.doubles = doubles
         self.ints = ints
         self.optionalDoubles = optionalDoubles
@@ -118,6 +137,7 @@ struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorica
     func distance(to: VectorElement) -> VectorElementDelta {
         VectorElementDelta(
             duration: date.distance(to: to.date),
+            originalDuration: originalDate.distance(to: to.originalDate),
             doubles: doubles?.indices.map {doubles?[$0].distance(to: to.doubles?[$0] ?? 0.0) ?? 0.0},
             ints: ints?.indices.map {Double(ints?[$0].distance(to: to.ints?[$0] ?? 0) ?? 0)},
             optionalDoubles: optionalDoubles?.indices.map {optionalDoubles?[$0].distance(to: to.optionalDoubles?[$0])},
@@ -133,6 +153,7 @@ struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorica
     func advanced(by: VectorElementDelta) -> VectorElement {
         VectorElement(
             date: date.advanced(by: by.duration),
+            originalDate: originalDate.advanced(by: by.originalDuration),
             doubles: doubles?.indices.map {doubles?[$0].advanced(by: by.doubles?[$0] ?? 0.0) ?? 0.0},
             ints: ints?.indices.map {ints?[$0].advanced(by: Int((by.ints?[$0] ?? 0.0) + 0.5)) ?? 0},
             optionalDoubles: optionalDoubles?.indices.map {optionalDoubles?[$0].advanced(by: by.optionalDoubles?[$0])},
@@ -150,6 +171,7 @@ struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorica
     func extrapolate(at: Date) -> VectorElement {
         VectorElement(
             date: at,
+            originalDate: date,
             doubles: doubles,
             ints: ints,
             optionalDoubles: optionalDoubles,
@@ -176,6 +198,7 @@ struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorica
     
     typealias Delta = VectorElementDelta
     let date: Date
+    let originalDate: Date
     var doubles: [Double]?
     var ints: [Int]?
     var optionalDoubles: [Double?]?
@@ -184,10 +207,41 @@ struct VectorElement<Categorical>: TimeSeriesElement, Equatable where Categorica
     let withClamping: Bool
 }
 
-struct VectorElementDelta: Scalable, Equatable {
+struct VectorElementDelta: Scalable, AdditiveArithmetic, Equatable {
+    // AdditiveArithmetic
+    static func - (lhs: VectorElementDelta, rhs: VectorElementDelta) -> VectorElementDelta {
+        VectorElementDelta(
+            duration: lhs.duration - rhs.duration,
+            originalDuration: lhs.originalDuration - rhs.originalDuration,
+            doubles: (lhs.doubles ?? []).zipSub(by: rhs.doubles ?? []),
+            ints: (lhs.ints ?? []).zipSub(by: rhs.ints ?? []),
+            optionalDoubles: (lhs.optionalDoubles ?? []).zipSub(by: rhs.optionalDoubles ?? []),
+            optionalInts: (lhs.optionalInts ?? []).zipSub(by: rhs.optionalInts ?? []))
+    }
+    
+    static func + (lhs: VectorElementDelta, rhs: VectorElementDelta) -> VectorElementDelta {
+        VectorElementDelta(
+            duration: lhs.duration + rhs.duration,
+            originalDuration: lhs.originalDuration + rhs.originalDuration,
+            doubles: (lhs.doubles ?? []).zipAdd(to: rhs.doubles ?? []),
+            ints: (lhs.ints ?? []).zipAdd(to: rhs.ints ?? []),
+            optionalDoubles: (lhs.optionalDoubles ?? []).zipAdd(to: rhs.optionalDoubles ?? []),
+            optionalInts: (lhs.optionalInts ?? []).zipAdd(to: rhs.optionalInts ?? []))
+    }
+    
+    static var zero = VectorElementDelta(
+        duration: 0,
+        originalDuration: 0,
+        doubles: nil,
+        ints: nil,
+        optionalDoubles: nil,
+        optionalInts: nil)
+
+    // Scalable
     static func * (lhs: VectorElementDelta, rhs: Double) -> VectorElementDelta {
         VectorElementDelta(
             duration: lhs.duration * rhs,
+            originalDuration: lhs.originalDuration * rhs,
             doubles: lhs.doubles?.map {$0 * rhs},
             ints: lhs.ints?.map {$0 * rhs},
             optionalDoubles: lhs.optionalDoubles?.map {
@@ -207,15 +261,22 @@ struct VectorElementDelta: Scalable, Equatable {
     }
     
     let duration: TimeInterval
+    let originalDuration: TimeInterval
     let doubles: [Double]?
     let ints: [Double]?
     let optionalDoubles: [Double?]?
     let optionalInts: [Double?]?
+    
+    /// Normalize down to `duration = 1`
+    func normalize() -> Self {self * (1.0 / duration)}
+    
+    /// Normalize down to `originalDuration = 1`
+    func originalNormalize() -> Self {self * (1.0 / originalDuration)}
 }
 
 protocol GenericTimeseriesElement: KeyedTimeSeriesElement, Equatable where Delta == VectorElementDelta {
     associatedtype Categorical: Codable, Equatable
-    
+
     var vector: VectorElement<Categorical> {get}
     init(_ vector: VectorElement<Categorical>)
 }
@@ -227,6 +288,10 @@ extension GenericTimeseriesElement {
     func advanced(by: Delta) -> Self {Self(vector.advanced(by: by))}
     func extrapolate(at: Date) -> Self {Self(vector.extrapolate(at: at))}
     func interpolate(at: Date, _ towards: Self) -> Self {Self(vector.interpolate(at: at, towards.vector))}
+
+    init(_ element: Self) {
+        self.init(element.vector)
+    }
 }
 
 enum None: Codable, Equatable {
@@ -241,18 +306,20 @@ enum None: Codable, Equatable {
 /// - Travers through elements in date order
 /// - Travers through a number of different timeseries, returning a sequence of tuples or given time series by time. Missing elements are inter- oder extrapolated.
 class TimeSeries<Element, Meta> where Element: KeyedTimeSeriesElement, Meta: Codable {
-    private let queue: DispatchQueue
+    private unowned let queue: SerialQueue
     
-    private(set) var elements: [Element] = Files.read(from: "\(Element.key).json") ?? []
+    private(set) var elements: [Element] = {
+        return (Files.read(from: "\(Element.key).json") ?? []).map { Element($0) }
+    }()
     var meta: Meta? = Files.read(from: "\(Element.key).meta.json")
     private(set) var isDirty: Bool = false {
         didSet {
             guard isDirty && !oldValue else {return}
-            queue.asyncAfter(deadline: .now() + 30) { [self] in if isInBackground {save()}}
+            queue.asyncAfter(delay: 30) { [self] in if isInBackground {save()}}
         }
     }
 
-    init(queue: DispatchQueue) {self.queue = queue}
+    init(queue: SerialQueue) {self.queue = queue}
     
     /// Insert a new element, enforce ascending order by date.
     @discardableResult func insert(_ element: Element) -> Int {
@@ -281,6 +348,19 @@ class TimeSeries<Element, Meta> where Element: KeyedTimeSeriesElement, Meta: Cod
     subscript (_ idx: Int) -> Element? {
         get {elements.indices.contains(idx) ? elements[idx] : nil}
         set {if let newValue = newValue, elements.indices.contains(idx) {elements[idx] = newValue}}
+    }
+    
+    /// Return elements over index range.
+    subscript (_ idx: Range<Int>) -> [Element] {elements[idx.clamped(to: elements.indices)].array()}
+    
+    /// Return elements over date range.
+    subscript (_ dates: Range<Date>) -> [Element] where Element: GenericTimeseriesElement {
+        let lowerIdx = getIdx(for: dates.lowerBound)
+        let upperIdx = getIdx(for: dates.upperBound)
+        
+        let fromIdx = lowerIdx.at ?? lowerIdx.after ?? Int.max
+        let toIdx = upperIdx.at ?? upperIdx.before ?? Int.min
+        return fromIdx <= toIdx ? self[fromIdx ..< (toIdx + 1)] : []
     }
 
     /// Archive data and truncate in array. Always keep up to two elements which have older or equal date.
@@ -317,7 +397,7 @@ class TimeSeries<Element, Meta> where Element: KeyedTimeSeriesElement, Meta: Cod
         didSet {if isInBackground && !oldValue {save()}}
     }
 
-    private func getByIdx(date: Date, before: Int?, at: Int?, after: Int?) -> Element? {
+    private func getByIdx(date: Date, before: Int?, at: Int?, after: Int?, extrapolated: Bool = true) -> Element? {
         if let at = at {
             return elements[at]
         } else if let before = before, let after = after {
@@ -326,13 +406,13 @@ class TimeSeries<Element, Meta> where Element: KeyedTimeSeriesElement, Meta: Cod
             if elements.startIndex < before {
                 return elements[before - 1].interpolate(at: date, elements[before])
             } else {
-                return elements[before].extrapolate(at: date)
+                return extrapolated ? elements[before].extrapolate(at: date) : elements[before]
             }
         } else if let after = after {
-            if elements.endIndex > after+1 {
-                return elements[after].interpolate(at: date, elements[after+1])
+            if elements.endIndex > after + 1 {
+                return elements[after].interpolate(at: date, elements[after + 1])
             } else {
-                return elements[after].extrapolate(at: date)
+                return extrapolated ? elements[after].extrapolate(at: date) : elements[after]
             }
         } else {
             return nil

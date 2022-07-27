@@ -11,18 +11,22 @@ import CoreMotion
 import CoreLocation
 
 class DerivedEventTests: XCTestCase {
+    
+    var queue: SerialQueue!
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
+        queue = SerialQueue("X")
     }
 
     override func tearDownWithError() throws {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
+        queue = nil
     }
 
     // MARK: PedometerDataEvent
     func testPedometerDataParserFirst() throws {
-        let ts = TimeSeries<PedometerDataEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<PedometerDataEvent, None>(queue: queue)
         ts.reset()
         let actual = ts.newElements(makeDt(1000), PedometerDataEvent(date: makeDt(2000), numberOfSteps: 100, distance: 10, activeDuration: 100))
         let expected = [PedometerDataEvent(date: makeDt(2000), numberOfSteps: 100, distance: 10, activeDuration: 100)]
@@ -30,7 +34,7 @@ class DerivedEventTests: XCTestCase {
     }
     
     func testPedometerDataParserNoGap() throws {
-        let ts = TimeSeries<PedometerDataEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<PedometerDataEvent, None>(queue: queue)
         ts.reset()
         ts.insert(PedometerDataEvent(date: makeDt(1000), numberOfSteps: 50, distance: 5, activeDuration: nil))
         
@@ -42,7 +46,7 @@ class DerivedEventTests: XCTestCase {
     }
 
     func testPedometerDataParserGap() throws {
-        let ts = TimeSeries<PedometerDataEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<PedometerDataEvent, None>(queue: queue)
         ts.reset()
         ts.insert(PedometerDataEvent(date: makeDt(1000), numberOfSteps: 50, distance: 5, activeDuration: nil))
         
@@ -51,11 +55,14 @@ class DerivedEventTests: XCTestCase {
             PedometerDataEvent(date: makeDt(1500), numberOfSteps: 50, distance: 5, activeDuration: nil),
             PedometerDataEvent(date: makeDt(2000), numberOfSteps: 100, distance: 10, activeDuration: 100)
         ]
-        XCTAssertEqual(actual, expected)
+        XCTAssertEqual(actual.map {$0.date}, expected.map {$0.date})
+        XCTAssertEqual(actual.map {$0.numberOfSteps}, expected.map {$0.numberOfSteps})
+        XCTAssertEqual(actual.map {$0.distance}, expected.map {$0.distance})
+        XCTAssertEqual(actual.map {$0.activeDuration}, expected.map {$0.activeDuration})
     }
 
     func testPedometerDataParserNegativGap() throws {
-        let ts = TimeSeries<PedometerDataEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<PedometerDataEvent, None>(queue: queue)
         ts.reset()
         ts.insert(PedometerDataEvent(date: makeDt(1000), numberOfSteps: 50, distance: 5, activeDuration: nil))
         
@@ -64,12 +71,15 @@ class DerivedEventTests: XCTestCase {
             PedometerDataEvent(date: makeDt(500), numberOfSteps: 50, distance: 5, activeDuration: nil),
             PedometerDataEvent(date: makeDt(2000), numberOfSteps: 100, distance: 10, activeDuration: 100)
         ]
-        XCTAssertEqual(actual, expected)
+        XCTAssertEqual(actual.map {$0.date}, expected.map {$0.date})
+        XCTAssertEqual(actual.map {$0.numberOfSteps}, expected.map {$0.numberOfSteps})
+        XCTAssertEqual(actual.map {$0.distance}, expected.map {$0.distance})
+        XCTAssertEqual(actual.map {$0.activeDuration}, expected.map {$0.activeDuration})
     }
     
     // MARK: DistanceEvent
     func testDistanceFirstElFirstLoc() throws {
-        let ts = TimeSeries<DistanceEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<DistanceEvent, None>(queue: queue)
         ts.reset()
         let actual = ts.parse(
             CLLocation(
@@ -84,7 +94,7 @@ class DerivedEventTests: XCTestCase {
     }
     
     func testDistanceFirstElSecondLoc() throws {
-        let ts = TimeSeries<DistanceEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<DistanceEvent, None>(queue: queue)
         ts.reset()
         let actual = ts.parse(
             CLLocation(
@@ -108,7 +118,7 @@ class DerivedEventTests: XCTestCase {
     }
     
     func testDistanceSecondElFirstLoc() throws {
-        let ts = TimeSeries<DistanceEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<DistanceEvent, None>(queue: queue)
         ts.reset()
         ts.insert(DistanceEvent(date: makeDt(1000), distance: 100))
         let actual = ts.parse(
@@ -124,7 +134,7 @@ class DerivedEventTests: XCTestCase {
     }
     
     func testDistanceSecondElSecondLocNoGap() throws {
-        let ts = TimeSeries<DistanceEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<DistanceEvent, None>(queue: queue)
         ts.reset()
         XCTAssertTrue(ts.elements.isEmpty)
         ts.insert(DistanceEvent(date: makeDt(500), distance: 100))

@@ -77,42 +77,25 @@ private struct LockScreenTest: View {
                     }
                     .padding()
                     Text("well")
-                    NavigationLink(
-                        destination: {
-                            VStack {
-                                Spacer()
-                                Text("Hello-ho world")
-                                Spacer()
-                                Toggle(isOn: isLocked) {
-                                    Text("locked:")
-                                }
-                                .padding()
-                                Spacer()
+                    NavigationLink {
+                        VStack {
+                            Spacer()
+                            Text("Hello-ho world")
+                            Spacer()
+                            Toggle(isOn: isLocked) {
+                                Text("locked:")
                             }
-                            .navigationBarTitle("Hello")
-                            .navigationBarTitleDisplayMode(.inline)
-                        }) {
+                            .padding()
+                            Spacer()
+                        }
+                        .navigationBarTitle("Hello")
+                        .navigationBarTitleDisplayMode(.inline)
+                    } label: {
                         Label("Gallery", systemImage: "photo.on.rectangle.angled")
                             .font(.footnote)
                     }
                 }
             }
-        }
-    }
-}
-
-struct SyncedPreview: View {
-    @State private var ok: Bool = false
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            SyncedX(ok: $ok)
-            Spacer()
-            Toggle(isOn: $ok, label: {
-                Text("Change from outside")
-            })
-            Spacer()
         }
     }
 }
@@ -123,29 +106,3 @@ struct LockScreenView_Previews: PreviewProvider {
     }
 }
 #endif
-
-struct SyncedX: View {
-    @Binding var ok: Bool
-    
-    @State private var x: String = "X"
-    
-    var body: some View {
-        VStack {
-            Text("\(ok ? "on" : "off")")
-            Button {
-                ok.toggle()
-            } label: {
-                Text("Change from inside")
-            }
-            Button {
-                x += "X"
-            } label: {
-                Text("Do something with X directly")
-            }
-            Text(" \(x) ")
-        }
-        .onChange(of: ok) {
-            x = $0 ? "ok" : "nok"
-        }
-    }
-}

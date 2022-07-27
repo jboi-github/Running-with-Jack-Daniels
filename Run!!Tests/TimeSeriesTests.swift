@@ -24,10 +24,22 @@ class TimeSeriesTests: XCTestCase {
         }
         func distance(to other: Continuos) -> Double {other.value - value}
         func advanced(by n: Double) -> Continuos {Continuos(date: date, value: value + n)}
+        
+        init(date: Date, value: Double) {
+            self.date = date
+            self.value = value
+        }
+        
+        init(_ element: Self) {
+            self.date = element.date
+            self.value = element.value
+        }
     }
+    var queue: SerialQueue!
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
+        queue = SerialQueue("X")
         Continuos.key = UUID().uuidString
         log(Continuos.key)
     }
@@ -38,7 +50,7 @@ class TimeSeriesTests: XCTestCase {
 
     // MARK: Inserts
     func testInsertFirst() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -46,7 +58,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertBeforeAll() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -59,7 +71,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertAfterAll() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -69,7 +81,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertWithin() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -82,7 +94,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertOnFirst() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -95,7 +107,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testInsertOnLast() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -109,7 +121,7 @@ class TimeSeriesTests: XCTestCase {
 
     // MARK: Archives
     func testArchiveBeforeAll() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -122,7 +134,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testArchiveAfterAll() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(500))
@@ -137,7 +149,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testArchiveOnMid() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -154,7 +166,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testArchiveWithin() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -171,7 +183,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testArchiveOnEmpty() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.archive(upTo: makeDt(1500))
@@ -180,7 +192,7 @@ class TimeSeriesTests: XCTestCase {
 
     // MARK: Get single element
     func testGetOneDirect() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -193,7 +205,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testGetOneBeforeAll() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -209,7 +221,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testGetOneAfterAll() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -225,7 +237,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testGetOneWithin() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         ts.insert(makeEl(1000))
@@ -238,7 +250,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testGetFromEmpty() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         // Interpolate
@@ -246,7 +258,7 @@ class TimeSeriesTests: XCTestCase {
     }
 
     func testBinSearch() throws {
-        let ts = TimeSeries<Continuos, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<Continuos, None>(queue: queue)
         XCTAssertTrue(ts.elements.isEmpty)
 
         stride(from: 1000, to: 2000, by: 10).forEach {ts.insert(makeEl($0))}
@@ -263,7 +275,8 @@ class TimeSeriesTests: XCTestCase {
         static let key: String = "TS"
         var vector: VectorElement<String>
         init(_ vector: VectorElement<String>) {self.vector = vector}
-
+        init(_ element: Self) {self.init(element.vector)}
+        
         init(date: Date, string: String, value: Int) {
             vector = VectorElement(
                 date: date,
@@ -276,10 +289,17 @@ class TimeSeriesTests: XCTestCase {
             get {vector.ints![0]}
             set {vector.ints![0] = newValue}
         }
+        
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            guard lhs.string == rhs.string else {return false}
+            guard lhs.value == rhs.value else {return false}
+            guard Int(lhs.date.timeIntervalSinceReferenceDate) == Int(rhs.date.timeIntervalSinceReferenceDate) else {return false}
+            return true
+        }
     }
     
     func testTimeseriesMutation() throws {
-        let ts = TimeSeries<TestTimeSeries, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<TestTimeSeries, None>(queue: queue)
         ts.reset()
         ts.insert(TestTimeSeries(date: makeDt(1000), string: "A", value: 0))
         ts.insert(TestTimeSeries(date: makeDt(2000), string: "B", value: 1))
@@ -314,7 +334,7 @@ class TimeSeriesTests: XCTestCase {
     }
     
     func testMeta() throws {
-        let ts = TimeSeries<TestTimeSeries, Date>(queue: DispatchQueue.global())
+        let ts = TimeSeries<TestTimeSeries, Date>(queue: queue)
         ts.reset()
         XCTAssertNil(ts.meta)
         
@@ -322,89 +342,6 @@ class TimeSeriesTests: XCTestCase {
         XCTAssertEqual(ts.meta, makeDt(1000))
     }
     
-    // MARK: Save and load
-    
-    func testNotSavedWhileInForeground() throws {
-        let ts = TimeSeries<TestTimeSeries, Date>(queue: DispatchQueue.global())
-        XCTAssertFalse(ts.isDirty)
-        ts.isInBackground = false
-        
-        // Read original elements
-        let original: [TestTimeSeries] = Files.read(from: "TS.json") ?? []
-        XCTAssertEqual(ts.elements, original)
-        
-        // Do something while in foreground
-        ts.insert(TestTimeSeries(date: makeDt(10000), string: "X", value: 1))
-        XCTAssertNotEqual(original, ts.elements)
-        XCTAssertNotEqual(Files.read(from: "TS.json") ?? [], ts.elements)
-        XCTAssertEqual(original, Files.read(from: "TS.json") ?? [])
-        XCTAssertTrue(ts.isDirty)
-        
-        // Even after some time it stays unsafed
-        let expectation = XCTestExpectation()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 45) {
-            XCTAssertNotEqual(original, ts.elements)
-            XCTAssertNotEqual(Files.read(from: "TS.json") ?? [], ts.elements)
-            XCTAssertEqual(original, Files.read(from: "TS.json") ?? [])
-            XCTAssertTrue(ts.isDirty)
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 60)
-    }
-    
-    func testSavedGoingToBackground() throws {
-        let ts = TimeSeries<TestTimeSeries, Date>(queue: DispatchQueue.global())
-        XCTAssertFalse(ts.isDirty)
-        ts.isInBackground = false
-        
-        // Read original elements
-        let original: [TestTimeSeries] = Files.read(from: "TS.json") ?? []
-        
-        // Do something while in foreground
-        ts.insert(TestTimeSeries(date: makeDt(10000), string: "X", value: 1))
-        
-        // Go to background
-        ts.isInBackground = true
-        XCTAssertNotEqual(original, ts.elements)
-        XCTAssertEqual(Files.read(from: "TS.json") ?? [], ts.elements)
-        XCTAssertNotEqual(original, Files.read(from: "TS.json") ?? [])
-        XCTAssertFalse(ts.isDirty)
-    }
-    
-    func testSavedStayingInBackground() throws {
-        let ts = TimeSeries<TestTimeSeries, Date>(queue: DispatchQueue.global())
-        XCTAssertFalse(ts.isDirty)
-        ts.isInBackground = false
-        
-        // Read original elements
-        let original: [TestTimeSeries] = Files.read(from: "TS.json") ?? []
-        
-        // Do something while in foreground
-        ts.insert(TestTimeSeries(date: makeDt(10000), string: "X", value: 1))
-        
-        // Go to background
-        ts.isInBackground = true
-        
-        // Do something while in background
-        ts.insert(TestTimeSeries(date: makeDt(20000), string: "Y", value: 2))
-        XCTAssertNotEqual(original, ts.elements)
-        XCTAssertNotEqual(Files.read(from: "TS.json") ?? [], ts.elements)
-        XCTAssertEqual(original, Files.read(from: "TS.json") ?? [])
-        XCTAssertTrue(ts.isDirty)
-
-        // Wait
-        let expectation = XCTestExpectation()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 45) {
-            // Shoud be saved now
-            XCTAssertNotEqual(original, ts.elements)
-            XCTAssertEqual(Files.read(from: "TS.json") ?? [], ts.elements)
-            XCTAssertNotEqual(original, Files.read(from: "TS.json") ?? [])
-            XCTAssertFalse(ts.isDirty)
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 60)
-    }
-
     private func makeEl(_ x: Double, _ y: Double? = nil) -> Continuos {
         Continuos(date: makeDt(x), value: y ?? x)
     }

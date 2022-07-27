@@ -8,12 +8,9 @@
 import Foundation
 import CoreLocation
 
-// FIXME: Heartaret seconds goes down, when no new heartrate arrives
-// FIXME: Sometimes wrong total summed
-
 // Implement simple set of all necessary timeseries
 class TimeSeriesSet: ObservableObject {
-    init(queue: DispatchQueue) {
+    init(queue: SerialQueue) {
         self.queue = queue
         self.pedometerDataTimeseries = TimeSeries<PedometerDataEvent, None>(queue: queue)
         self.pedometerEventTimeseries = TimeSeries<PedometerEvent, None>(queue: queue)
@@ -27,11 +24,11 @@ class TimeSeriesSet: ObservableObject {
         self.bodySensorLocationTimeseries = TimeSeries<BodySensorLocationEvent, None>(queue: queue)
         self.peripheralTimeseries = TimeSeries<PeripheralEvent, None>(queue: queue)
         self.pathTimeseries = TimeSeries<PathEvent, None>(queue: queue)
-        self.workoutTimeseries = TimeSeries<WorkoutEvent, None>(queue: queue)
+        self.resetTimeseries = TimeSeries<ResetEvent, None>(queue: queue)
         self.totalsTimeseries = TimeSeries<TotalEvent, Date>(queue: queue)
     }
     
-    let queue: DispatchQueue
+    private unowned let queue: SerialQueue
     let pedometerDataTimeseries: TimeSeries<PedometerDataEvent, None>
     let pedometerEventTimeseries: TimeSeries<PedometerEvent, None>
     let motionActivityTimeseries: TimeSeries<MotionActivityEvent, None>
@@ -44,7 +41,7 @@ class TimeSeriesSet: ObservableObject {
     let bodySensorLocationTimeseries: TimeSeries<BodySensorLocationEvent, None>
     let peripheralTimeseries: TimeSeries<PeripheralEvent, None>
     let pathTimeseries: TimeSeries<PathEvent, None>
-    let workoutTimeseries: TimeSeries<WorkoutEvent, None>
+    let resetTimeseries: TimeSeries<ResetEvent, None>
     let totalsTimeseries: TimeSeries<TotalEvent, Date>
 
     // MARK: Common functions
@@ -62,13 +59,13 @@ class TimeSeriesSet: ObservableObject {
         bodySensorLocationTimeseries.archive(upTo: upTo)
         peripheralTimeseries.archive(upTo: upTo)
         pathTimeseries.archive(upTo: upTo)
-        workoutTimeseries.archive(upTo: upTo)
+        resetTimeseries.archive(upTo: upTo)
         totalsTimeseries.archive(upTo: upTo)
     }
     
     var isInBackground: Bool = true {
         didSet {
-            workoutTimeseries.isInBackground = isInBackground
+            resetTimeseries.isInBackground = isInBackground
             pedometerDataTimeseries.isInBackground = isInBackground
             pedometerEventTimeseries.isInBackground = isInBackground
             motionActivityTimeseries.isInBackground = isInBackground
@@ -141,282 +138,158 @@ class TimeSeriesSet: ObservableObject {
         heartrateTimeseries.insert(heartrateEvent)
     }
     
-    func reflect(_ workoutEvent: WorkoutEvent) {
-        workoutTimeseries.insert(workoutEvent)
-        totalsTimeseries.reflect(workoutEvent: workoutEvent)
-        archive(upTo: workoutEvent.originalDate)
+    func reflect(_ resetEvent: ResetEvent) {
+        resetTimeseries.insert(resetEvent)
+        totalsTimeseries.reflect(resetEvent: resetEvent)
+        archive(upTo: resetEvent.originalDate)
     }
 
-    // MARK: Workout Status
+    // MARK: Reset Status
     
     struct WorkoutStatus: Dated {
         let date: Date
         
-        /// WorkoutEvent: User is currently working out
-        let isWorkingOut: Bool?
+        /// ResetEvent: Date, when reset has started
+        let resetDate: Date?
         
-        /// WorkoutEvent: Date, when workout has started
-        let isWorkingOutSince: Date?
-        
-        /// WorkoutEvent: Elapsed time since workout has started
+        /// ResetEvent: Elapsed time since reset has started
         let duration: TimeInterval?
         
-        /// PedometerData: Total number of steps since beginning of workout
+        /// PedometerData: Total number of steps since reset
         let numberOfSteps: Int?
         
-        /// PedometerData: Total distance recognized by pedometer since beginning of workout
-        let pdmDistance: CLLocationDistance?
-        
-        /// PedometerData: Total active time recognized by pedometer since beginning of workout
+        /// PedometerData: Total cadence since reset in steps / second
+        let cadence: Double?
+
+        /// PedometerData: Total active time recognized by pedometer since reset
         let activeDuration: TimeInterval?
 
-        /// PedometerData: Average speed for reported interval
-        let pdmSpeed: CLLocationSpeed?
-
-        /// PedometerEvent: Pedometer recognized resumed or paused acitivity while in foreground
-        let isActive: Bool?
-
-        /// MotionActivity: Type of motion detected.
+        /// MotionActivity: Latest motion type detected.
         let motion: MotionActivityEvent.Motion?
         
-        /// MotionActivity: Confidence into detected motion type
+        /// MotionActivity: Latest confidence into detected motion type
         let confidence: MotionActivityEvent.Confidence?
 
-        /// Heartrate: Measured last heartrate
+        /// Heartrate: Latest masured heartrate
         let heartrate: Int?
         
-        /// Heartrate: Measured expended energy, if available
+        /// Heartrate: Total expended energy, if available
         let energyExpended: Int?
         
-        /// Heartrate: Recognize if heartrate monitor has contact to skin, if available
+        /// Heartrate: Latest recognition, if heartrate monitor has contact to skin, if available
         let skinIsContacted: Bool?
         
-        // Intensity: Runing intensity by heartrate
+        // Intensity: Latest running intensity by heartrate
         let intensity: Run.Intensity?
 
-        /// Batterylevel: Percent of battery load between 0..100
+        /// Batterylevel: Latest measured percent of battery load between 0..100
         let batteryLevel: Int?
         
-        /// BodySensorLocation: Location of heartrate monitor
-        let bodySensorLocation: BodySensorLocationEvent.SensorLocation?
+        /// BodySensorLocation: Latest location of heartrate monitor
+        let bodySensorLocation: HRM.SensorLocation?
 
         /// Peripheral: Latest discovered ble periphals name, if any given.
         let peripheralName: String?
 
         /// Peripheral: Latest discovered ble periphal and its connection status.
         let peripheralState: PeripheralEvent.State?
-
-        /// Location: Latest measured gps location, if allowed.
-        let location: CLLocation?
         
-        /// DistanceEvent: Total gps distance since beginning of workout in meter
-        let gpsDistance: CLLocationDistance?
+        /// DistanceEvent or PedometerData: Total gps ord pdm distance since beginning of lap in meter
+        let distance: CLLocationDistance?
         
-        /// Distance of GPS or PDM, if available
-        var distance: CLLocationDistance? {gpsDistance ?? pdmDistance}
+        /// DistanceEvent or PedometerData: Total gps ord pdm speed in meter / second
+        let speed: CLLocationSpeed?
         
-        /// Current speed
-        var speed: CLLocationSpeed? { location?.speed ?? pdmSpeed }
-        
-        /// Overall cadence during workout
-        var cadence: Double? {
-            guard let numberOfSteps = numberOfSteps else {return nil}
-            guard let duration = duration else {return nil}
-            return Double(numberOfSteps) / duration
-        }
-        
-        /// Overall vdot during workout
+        /// Total vdot since reset
         let vdot: Double?
     }
 
     @Published private(set) var status: WorkoutStatus?
-    
-    func refreshStatus(asOf: Date) {
-        queue.async {
-            let status = self._status(asOf: asOf)
-            DispatchQueue.main.async {
-                self.status = status
-            }
-        }
-    }
 
-    private func _status(asOf: Date) -> WorkoutStatus {
-        let workoutAsOf = workoutTimeseries[asOf]
-        let pedometerDataAsOf = pedometerDataTimeseries[asOf]
-        let pedometerEventAsOf = pedometerEventTimeseries[asOf]
-        let motionActivityAsOf = motionActivityTimeseries[asOf]
-        let locationAsOf = locationTimeseries[asOf]
-        let distanceAsOf = distanceTimeseries[asOf]
-        let heartrateAsOf = heartrateTimeseries[asOf]
-        let heartrateSecondsAsOf = heartrateSecondsTimeseries[asOf]
-        let intensityAsOf = intensityTimeseries[asOf]
-        let batteryLevelAsOf = batteryLevelTimeseries[asOf]
-        let bodySensorLocationAsOf = bodySensorLocationTimeseries[asOf]
-        let peripheralAsOf = peripheralTimeseries[asOf]
-        
-        if let isWorkingOutSince = workoutAsOf?.originalDate {
-            let pedometerDataAtStart = pedometerDataTimeseries[isWorkingOutSince]
-            let distanceAtStart = distanceTimeseries[isWorkingOutSince]
-            let heartrateSecondsAtStart = heartrateSecondsTimeseries[isWorkingOutSince]
-
-            let duration = isWorkingOutSince.distance(to: asOf)
-            let pdmDistance = pedometerDataAsOf?.distance - pedometerDataAtStart?.distance
-            let gpsDistance = distanceAsOf?.distance - distanceAtStart?.distance
-
-            return WorkoutStatus(
-                date: asOf,
-                isWorkingOut: workoutAsOf?.isWorkingOut,
-                isWorkingOutSince: isWorkingOutSince,
-                duration: duration,
-                numberOfSteps: pedometerDataAsOf?.numberOfSteps - pedometerDataAtStart?.numberOfSteps,
-                pdmDistance: pdmDistance,
-                activeDuration: pedometerDataAsOf?.activeDuration - pedometerDataAtStart?.activeDuration,
-                pdmSpeed: pedometerDataAsOf?.speed,
-                isActive: pedometerEventAsOf?.isActive,
-                motion: motionActivityAsOf?.motion,
-                confidence: motionActivityAsOf?.confidence,
-                heartrate: heartrateAsOf?.heartrate,
-                energyExpended: heartrateAsOf?.energyExpended,
-                skinIsContacted: heartrateAsOf?.skinIsContacted,
-                intensity: intensityAsOf?.intensity,
-                batteryLevel: batteryLevelAsOf?.level,
-                bodySensorLocation: bodySensorLocationAsOf?.sensorLocation,
-                peripheralName: peripheralAsOf?.name,
-                peripheralState: peripheralAsOf?.state,
-                location: locationAsOf?.clLocation,
-                gpsDistance: gpsDistance,
-                vdot: _vdot(
-                    distance: gpsDistance ?? pdmDistance,
-                    duration: duration,
-                    heartrateSeconds: heartrateSecondsAsOf?.heartrateSeconds - heartrateSecondsAtStart?.heartrateSeconds)
-            )
-        } else {
-            return WorkoutStatus(
-                date: asOf,
-                isWorkingOut: workoutAsOf?.isWorkingOut,
-                isWorkingOutSince: nil,
-                duration: nil,
-                numberOfSteps: nil,
-                pdmDistance: nil,
-                activeDuration: nil,
-                pdmSpeed: nil,
-                isActive: pedometerEventAsOf?.isActive,
-                motion: motionActivityAsOf?.motion,
-                confidence: motionActivityAsOf?.confidence,
-                heartrate: heartrateAsOf?.heartrate,
-                energyExpended: heartrateAsOf?.energyExpended,
-                skinIsContacted: heartrateAsOf?.skinIsContacted,
-                intensity: intensityAsOf?.intensity,
-                batteryLevel: batteryLevelAsOf?.level,
-                bodySensorLocation: bodySensorLocationAsOf?.sensorLocation,
-                peripheralName: peripheralAsOf?.name,
-                peripheralState: peripheralAsOf?.state,
-                location: locationAsOf?.clLocation,
-                gpsDistance: nil,
-                vdot: nil
-            )
-        }
+    // Status is build on top of totals where possible
+    private func _status(asOf: Date, total: TotalEventDelta) -> WorkoutStatus {
+        WorkoutStatus(
+            date: asOf,
+            resetDate: resetTimeseries[asOf]?.originalDate,
+            duration: total.duration,
+            numberOfSteps: total.numberOfSteps,
+            cadence: total.cadence,
+            activeDuration: total.activeDuration,
+            motion: motionActivityTimeseries[asOf]?.motion,
+            confidence: motionActivityTimeseries[asOf]?.confidence,
+            heartrate: heartrateTimeseries[asOf]?.heartrate,
+            energyExpended: total.energyExpended,
+            skinIsContacted: heartrateTimeseries[asOf]?.skinIsContacted,
+            intensity: intensityTimeseries[asOf]?.intensity,
+            batteryLevel: batteryLevelTimeseries[asOf]?.level,
+            bodySensorLocation: bodySensorLocationTimeseries[asOf]?.sensorLocation,
+            peripheralName: peripheralTimeseries[asOf]?.name,
+            peripheralState: peripheralTimeseries[asOf]?.state,
+            distance: total.distance,
+            speed: total.speed,
+            vdot: total.vdot)
     }
     
     // MARK: Calculation Engine for Totals
     
     /// Final result of calculation is an array of `Total` sorted by `asOf` descending.
     /// The array contains each combination of keys only once.
-    /// The array is filtered down to only the current workout by `workoutDate`
+    /// The array is filtered down to only the current reset by `resetDate`
     struct Total: Dated, Equatable {
-        #if DEBUG
         init(
-            asOf: Date,
+            endAt: Date,
             motionActivity: MotionActivityEvent.Motion?,
-            workoutDate: Date?,
-            isWorkingOut: Bool?,
+            resetDate: Date?,
             intensity: Run.Intensity?,
-            duration: TimeInterval = 0,
-            numberOfSteps: Double? = nil,
-            pdmDistance: CLLocationDistance? = nil,
-            activeDuration: TimeInterval? = nil,
-            gpsDistance: CLLocationDistance? = nil,
-            heartrateSeconds: Double? = nil)
+            duration: TimeInterval,
+            numberOfSteps: Int?,
+            activeDuration: TimeInterval?,
+            energyExpended: Int?,
+            distance: CLLocationDistance?,
+            speed: CLLocationSpeed?,
+            cadence: Double?,
+            avgHeartrate: Int?,
+            vdot: Double?)
         {
-            self.asOf = asOf
+            self.endAt = endAt
             self.motionActivity = motionActivity
-            self.workoutDate = workoutDate
-            self.isWorkingOut = isWorkingOut
+            self.resetDate = resetDate
             self.intensity = intensity
             self.duration = duration
             self.numberOfSteps = numberOfSteps
-            self.pdmDistance = pdmDistance
             self.activeDuration = activeDuration
-            self.gpsDistance = gpsDistance
-            self.heartrateSeconds = heartrateSeconds
+            self.energyExpended = energyExpended
+            
+            self.distance = distance
+            self.speed = speed
+            self.cadence = cadence
+            self.avgHeartrate = avgHeartrate
+            
+            self.vdot = vdot
         }
-        #endif
-        
-        let asOf: Date
-        
-        // Key part
-        let motionActivity: MotionActivityEvent.Motion?
-        let workoutDate: Date?
-        let isWorkingOut: Bool?
-        let intensity: Run.Intensity?
-        
-        // Value part
-        private(set) var duration: TimeInterval = 0
-        private(set) var numberOfSteps: Double?
-        private(set) var pdmDistance: CLLocationDistance?
-        private(set) var activeDuration: TimeInterval?
-        private(set) var gpsDistance: CLLocationDistance?
-        private(set) var heartrateSeconds: Double?
-
-        fileprivate(set) var vdot: Double?
 
         // Implement `Dated`
-        var date: Date {asOf}
+        var date: Date {endAt}
 
-        // Other derived data
-        var isActive: Bool { [.walking, .running].contains(motionActivity) }
-        
-        var distance: CLLocationDistance? { gpsDistance ?? pdmDistance }
-        
-        var avgHeartrate: Double? {
-            guard let heartrateSeconds = heartrateSeconds else {return nil}
-            guard duration > 0 else {return nil }
+        let endAt: Date
 
-            return heartrateSeconds / duration
-        }
-        
-        var avgSpeed: CLLocationSpeed? {
-            guard duration > 0 else {return nil}
-            guard let distance = distance, distance > 0 else {return nil}
-
-            return distance / duration
-        }
-
-        fileprivate static func += (lhs: inout Self, rhs: VectorElementDelta) {
-            let rhs = TotalEventDelta(rhs)
-            
-            lhs.duration += rhs.duration
-            lhs.numberOfSteps += rhs.numberOfSteps
-            lhs.pdmDistance += rhs.pdmDistance
-            lhs.activeDuration += rhs.activeDuration
-            lhs.gpsDistance += rhs.gpsDistance
-            lhs.heartrateSeconds += rhs.heartrateSeconds
-        }
-        
-        fileprivate init(_ asOf: Date, _ key: TotalKey) {
-            self.asOf = asOf
-            self.motionActivity = key.motionActivity
-            self.workoutDate = key.workoutDate
-            self.isWorkingOut = key.isWorkingOut
-            self.intensity = key.intensity
-        }
-    }
-    
-    fileprivate struct TotalKey: Hashable {
+        // Key part
         let motionActivity: MotionActivityEvent.Motion?
-        let workoutDate: Date?
-        let isWorkingOut: Bool?
+        let resetDate: Date?
         let intensity: Run.Intensity?
+        
+        // Values, directly taken
+        let duration: TimeInterval
+        let numberOfSteps: Int?
+        let activeDuration: TimeInterval?
+        let energyExpended: Int?
+
+        // Derivded and calculated values
+        let distance: CLLocationDistance?
+        let speed: CLLocationSpeed?
+        let cadence: Double?
+        let avgHeartrate: Int?
+        let vdot: Double?
     }
     
     @Published private(set) var totals = [Total]()
@@ -424,96 +297,65 @@ class TimeSeriesSet: ObservableObject {
     func refreshTotals(upTo: Date) {
         queue.async {
             let totals = self._totals(upTo: upTo)
+            let status = self._status(asOf: upTo, total: totals.delta)
             DispatchQueue.main.async {
-                self.totals = totals
+                self.totals = totals.totals
+                self.status = status
             }
         }
     }
     
-    private func _totals(upTo: Date) -> [Total] {
+    private func _totals(upTo: Date) -> (delta: TotalEventDelta, totals: [Total]) {
         // Refresh and create last `upTo` event
         totalsTimeseries.refresh(
-            workoutTimeseries: workoutTimeseries,
+            resetTimeseries: resetTimeseries,
             motionActivityTimeseries: motionActivityTimeseries,
             intensityTimeseries: intensityTimeseries,
             pedometerDataTimeseries: pedometerDataTimeseries,
             distanceTimeseries: distanceTimeseries,
+            heartrateTimeseries: heartrateTimeseries,
             heartrateSecondsTimeseries: heartrateSecondsTimeseries)
         var upToEvent = TotalEvent(date: upTo)
         upToEvent.refresh(
             dirtyAfter: .distantPast,
-            workoutTimeseries: workoutTimeseries,
-            motionActivityTimeseries: motionActivityTimeseries,
+            resetTimeseries: resetTimeseries,
             intensityTimeseries: intensityTimeseries,
+            motionActivityTimeseries: motionActivityTimeseries,
             pedometerDataTimeseries: pedometerDataTimeseries,
             distanceTimeseries: distanceTimeseries,
+            heartrateTimeseries: heartrateTimeseries,
             heartrateSecondsTimeseries: heartrateSecondsTimeseries)
         
-        var prevEvent: TotalEvent?
-        var lastWorkoutStart: Date?
-        
-        var totals = [
-            totalsTimeseries.elements,
-            [upToEvent]
-        ]
-            .flatMap {$0}
-        
-        // Map into key and delta-part, where delta is between start and end of a segment with constant key
-            .compactMap { currEvent -> (date: Date, key: TotalKey, delta: VectorElementDelta)? in
-                defer { prevEvent = currEvent }
-                guard let prevEvent = prevEvent else {return nil}
-
-                let key = TotalKey(
-                    motionActivity: prevEvent.segment.motionActivityEvent?.motion,
-                    workoutDate: prevEvent.segment.workoutEvent?.originalDate,
-                    isWorkingOut: prevEvent.segment.workoutEvent?.isWorkingOut,
-                    intensity: prevEvent.segment.intensityEvent?.intensity)
-                
-                let delta = prevEvent.distance(to: currEvent)                
-                return (date: prevEvent.date, key: key, delta: delta)
-            }
-        
-        // Reduce into dictionary, sum up deltas
-            .reduce(into: [TotalKey: Total]()) {
-                $0[$1.key, default: Total($1.date, $1.key)] += $1.delta
-            }
-        
-        // Map dictionary into array, sorted by `date` descending
-            .values
-            .sorted {$0.date > $1.date} // Sort result -> current segment first
-        
-        // Filter only current workout (by original workout date)
-            .filter {
-                guard let lastWorkoutStart = lastWorkoutStart else {
-                    lastWorkoutStart = $0.workoutDate
-                    return true
-                }
-                return $0.workoutDate == lastWorkoutStart
-            }
-        
-        // Final polish of calculations
-        totals.indices.forEach {
-            totals[$0].vdot = _vdot(
-                distance: totals[$0].distance,
-                duration: totals[$0].duration,
-                heartrateSeconds: totals[$0].heartrateSeconds)
+        // Get summed up totals
+        guard let totals = try? totalsTimeseries.sumUp(upToEvent: upToEvent) else {
+            return (TotalEventDelta.zero, [])
         }
         
-        return totals
-    }
-    
-    private func _vdot(
-        distance: CLLocationDistance?,
-        duration: TimeInterval?,
-        heartrateSeconds: Double?) -> Double?
-    {
-        guard let duration = duration, duration > 0 else {return nil}
-        guard let distance = distance, distance > 0 else {return nil}
-        guard let hrLimits = Profile.hrLimits.value else {return nil}
+        let allTotal = totals
+            .filter { $0.value.motion?.isActive ?? true }
+            .reduce(into: TotalEventDelta.zero) { $0 += $1.value.delta }
         
-        return Run.train(
-            hrBpm: Int((heartrateSeconds ?? 0) / duration + 0.5),
-            paceSecPerKm: 1000 * duration / (distance),
-            limits: hrLimits)
+        let partTotals = totals
+            // Sort by event end date, descending
+            .sorted {$0.value.endDate > $1.value.endDate}
+            // Map to resulting total
+            .map {
+                Total(
+                    endAt: $0.value.endDate,
+                    motionActivity: $0.value.motion,
+                    resetDate: $0.key.resetEvent?.originalDate,
+                    intensity: $0.key.intensityEvent?.intensity,
+                    duration: $0.value.delta.duration,
+                    numberOfSteps: $0.value.delta.numberOfSteps,
+                    activeDuration: $0.value.delta.activeDuration,
+                    energyExpended: $0.value.delta.energyExpended,
+                    distance: $0.value.delta.distance,
+                    speed: $0.value.delta.speed,
+                    cadence: $0.value.delta.cadence,
+                    avgHeartrate: $0.value.delta.avgHeartrate,
+                    vdot: $0.value.delta.vdot)
+            }
+        
+        return (allTotal, partTotals)
     }
 }

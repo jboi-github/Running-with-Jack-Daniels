@@ -9,9 +9,11 @@ import XCTest
 @testable import Run__
 
 class IntensityEventTests: XCTestCase {
+    var queue: SerialQueue!
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
+        queue = SerialQueue("X")
     }
 
     override func tearDownWithError() throws {
@@ -94,7 +96,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         let actual = try XCTUnwrap(
             ts.parse(
@@ -108,7 +110,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         let actual = try XCTUnwrap(
             ts.parse(
@@ -122,7 +124,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         let actual = try XCTUnwrap(
             ts.parse(
@@ -136,7 +138,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         let actual = try XCTUnwrap(
             ts.parse(
@@ -154,7 +156,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         let actual = try XCTUnwrap(
             ts.parse(
@@ -172,7 +174,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         ts.insert(IntensityEvent(date: makeDt(1000), intensity: .threshold))
         let actual = try XCTUnwrap(
@@ -187,7 +189,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         ts.insert(IntensityEvent(date: makeDt(0), intensity: .threshold))
         let actual = try XCTUnwrap(
@@ -201,7 +203,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         ts.insert(IntensityEvent(date: makeDt(190), intensity: .threshold))
         let actual = try XCTUnwrap(
@@ -215,7 +217,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         ts.insert(IntensityEvent(date: makeDt(190), intensity: .threshold))
         let actual = try XCTUnwrap(
@@ -229,7 +231,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         ts.insert(IntensityEvent(date: makeDt(190), intensity: .threshold))
         let actual = try XCTUnwrap(
@@ -246,7 +248,7 @@ class IntensityEventTests: XCTestCase {
         Profile.onAppear()
         Profile.hrMax.onChange(to: 200)
         
-        let ts = TimeSeries<IntensityEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<IntensityEvent, None>(queue: queue)
         ts.reset()
         ts.insert(IntensityEvent(date: makeDt(0), intensity: .threshold))
         let actual = try XCTUnwrap(
@@ -260,7 +262,7 @@ class IntensityEventTests: XCTestCase {
     
     // MARK: HeartrateSecondsEvent
     func testHeartrateSecondsFirstElFirstHr() throws {
-        let ts = TimeSeries<HeartrateSecondsEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<HeartrateSecondsEvent, None>(queue: queue)
         ts.reset()
         let actual = ts.parse(
             HeartrateEvent(
@@ -272,7 +274,7 @@ class IntensityEventTests: XCTestCase {
     }
     
     func testHeartrateSecondsFirstElSecondHr() throws {
-        let ts = TimeSeries<HeartrateSecondsEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<HeartrateSecondsEvent, None>(queue: queue)
         ts.reset()
         let actual = ts.parse(
             HeartrateEvent(
@@ -285,14 +287,18 @@ class IntensityEventTests: XCTestCase {
                 heartrate: 100,
                 skinIsContacted: nil,
                 energyExpended: nil))
-        let expected = HeartrateSecondsEvent(date: makeDt(1500), heartrateSeconds: 125 * 500)
+        let expected = HeartrateSecondsEvent(
+            date: makeDt(1500),
+            heartrateSeconds: 125 * 500)
         XCTAssertEqual(actual, expected)
     }
     
     func testHeartrateSecondsSecondElFirstHr() throws {
-        let ts = TimeSeries<HeartrateSecondsEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<HeartrateSecondsEvent, None>(queue: queue)
         ts.reset()
-        ts.insert(HeartrateSecondsEvent(date: makeDt(500), heartrateSeconds: 125 * 500))
+        ts.insert(HeartrateSecondsEvent(
+            date: makeDt(500),
+            heartrateSeconds: 125 * 500))
         let actual = ts.parse(
             HeartrateEvent(
                 date: makeDt(1000),
@@ -303,10 +309,12 @@ class IntensityEventTests: XCTestCase {
     }
     
     func testHeartrateSecondsSecondElSecondHr() throws {
-        let ts = TimeSeries<HeartrateSecondsEvent, None>(queue: DispatchQueue.global())
+        let ts = TimeSeries<HeartrateSecondsEvent, None>(queue: queue)
         ts.reset()
         XCTAssertTrue(ts.elements.isEmpty)
-        ts.insert(HeartrateSecondsEvent(date: makeDt(500), heartrateSeconds: 100))
+        ts.insert(HeartrateSecondsEvent(
+            date: makeDt(500),
+            heartrateSeconds: 100))
         XCTAssertEqual(ts.elements.last?.vector.date, makeDt(500))
         
         let actual = ts.parse(

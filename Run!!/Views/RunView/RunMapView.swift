@@ -14,7 +14,7 @@ struct RunMapView: View {
     let gpsStatus: ClientStatus
     
     @State private var region = MKCoordinateRegion()
-    @State private var userTrackingMode = MapUserTrackingMode.follow
+    @State private var userTrackingMode = MapUserTrackingMode.none
     
     var body: some View {
         ZStack {
@@ -62,6 +62,12 @@ struct RunMapView: View {
             }
         }
         .animation(.default, value: userTrackingMode)
+        .onAppear {
+            region = MKCoordinateRegion(
+                center: path.last?.midPoint ?? londonGps,
+                latitudinalMeters: (path.last?.accuracyRadius ?? 50) * 1.1,
+                longitudinalMeters: (path.last?.accuracyRadius ?? 50) * 1.1)
+        }
     }
 }
 

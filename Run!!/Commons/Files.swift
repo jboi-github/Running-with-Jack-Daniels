@@ -125,6 +125,18 @@ enum Files {
         }
     }
     
+    static func unlink(from: String) {
+        guard let url = url(for: from) else {return}
+        
+        do {
+            return try FileManager.default.removeItem(at: url)
+        } catch {
+            log(from)
+            check(error)
+            return
+        }
+    }
+
     static func list() {
         guard let url = directory else {return}
         log(url)

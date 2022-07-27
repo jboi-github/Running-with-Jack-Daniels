@@ -8,6 +8,7 @@
 import SwiftUI
 import MapKit
 
+// FIXME: SwiftUI produced Runtime-issue. Build MapView based on MapKit/UIKit
 struct MapView: View {
     let size: CGSize
     let path: [PathEvent]
@@ -15,24 +16,25 @@ struct MapView: View {
     @Binding var userTrackingMode: MapUserTrackingMode
 
     var body: some View {
-        Map(
-            coordinateRegion: $region,
-            interactionModes: .all,
-            showsUserLocation: true,
-            userTrackingMode: $userTrackingMode,
-            annotationItems: path)
-        {  pathEvent in
-            MapAnnotation(coordinate: pathEvent.midPoint) {
-                MapAnnotationView(
-                    accuracyRadius: pathEvent.accuracyRadius * factor,
-                    speedMinRadius: pathEvent.speedMinRadius * factor,
-                    speedMaxRadius: pathEvent.speedMaxRadius * factor,
-                    courseMinAngle: pathEvent.courseMinAngle,
-                    courseMaxAngle: pathEvent.courseMaxAngle,
-                    color: (pathEvent.intensity ?? .cold).color,
-                    textColor: (pathEvent.intensity ?? .cold).textColor)
-            }
-        }
+//        Map(
+//            coordinateRegion: $region,
+//            interactionModes: .all,
+//            showsUserLocation: true,
+//            userTrackingMode: $userTrackingMode,
+//            annotationItems: path)
+//        {  pathEvent in
+//            MapAnnotation(coordinate: pathEvent.midPoint) {
+//                MapAnnotationView(
+//                    accuracyRadius: pathEvent.accuracyRadius * factor,
+//                    speedMinRadius: pathEvent.speedMinRadius * factor,
+//                    speedMaxRadius: pathEvent.speedMaxRadius * factor,
+//                    courseMinAngle: pathEvent.courseMinAngle,
+//                    courseMaxAngle: pathEvent.courseMaxAngle,
+//                    color: (pathEvent.intensity ?? .cold).color,
+//                    textColor: (pathEvent.intensity ?? .cold).textColor)
+//            }
+//        }
+        Text("Map")
     }
     
     var factor: CGFloat {size.width / region.span.latitudeDelta}

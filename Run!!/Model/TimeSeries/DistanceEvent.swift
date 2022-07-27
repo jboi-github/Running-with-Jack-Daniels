@@ -21,6 +21,8 @@ struct DistanceEvent: GenericTimeseriesElement {
     
     /// Total distance since beginning of time in meter
     var distance: CLLocationDistance {vector.doubles![0]}
+    
+    static func distance(_ delta: VectorElementDelta?) -> CLLocationDistance? {delta?.doubles![0]}
 }
 
 extension TimeSeries where Element == DistanceEvent {

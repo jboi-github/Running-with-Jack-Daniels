@@ -21,13 +21,14 @@ struct RunCurrentsView: View {
     let hrmStatus: ClientStatus
     let peripheralName: String?
     let batteryLevel: Int?
+    let compact: Bool
     
     @Binding var selection: Int
 
     var body: some View {
         ZStack {
             if let hrLimits = hrLimits, case .started = hrmStatus {
-                HrLimitsView(heartrate: heartrate, intensity: intensity, hrLimits: hrLimits)
+                HrLimitsView(heartrate: heartrate, intensity: intensity, hrLimits: hrLimits, compact: compact)
             } else if case .started = hrmStatus {
                 Button {
                     withAnimation {
@@ -111,7 +112,7 @@ struct RunCurrentsView_Previews: PreviewProvider {
             cadence: 10, isActive: true,
             hrmStatus: .started(since: Date()),
             peripheralName: "HR-Name",
-            batteryLevel: 50, selection: .constant(0))
+            batteryLevel: 50, compact: false, selection: .constant(0))
         
         RunCurrentsView(
             heartrate: 100,
@@ -124,7 +125,7 @@ struct RunCurrentsView_Previews: PreviewProvider {
             cadence: 130, isActive: false,
             hrmStatus: .started(since: Date()),
             peripheralName: "HR-Name",
-            batteryLevel: 50, selection: .constant(0))
+            batteryLevel: 50, compact: true, selection: .constant(0))
     }
 }
 #endif

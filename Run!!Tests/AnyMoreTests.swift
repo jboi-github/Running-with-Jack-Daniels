@@ -34,6 +34,85 @@ class AnyMoreTests: XCTestCase {
         XCTAssertEqual(x, [SomeStruct(variable: 0), SomeStruct(variable: 5)])
     }
     
+    // MARK: Test Optionals
+    func testComparableLess() throws {
+        let x0: Int? = 0
+        let x1: Int? = 1
+        
+        XCTAssertTrue(x0 < x1)
+        XCTAssertTrue(x0 <= x1)
+        XCTAssertFalse(x0 == x1)
+        XCTAssertFalse(x0 >= x1)
+        XCTAssertFalse(x0 > x1)
+        XCTAssertEqual(min(x0, x1), 0)
+        XCTAssertEqual(max(x0, x1), 1)
+    }
+    
+    func testComparableEqual() throws {
+        let x0: Int? = 0
+        let x1: Int? = 0
+        
+        XCTAssertFalse(x0 < x1)
+        XCTAssertTrue(x0 <= x1)
+        XCTAssertTrue(x0 == x1)
+        XCTAssertTrue(x0 >= x1)
+        XCTAssertFalse(x0 > x1)
+        XCTAssertEqual(min(x0, x1), 0)
+        XCTAssertEqual(max(x0, x1), 0)
+    }
+    
+    func testComparableHigher() throws {
+        let x0: Int? = 1
+        let x1: Int? = 0
+        
+        XCTAssertFalse(x0 < x1)
+        XCTAssertFalse(x0 <= x1)
+        XCTAssertFalse(x0 == x1)
+        XCTAssertTrue(x0 >= x1)
+        XCTAssertTrue(x0 > x1)
+        XCTAssertEqual(min(x0, x1), 0)
+        XCTAssertEqual(max(x0, x1), 1)
+    }
+    
+    func testComparableLeftNil() throws {
+        let x0: Int? = nil
+        let x1: Int? = 1
+        
+        XCTAssertTrue(x0 < x1)
+        XCTAssertTrue(x0 <= x1)
+        XCTAssertFalse(x0 == x1)
+        XCTAssertFalse(x0 >= x1)
+        XCTAssertFalse(x0 > x1)
+        XCTAssertEqual(min(x0, x1), nil)
+        XCTAssertEqual(max(x0, x1), 1)
+    }
+    
+    func testComparableRightNil() throws {
+        let x0: Int? = 0
+        let x1: Int? = nil
+        
+        XCTAssertFalse(x0 < x1)
+        XCTAssertFalse(x0 <= x1)
+        XCTAssertFalse(x0 == x1)
+        XCTAssertTrue(x0 >= x1)
+        XCTAssertTrue(x0 > x1)
+        XCTAssertEqual(min(x0, x1), nil)
+        XCTAssertEqual(max(x0, x1), 0)
+    }
+    
+    func testComparableBothNil() throws {
+        let x0: Int? = nil
+        let x1: Int? = nil
+        
+        XCTAssertFalse(x0 < x1)
+        XCTAssertTrue(x0 <= x1)
+        XCTAssertTrue(x0 == x1)
+        XCTAssertTrue(x0 >= x1)
+        XCTAssertFalse(x0 > x1)
+        XCTAssertEqual(min(x0, x1), nil)
+        XCTAssertEqual(max(x0, x1), nil)
+    }
+
     private func makeDt(_ x: Double) -> Date {
         Date(timeIntervalSinceReferenceDate: x)
     }

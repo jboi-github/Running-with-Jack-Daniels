@@ -9,7 +9,7 @@ import SwiftUI
 import HealthKit
 
 struct BodysensorLocationView: View {
-    let sensorLocation: BodySensorLocationEvent.SensorLocation?
+    let sensorLocation: HRM.SensorLocation?
     
     var imageName: String? {
         switch sensorLocation {

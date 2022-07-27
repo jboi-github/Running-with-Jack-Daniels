@@ -20,9 +20,14 @@ class ScannerClient {
 
         var peripheral: CBPeripheral?
         var rssi: Double = .nan
-        var bodySensorLocation: BodySensorLocationEvent.SensorLocation?
+        var bodySensorLocation: HRM.SensorLocation?
         var batteryLevel: Int?
         var error: Error?
+        
+        var heartrate: Int?
+        var skinIsContacted: Bool?
+        var energyExpended: Int?
+        var rr: [TimeInterval]?
     }
     
     private(set) var peripherals = [UUID: Peripheral]()
@@ -59,7 +64,7 @@ class ScannerClient {
         return result
     }
 
-    func start(asOf: Date) {
+    func start(asOf: Date, queue: SerialQueue) {
         if case .started = status {return}
         peripherals.removeAll()
         if let primaryUuid = Store.primaryPeripheral {
@@ -92,10 +97,11 @@ class ScannerClient {
                     CBUUID(string: "2A19"): {self.bleTwin.poll(seconds: 300, $0, $1, $2)}
                 ],
                 readers: [
+                    CBUUID(string: "2A37"): parseHeartrate,
                     CBUUID(string: "2A38"): parseBodySensorLocation,
                     CBUUID(string: "2A19"): parseBatteryLevel
                 ]),
-            asOf: asOf, transientFailedPeripheralUuid: nil)
+            asOf: asOf, queue: queue, transientFailedPeripheralUuid: nil)
         status = .started(since: asOf)
     }
 
@@ -131,17 +137,22 @@ class ScannerClient {
         peripherals[peripheralUuid]?.rssi = rssi.doubleValue
     }
 
+    private func parseHeartrate(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
+        log(peripheralUuid, timestamp)
+        guard let (heartrate, skinIsContacted, energyExpended, rr) = HRM.parse(data) else { return }
+        peripherals[peripheralUuid]?.heartrate = heartrate
+        peripherals[peripheralUuid]?.skinIsContacted = skinIsContacted
+        peripherals[peripheralUuid]?.energyExpended = energyExpended
+        peripherals[peripheralUuid]?.rr = rr
+    }
+
     private func parseBodySensorLocation(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        guard let data = data, !data.isEmpty else {return}
-
-        peripherals[peripheralUuid]?.bodySensorLocation = BodySensorLocationEvent.SensorLocation(rawValue: [UInt8](data)[0]) ?? .other
+        peripherals[peripheralUuid]?.bodySensorLocation = HRM.parse(data)
     }
 
     private func parseBatteryLevel(_ peripheralUuid: UUID, _ data: Data?, _ timestamp: Date) {
         log(peripheralUuid, timestamp)
-        guard let data = data, !data.isEmpty else {return}
-
-        peripherals[peripheralUuid]?.batteryLevel = Int([UInt8](data)[0])
+        peripherals[peripheralUuid]?.batteryLevel = HRM.parse(data)
     }
 }

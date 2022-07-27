@@ -9,18 +9,20 @@ import SwiftUI
 
 struct HeartrateText: View {
     let text: String
+    let compact: Bool
     
-    init(heartrate: Int?) {
+    init(heartrate: Int?, compact: Bool = false) {
+        self.compact = compact
+
         guard let heartrate = heartrate, (0..<250).contains(heartrate) else {
             self.text = "---"
             return
         }
-
         self.text = String(format: "%3d", heartrate)
     }
     
     var body: some View {
-        Text("\(text) bpm").lineLimit(1)
+        Text("\(text)\(compact ? "\n" : " ")bpm")
     }
 }
 

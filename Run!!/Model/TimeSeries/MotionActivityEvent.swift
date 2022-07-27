@@ -19,8 +19,10 @@ struct MotionActivityEvent: GenericTimeseriesElement {
         case low, medium, high
     }
     
-    enum Motion: Codable, Equatable {
-        case stationary, walking, running, cycling, other
+    enum Motion: Codable, Comparable, Equatable {
+        case other, stationary, walking, running, cycling
+        
+        var isActive: Bool { [.walking, .running, .cycling].contains(self) }
     }
     
     struct Info: Codable, Equatable {

@@ -10,9 +10,13 @@ import MapKit
 
 struct RunView: View {
     @Binding var selection: Int
+    
     @AppStorage("RunViewSelection") private var runSelection: Int = 0
 
-    @ObservedObject private var timeseriesSet = AppTwin.shared.timeseriesSet
+    @EnvironmentObject private var appStatus: AppStatus
+    @EnvironmentObject private var timeseriesSet: TimeSeriesSet
+    @EnvironmentObject private var clientSet: ClientsSet
+    
     @State private var size: CGSize = .zero
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -20,98 +24,81 @@ struct RunView: View {
     var body: some View {
         VStack {
             HStack {
-                // TODO: Is it possible to get rid of the start button?
-                Button {
-                    if isWorkingOut {
-                        AppTwin.shared.workoutClient.stop(asOf: .now)
-                        timeseriesSet.refreshStatus(asOf: .now)
-                        selection = 1
-                    } else {
-                        AppTwin.shared.workoutClient.start(asOf: .now)
-                        timeseriesSet.refreshStatus(asOf: .now)
-                    }
-                } label: {
-                    VStack(spacing: 0) {
-                        Image(systemName: "\(isWorkingOut ? "stop" : "play").circle").font(.title)
-                        Text(isWorkingOut ? "stop" : "start").font(.caption)
-                    }
-                    .foregroundColor(.accentColor)
-                    .padding()
+                ToolbarButton(systemName: "stop.circle", text: "stop") {
+                    timeseriesSet.reflect(ResetEvent(date: .now))
+                    selection = 1
+                }
+                ToolbarButton(systemName: "arrow.triangle.capsulepath", text: "reset") {
+                    timeseriesSet.reflect(ResetEvent(date: .now))
                 }
                 Spacer()
                 Text("Lock Button") // TODO: Implement
                 Spacer()
                 RunClientStatusView(
-                    stcStatus: AppTwin.shared.sensorClients[0].status,
-                    hrmStatus: AppTwin.shared.sensorClients[4].status,
-                    gpsStatus: AppTwin.shared.sensorClients[3].status,
+                    stcStatus: clientSet.pedometerDataStatus,
+                    hrmStatus: clientSet.heartrateMonitorStatus,
+                    gpsStatus: clientSet.locationStatus,
                     intensity: timeseriesSet.status?.intensity,
                     locationsNotEmpty: !timeseriesSet.locationTimeseries.elements.isEmpty,
                     heartratesNotEmpty: !timeseriesSet.heartrateTimeseries.elements.isEmpty)
             }
-            TabView(selection: $runSelection) {
-                RunMapCurrentsTotalsTextView(
-                    size: size,
-                    path: timeseriesSet.pathTimeseries.elements,
-                    gpsStatus: AppTwin.shared.sensorClients[3].status,
-                    totals: timeseriesSet.totals,
-                    status: timeseriesSet.status,
-                    hrmStatus: AppTwin.shared.sensorClients[4].status,
-                    selection: $selection)
-                    .refresh {await refresh()}
-                    .tag(1)
-                RunCurrentsTotalsGraphView(
-                    size: size,
-                    totals: timeseriesSet.totals,
-                    status: timeseriesSet.status,
-                    hrmStatus: AppTwin.shared.sensorClients[4].status,
-                    selection: $selection)
-                    .refresh {await refresh()}
-                    .tag(2)
-                RunCurrentsTotalsTextView(
-                    size: size,
-                    totals: timeseriesSet.totals,
-                    status: timeseriesSet.status,
-                    hrmStatus: AppTwin.shared.sensorClients[4].status,
-                    selection: $selection)
-                    .refresh {await refresh()}
-                    .tag(3)
-                RunMapCurrentsView(
-                    size: size,
-                    path: timeseriesSet.pathTimeseries.elements,
-                    gpsStatus: AppTwin.shared.sensorClients[3].status,
-                    status: timeseriesSet.status,
-                    hrmStatus: AppTwin.shared.sensorClients[4].status,
-                    selection: $selection)
-                    .refresh {await refresh()}
-                    .tag(4)
-                RunMapTotalsTextView(
-                    size: size,
-                    path: timeseriesSet.pathTimeseries.elements,
-                    gpsStatus: AppTwin.shared.sensorClients[3].status,
-                    totals: timeseriesSet.totals)
-                    .refresh {await refresh()}
-                    .tag(5)
+            ZStack {
+                VStack {Spacer(); HStack {Spacer()}}
+                TabView(selection: $runSelection) {
+                    RunMapCurrentsTotalsTextView(
+                        size: size,
+                        path: timeseriesSet.pathTimeseries.elements,
+                        gpsStatus: clientSet.locationStatus,
+                        totals: timeseriesSet.totals,
+                        status: timeseriesSet.status,
+                        hrmStatus: clientSet.heartrateMonitorStatus,
+                        selection: $selection)
+                        .tag(1)
+                    RunCurrentsTotalsGraphView(
+                        size: size,
+                        totals: timeseriesSet.totals,
+                        status: timeseriesSet.status,
+                        hrmStatus: clientSet.heartrateMonitorStatus,
+                        selection: $selection)
+                        .tag(2)
+                    RunCurrentsTotalsTextView(
+                        size: size,
+                        totals: timeseriesSet.totals,
+                        status: timeseriesSet.status,
+                        hrmStatus: clientSet.heartrateMonitorStatus,
+                        selection: $selection)
+                        .tag(3)
+                    RunMapCurrentsView(
+                        size: size,
+                        path: timeseriesSet.pathTimeseries.elements,
+                        gpsStatus: clientSet.locationStatus,
+                        status: timeseriesSet.status,
+                        hrmStatus: clientSet.heartrateMonitorStatus,
+                        selection: $selection)
+                        .tag(4)
+                    RunMapTotalsTextView(
+                        size: size,
+                        path: timeseriesSet.pathTimeseries.elements,
+                        gpsStatus: clientSet.locationStatus,
+                        totals: timeseriesSet.totals)
+                        .tag(5)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .automatic))
+                // TODO: .refresh {await refresh()}
             }
-            .tabViewStyle(.page(indexDisplayMode: .automatic))
             .captureSize(in: $size)
         }
         .animation(.default, value: selection)
         .onReceive(timer) {
             timeseriesSet.refreshTotals(upTo: $0)
-            timeseriesSet.refreshStatus(asOf: $0)
+            clientSet.trigger(asOf: $0)
         }
     }
 
     private func refresh() {
         let now = Date.now
-        AppTwin.shared.sensorClients.forEach {$0.stop(asOf: now)}
-        AppTwin.shared.sensorClients.forEach {$0.start(asOf: now)}
-    }
-    
-    private var isWorkingOut: Bool {
-        guard let status = timeseriesSet.status, let isWorkingOut = status.isWorkingOut else {return false}
-        return isWorkingOut
+        clientSet.stopSensors(asOf: now)
+        clientSet.startSensors(asOf: now)
     }
 }
 
@@ -130,7 +117,9 @@ private struct RunMapCurrentsTotalsTextView: View {
                 size: size,
                 path: path,
                 gpsStatus: gpsStatus)
-                .frame(height: size.height * 0.9 * 0.5)
+                .frame(height: size.height * 0.5)
+
+            Divider()
 
             RunCurrentsView(
                 heartrate: status?.heartrate,
@@ -141,15 +130,22 @@ private struct RunMapCurrentsTotalsTextView: View {
                 speed: status?.speed,
                 vdot: status?.vdot,
                 cadence: status?.cadence,
-                isActive: status?.isActive,
+                isActive: status?.motion?.isActive,
                 hrmStatus: hrmStatus,
                 peripheralName: status?.peripheralName,
                 batteryLevel: status?.batteryLevel,
+                compact: true,
                 selection: $selection)
-                .frame(height: size.height * 0.9 * 0.3)
+                .frame(height: size.height * 0.3)
 
-            RunTotalsView(graphical: false, totals: totals)
-                .frame(height: size.height * 0.9 * 0.2)
+            Divider()
+
+            RunTotalsView(
+                size: CGSize(width: size.width, height: size.height * 0.2),
+                graphical: false,
+                totals: totals)
+                .frame(height: size.height * 0.2)
+
         }
     }
 }
@@ -172,15 +168,16 @@ private struct RunCurrentsTotalsGraphView: View {
                 speed: status?.speed,
                 vdot: status?.vdot,
                 cadence: status?.cadence,
-                isActive: status?.isActive,
+                isActive: status?.motion?.isActive,
                 hrmStatus: hrmStatus,
                 peripheralName: status?.peripheralName,
                 batteryLevel: status?.batteryLevel,
+                compact: false,
                 selection: $selection)
-                .frame(height: size.height * 0.9 * 0.6)
+                .frame(height: size.height * 0.6)
 
-            RunTotalsView(graphical: true, totals: totals)
-                .frame(height: size.height * 0.9 * 0.4)
+            RunTotalsView(size: size, graphical: true, totals: totals)
+                .frame(height: size.height * 0.4)
         }
     }
 }
@@ -203,15 +200,16 @@ private struct RunCurrentsTotalsTextView: View {
                 speed: status?.speed,
                 vdot: status?.vdot,
                 cadence: status?.cadence,
-                isActive: status?.isActive,
+                isActive: status?.motion?.isActive,
                 hrmStatus: hrmStatus,
                 peripheralName: status?.peripheralName,
                 batteryLevel: status?.batteryLevel,
+                compact: false,
                 selection: $selection)
-                .frame(height: size.height * 0.9 * 0.6)
+                .frame(height: size.height * 0.6)
 
-            RunTotalsView(graphical: false, totals: totals)
-                .frame(height: size.height * 0.9 * 0.4)
+            RunTotalsView(size: size, graphical: false, totals: totals)
+                .frame(height: size.height * 0.4)
         }
     }
 }
@@ -230,7 +228,7 @@ private struct RunMapCurrentsView: View {
                 size: size,
                 path: path,
                 gpsStatus: gpsStatus)
-                .frame(height: size.height * 0.9 * 0.7)
+                .frame(height: size.height * 0.7)
 
             RunCurrentsView(
                 heartrate: status?.heartrate,
@@ -241,12 +239,13 @@ private struct RunMapCurrentsView: View {
                 speed: status?.speed,
                 vdot: status?.vdot,
                 cadence: status?.cadence,
-                isActive: status?.isActive,
+                isActive: status?.motion?.isActive,
                 hrmStatus: hrmStatus,
                 peripheralName: status?.peripheralName,
                 batteryLevel: status?.batteryLevel,
+                compact: true,
                 selection: $selection)
-                .frame(height: size.height * 0.9 * 0.3)
+                .frame(height: size.height * 0.3)
         }
     }
 }
@@ -263,10 +262,10 @@ private struct RunMapTotalsTextView: View {
                 size: size,
                 path: path,
                 gpsStatus: gpsStatus)
-                .frame(height: size.height * 0.9 * 0.7)
+                .frame(height: size.height * 0.7)
 
-            RunTotalsView(graphical: false, totals: totals)
-                .frame(height: size.height * 0.9 * 0.3)
+            RunTotalsView(size: size, graphical: false, totals: totals)
+                .frame(height: size.height * 0.3)
         }
     }
 }

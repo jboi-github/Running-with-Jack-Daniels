@@ -20,13 +20,20 @@ struct HrLimitsView: View {
     let min: Int
     let easyLower: Int
     let max: Int
+    let compact: Bool
     
     @State private var angle: Angle = .zero
     
-    init(heartrate: Int?, intensity: Run.Intensity?, hrLimits: [Run.Intensity: Range<Int>]) {
+    init(
+        heartrate: Int?,
+        intensity: Run.Intensity?,
+        hrLimits: [Run.Intensity: Range<Int>],
+        compact: Bool = false)
+    {
         self.heartrate = heartrate
         self.intensity = intensity
         self.hrLimits = hrLimits
+        self.compact = compact
         min = hrLimits[.cold]?.lowerBound ?? 0
         easyLower = hrLimits[.easy]?.lowerBound ?? 0
         max = hrLimits.values.map {$0.upperBound}.max() ?? 0
@@ -68,8 +75,8 @@ struct HrLimitsView: View {
 
                 // Value
                 if let heartrate = heartrate, let intensity = intensity {
-                    // FIXME: Should not contain 'bpm' if text overlaps circle
-                    HeartrateText(heartrate: heartrate)
+
+                    HeartrateText(heartrate: heartrate, compact: compact)
                         .font(.largeTitle)
                         .lineLimit(2)
                         .foregroundColor(intensity.color)

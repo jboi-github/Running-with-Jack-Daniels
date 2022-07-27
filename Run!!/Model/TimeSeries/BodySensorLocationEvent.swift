@@ -10,25 +10,20 @@ import Foundation
 struct BodySensorLocationEvent: GenericTimeseriesElement {
     // MARK: Implement GenericTimeseriesElement
     static let key: String = "BodySensorLocationEvent"
-    let vector: VectorElement<SensorLocation>
-    init(_ vector: VectorElement<SensorLocation>) {self.vector = vector}
+    let vector: VectorElement<HRM.SensorLocation>
+    init(_ vector: VectorElement<HRM.SensorLocation>) {self.vector = vector}
 
     // MARK: Implement specifics
-    enum SensorLocation: UInt8, Codable {
-        case other, chest, wrist, finger, hand, earLobe, foot
-    }
-    
-    init(date: Date, sensorLocation: SensorLocation) {
+    init(date: Date, sensorLocation: HRM.SensorLocation) {
         vector = VectorElement(date: date, categorical: sensorLocation)
     }
     
-    var sensorLocation: SensorLocation {vector.categorical!}
+    var sensorLocation: HRM.SensorLocation {vector.categorical!}
 }
 
 extension TimeSeries where Element == BodySensorLocationEvent {
     func parse(_ asOf: Date, _ data: Data?) -> Element? {
-        guard let data = data, !data.isEmpty else {return nil}
-        let result = Element(date: asOf, sensorLocation: BodySensorLocationEvent.SensorLocation(rawValue: [UInt8](data)[0]) ?? .other)
+        let result = Element(date: asOf, sensorLocation: HRM.parse(data))
         if let last = elements.last, last.sensorLocation == result.sensorLocation {return nil}
         return result
     }

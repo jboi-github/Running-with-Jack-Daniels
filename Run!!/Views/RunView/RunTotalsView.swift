@@ -13,7 +13,7 @@ private let intensityOrder: [Run.Intensity] = [.cold, .easy, .long, .marathon, .
 extension TimeSeriesSet.Total: ChartDataPoint {
     var classifier: String {(intensity ?? .cold).rawValue.capitalized}
     var x: Double { duration }
-    var y: Double { avgHeartrate ?? 0 }
+    var y: Double { Double(avgHeartrate ?? 0) }
 
     func makeBody(
         _ canvas: CGRect,
@@ -23,7 +23,7 @@ extension TimeSeriesSet.Total: ChartDataPoint {
     -> some View
     {
         VStack {
-            PedometerEventView(isActive: isActive, intensity: intensity)
+            PedometerEventView(isActive: motionActivity?.isActive, intensity: intensity)
             VdotText(vdot: vdot)
         }
         .font(.caption)
@@ -44,6 +44,7 @@ extension TimeSeriesSet.Total: ChartDataPoint {
    - Position the bubbles along duration (x-axes) and distance (y-axes)
  */
 struct RunTotalsView: View {
+    let size: CGSize
     let graphical: Bool
     let totals: [TimeSeriesSet.Total]
 
@@ -51,13 +52,13 @@ struct RunTotalsView: View {
         if graphical {
             RunTotalGraphicalView(totals: totals)
         } else if !totals.isEmpty {
-            RunTotalTableView(totals: totals)
+            RunTotalTableView(size: size, totals: totals)
         }
     }
 }
 
-// FIXME: Should show motion indication at beginning of line
 private struct RunTotalTableView: View {
+    let size: CGSize
     let totals: [TimeSeriesSet.Total]
 
     @State private var widthMotion: CGFloat = 0
@@ -66,37 +67,42 @@ private struct RunTotalTableView: View {
     @State private var widthSpeed: CGFloat = 0
     @State private var widthVdot: CGFloat = 0
     @State private var widthHeartrate: CGFloat = 0
-
+    
+    @State private var tableSize = CGSize()
+    
     var body: some View {
-        List {
+        VStack {
             // Body lines
             ForEach(totals) { total in
-                ZStack {
-                    Capsule().foregroundColor((total.intensity ?? .cold).color)
-                    HStack {
-                        MotionActivityView(
-                            motion: total.motionActivity,
-                            confidence: .high)
-                            .alignedView(width: $widthMotion)
-                        TimeText(time: total.duration)
-                            .alignedView(width: $widthDuration)
+                HStack {
+                    MotionActivityView(
+                        motion: total.motionActivity,
+                        confidence: .high)
+                        .alignedView(width: $widthMotion)
+                    TimeText(time: total.duration)
+                        .alignedView(width: $widthDuration)
+                    HeartrateText(heartrate: total.avgHeartrate)
+                        .alignedView(width: $widthHeartrate)
+                    if total.motionActivity?.isActive ?? true {
                         DistanceText(distance: total.distance)
                             .alignedView(width: $widthDistance)
-                        HeartrateText(heartrate: Int((total.avgHeartrate ?? 0) + 0.5))
-                            .alignedView(width: $widthHeartrate)
-                        SpeedText(speed: total.avgSpeed)
-                            .alignedView(width: $widthSpeed)
+                        SpeedText(speed: total.speed)
+                                .alignedView(width: $widthSpeed)
                         VdotText(vdot: total.vdot)
                             .alignedView(width: $widthVdot)
                     }
-                    .font(.callout)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .foregroundColor((total.intensity ?? .cold).textColor)
-                    .padding(4)
                 }
+                .font(.callout)
+                .lineLimit(1)
+                .fixedSize()
+                .foregroundColor((total.intensity ?? .cold).textColor)
+                .padding(4)
+                .background(Capsule().foregroundColor((total.intensity ?? .cold).color))
             }
         }
+        .fixedSize()
+        .captureSize(in: $tableSize)
+        .scaleEffect(x: (size.width / tableSize.width).ifNotFinite(1), y: 1, anchor: .center)
     }
 }
 
@@ -118,64 +124,94 @@ private struct RunTotalGraphicalView: View {
 #if DEBUG
 struct RunTotalsView_Previews: PreviewProvider {
     static var previews: some View {
-        RunTotalsView(graphical: true, totals: [])
-        RunTotalsView(graphical: false, totals: [
+        RunTotalsView(size: CGSize(width: 500, height: 300), graphical: true, totals: [])
+        RunTotalsView(size: CGSize(width: 500, height: 300), graphical: false, totals: [
             TimeSeriesSet.Total(
-                asOf: .now,
+                endAt: .now,
                 motionActivity: .stationary,
-                workoutDate: .now,
-                isWorkingOut: true,
+                resetDate: .now,
                 intensity: .cold,
                 duration: 100,
-                gpsDistance: 0,
-                heartrateSeconds: 100 * 100),
+                numberOfSteps: nil,
+                activeDuration: nil,
+                energyExpended: nil,
+                distance: 0,
+                speed: nil,
+                cadence: nil,
+                avgHeartrate: 100,
+                vdot: nil),
             TimeSeriesSet.Total(
-                asOf: .now,
+                endAt: .now,
                 motionActivity: .walking,
-                workoutDate: .now,
-                isWorkingOut: true,
+                resetDate: .now,
                 intensity: .easy,
                 duration: 500,
-                gpsDistance: 1400,
-                heartrateSeconds: 150 * 500),
+                numberOfSteps: nil,
+                activeDuration: nil,
+                energyExpended: nil,
+                distance: 1400,
+                speed: nil,
+                cadence: nil,
+                avgHeartrate: 150,
+                vdot: nil),
             TimeSeriesSet.Total(
-                asOf: .now,
+                endAt: .now,
                 motionActivity: .running,
-                workoutDate: .now,
-                isWorkingOut: true,
+                resetDate: .now,
                 intensity: .marathon,
                 duration: 400,
-                gpsDistance: 1300,
-                heartrateSeconds: 160 * 400)
+                numberOfSteps: nil,
+                activeDuration: nil,
+                energyExpended: nil,
+                distance: 1300,
+                speed: nil,
+                cadence: nil,
+                avgHeartrate: 160,
+                vdot: nil)
         ])
-        RunTotalsView(graphical: true, totals: [
+        RunTotalsView(size: CGSize(width: 500, height: 300), graphical: true, totals: [
             TimeSeriesSet.Total(
-                asOf: .now,
+                endAt: .now,
                 motionActivity: .stationary,
-                workoutDate: .now,
-                isWorkingOut: true,
+                resetDate: .now,
                 intensity: .cold,
                 duration: 100,
-                gpsDistance: 0,
-                heartrateSeconds: 100 * 100),
+                numberOfSteps: nil,
+                activeDuration: nil,
+                energyExpended: nil,
+                distance: 0,
+                speed: nil,
+                cadence: nil,
+                avgHeartrate: 100,
+                vdot: nil),
             TimeSeriesSet.Total(
-                asOf: .now,
+                endAt: .now,
                 motionActivity: .walking,
-                workoutDate: .now,
-                isWorkingOut: true,
+                resetDate: .now,
                 intensity: .easy,
                 duration: 500,
-                gpsDistance: 1400,
-                heartrateSeconds: 150 * 500),
+                numberOfSteps: nil,
+                activeDuration: nil,
+                energyExpended: nil,
+                distance: 1400,
+                speed: nil,
+                cadence: nil,
+                avgHeartrate: 150,
+                vdot: nil),
             TimeSeriesSet.Total(
-                asOf: .now,
+                endAt: .now,
                 motionActivity: .running,
-                workoutDate: .now,
-                isWorkingOut: true,
+                resetDate: .now,
                 intensity: .marathon,
                 duration: 400,
-                gpsDistance: 1300,
-                heartrateSeconds: 160 * 400)
+                numberOfSteps: nil,
+                activeDuration: nil,
+                energyExpended: nil,
+                distance: 1300,
+                speed: nil,
+                cadence: nil,
+                avgHeartrate: 160,
+                vdot: nil)
         ])
     }
 }
